@@ -155,7 +155,7 @@ class CardController extends Controller
 			'term' => 'required|max:191|min:2'
 		]);
 
-		$term = escapeLink($request->input('term'));
+		$term = escapeLike($request->input('term'));
 		$cards = Card::where('name', 'like', $term.'%')->orderBy('name')->paginate(25)->pluck('name');
 
 		// Additional formatting for select2 requests
