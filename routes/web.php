@@ -20,6 +20,7 @@ Route::get('/', 'CardController@index')->name('index');
 Route::get('/deck', 'DeckController@index')->name('deck.index');
 Route::post('/upgrade_deck', 'DeckController@upgrade')->name('deck.upgrade');
 
+Route::get('/quicksearch', 'CardController@quicksearch')->name('card.quicksearch');
 Route::get('/card_autocomplete', 'CardController@cardAutocomplete')->name('card.autocomplete');
 Route::post('/card/search', 'CardController@search')->name('card.search');
 

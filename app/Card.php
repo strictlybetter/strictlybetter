@@ -37,6 +37,11 @@ class Card extends Model
     	return 'https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=' . $this->multiverse_id;
     }
 
+    public function getTypeLineAttribute()
+    {
+    	return trim(implode(" ", $this->supertypes) . " " . implode(" ", $this->types) . " - " . implode(" ", $this->subtypes), " -");
+    }
+
     public function isSuperior(Card $other)
     {
     	// Types must match

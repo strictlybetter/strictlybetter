@@ -1,8 +1,29 @@
+html {
+	overflow-y: scroll;
+}
+.row {
+	margin-left: 0;
+	margin-right: 0;
+}
 .mtgcard {
 	width: 223px;
 	height: 310px;
 }
+.mtgcard-thumb {
+	width: 33%;
+	height: 33%;
+}
 .mtgcard-wrapper {
-	min-width: 253px;
-	min-height: 330px;
+	min-width: 223px;
+	min-height: 310px;
+	padding: 0;
+	margin-bottom: 10px;
+	margin-right: 5px;
+}
+.select2-selection {
+	height: auto !important;
+	background-color: #EEEEEE !important;
+}
+ul.select2-results__options {
+	max-height: 400px !important;
 }

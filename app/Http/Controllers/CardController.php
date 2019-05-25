@@ -17,12 +17,44 @@ class CardController extends Controller
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function index()
+	public function index(Request $request)
 	{
-		$cards = Card::with(['superiors'])->whereHas('superiors')->orderBy('updated_at', 'desc')->paginate(10);
+		$term = $request->input('search', '');
+		if ($term === null) $term = "";
+
+		$cards = Card::with(['superiors'])->whereHas('superiors');
+
+		// Apply search term if any
+		if ($term !== "") {
+			$cards = $cards->where('name', 'like', escapeLike($term).'%');
+		}
+
+		$cards = $cards->orderBy('updated_at', 'desc')->paginate(10);
+
+		$cards->setPath(route('index', ['search' => $term]));
+
 		//$cards = Obsolete::with(['superior', 'inferior'])->orderBy('created_at', 'desc')->paginate(10);
 
-	    return view('index')->with(['cards' => $cards]);
+	    return view('index')->with(['search' => $term, 'cards' => $cards]);
+	}
+
+	public function quicksearch(Request $request)
+	{
+		$term = $request->input('search', '');
+		if ($term === null) $term = "";
+
+		$cards = Card::with(['superiors'])->whereHas('superiors');
+
+		// Apply search term if any
+		if ($term !== "") {
+			$cards = $cards->where('name', 'like', escapeLike($term).'%');
+		}
+
+		$cards = $cards->orderBy('updated_at', 'desc')->paginate(10);
+
+		$cards->setPath(route('index', ['search' => $term]));
+
+		return view('card.partials.browse')->with(['cards' => $cards]);
 	}
 
 	/**
@@ -156,20 +188,25 @@ class CardController extends Controller
 		]);
 
 		$term = escapeLike($request->input('term'));
-		$cards = Card::where('name', 'like', $term.'%')->orderBy('name')->paginate(25)->pluck('name');
+		$cards = Card::where('name', 'like', $term.'%')->orderBy('name')->paginate(25);
+
+		$list = [];
 
 		// Additional formatting for select2 requests
 		if ($request->input('select2')) {
-			foreach ($cards as $i => $card) {
-				$cards[$i] = [
-					'id' => $card,
-					'text' => $card,
-					'gathererUrl' => "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=25646&type=card"
+			foreach ($cards as $card) {
+				$list[] = [
+					'id' => $card->name,
+					'text' => $card->name,
+					'imageUrl' => $card->imageUrl,
+					'typeline' => $card->typeLine
 				];
 			}
 		}
+		else 
+			$list = $cards->pluck('name');
 
-		return response()->json($cards);
+		return response()->json($list);
 	}
 
 	public function search(Request $request) 
