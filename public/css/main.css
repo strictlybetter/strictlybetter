@@ -1,0 +1,8 @@
+.mtgcard {
+	width: 223px;
+	height: 310px;
+}
+.mtgcard-wrapper {
+	min-width: 253px;
+	min-height: 330px;
+}
