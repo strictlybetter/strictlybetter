@@ -53,7 +53,7 @@
 	</div>
 	@else
 	<div class="col-md-8" style="padding-top: 100px;">
-		No updgrade needed.<br>
+		No upgrade needed.<br>
 		Unless you'd like to <a class="tell_superior" href="{{ route('card.create', [$card->id]) }}">tell us about it</a>?
 	</div>
 	@endif

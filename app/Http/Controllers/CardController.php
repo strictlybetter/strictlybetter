@@ -54,7 +54,7 @@ class CardController extends Controller
 
 		$cards->setPath(route('index', ['search' => $term]));
 
-		return view('card.partials.browse')->with(['cards' => $cards]);
+		return view('card.partials.browse')->with(['cards' => $cards, 'term' => $term]);
 	}
 
 	/**

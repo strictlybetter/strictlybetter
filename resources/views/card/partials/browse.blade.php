@@ -17,8 +17,14 @@
 </div>
 
 @if(count($cards) == 0)
+	<br>
 	<p>
-		Sorry. No results found. Perhaps you'd like to <a href="{{ route('card.create') }}">add it</a>?
+		@if(isset($term))
+			There are no upgrades for "{{ $term }}".<br>
+		@else
+			No upgrades found.
+		@endif
+		Perhaps you'd like to <a href="{{ route('card.create') }}">tell us otherwise</a>?
 	</p>
 @else
 	@foreach($cards as $card)
