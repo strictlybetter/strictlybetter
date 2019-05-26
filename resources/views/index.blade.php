@@ -20,50 +20,52 @@
 	var quicksearch_timer;
 	var quicksearch_ajax;
 
-	$("#quicksearch").on('input', function(event) {
+	$(document).ready(function() {
 
-		clearTimeout(quicksearch_timer);
-		quicksearch_timer = setTimeout(quicksearch, 50); 
-	});
+		$("#quicksearch").on('input', function(event) {
 
-	function quicksearch(page) {
-
-		if (page === undefined)
-			page = 1;
-
-		var search = $("#quicksearch").val();
-
-		var params = new URLSearchParams({
-			'search': search,
-			'page':page
+			clearTimeout(quicksearch_timer);
+			quicksearch_timer = setTimeout(quicksearch, 50); 
 		});
-		window.history.replaceState(null, '', '/?' + params.toString());
 
-		if (quicksearch_ajax)
-			quicksearch_ajax.abort();
+		function quicksearch(page) {
 
-		quicksearch_ajax = $.ajax({
-			type: "GET",
-			url: "{{ route('card.quicksearch') }}",
-			dataType: "html",
-			data: { 
-				"search": search,
-				"page": page
-			},
-			success: function(response) {
-				$("#cards").html(response);
-			}
-		});
-	}
-	/*
-	$(document).ready(function() { 
-		if ($("#quicksearch").val()) {
+			if (page === undefined)
+				page = 1;
 
-			var params = new URLSearchParams(window.location.search);
-			var page = params.get('page');
-			quicksearch(page);
+			var search = $("#quicksearch").val();
+
+			var params = new URLSearchParams({
+				'search': search,
+				'page':page
+			});
+			window.history.replaceState(null, '', '/?' + params.toString());
+
+			if (quicksearch_ajax)
+				quicksearch_ajax.abort();
+
+			quicksearch_ajax = $.ajax({
+				type: "GET",
+				url: "{{ route('card.quicksearch') }}",
+				dataType: "html",
+				data: { 
+					"search": search,
+					"page": page
+				},
+				success: function(response) {
+					$("#cards").html(response);
+				}
+			});
 		}
-	});*/
+		/*
+			if ($("#quicksearch").val()) {
+
+				var params = new URLSearchParams(window.location.search);
+				var page = params.get('page');
+				quicksearch(page);
+			}
+		*/
+	});
 
 </script>
 @stop

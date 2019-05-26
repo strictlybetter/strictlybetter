@@ -61,74 +61,76 @@
 				</div>
 			@endif
 
-            @yield('content')
-        </div>
+			@yield('content')
+		</div>
 
-        <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-        <script src="{{ URL::to('js/select2/select2.min.js') }}"></script>
+		<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+		<script src="{{ URL::to('js/select2/select2.min.js') }}"></script>
 
-        <script>
-
-        	$.ajaxSetup({
+		<script>
+			$.ajaxSetup({
 				headers: {
 					'X-CSRF-TOKEN': "{{ csrf_token() }}"
 				}
-			}); 
-
-        	// Card search
-        	var card_cache = {};
-        	$("#card-search").autocomplete({
-        		minLength: 2,
-        		delay: 50,
-			    source: function(request, response) {
-
-			    	// Check cache before query
-					if (request.term in card_cache) {
-						response(card_cache[request.term]);
-						return;
-					}
-
-					// Query
-					$.getJSON("{{ route('card.autocomplete') }}", request, function(data, status, xhr) {
-						card_cache[request.term] = data;
-						response(data);
-					});
-				},
-				select: function(event, ui) {
-
-					// Automatically submit search if an autocomplete option was selected
-					$("#card-search").val(ui.item.value);
-					$("#card-search-form").submit();
-				}
-			}).focus(function() {
-
-				// Show autocomplete options when re-focusing
-				if ($(this).val().length >= 2)
-					$(this).autocomplete("search", $(this).val());
 			});
 
+			$(document).ready(function() { 
 
-			// Upvotes / Downvote
-			$(".vote-form").submit(function(event) {
-				event.preventDefault();
+				// Card search
+				var card_cache = {};
+				$("#card-search").autocomplete({
+					minLength: 2,
+					delay: 50,
+					source: function(request, response) {
 
-				var row = $(this).closest('.row');
+						// Check cache before query
+						if (request.term in card_cache) {
+							response(card_cache[request.term]);
+							return;
+						}
 
-				$.ajax({
-					type: "POST",
-					url: $(this).attr('action'),
-					dataType: "json",
-					success: function(response) {
-						$(row).find('.upvote-count').text(response.upvotes);
-						$(row).find('.downvote-count').text(response.downvotes);
+						// Query
+						$.getJSON("{{ route('card.autocomplete') }}", request, function(data, status, xhr) {
+							card_cache[request.term] = data;
+							response(data);
+						});
+					},
+					select: function(event, ui) {
+
+						// Automatically submit search if an autocomplete option was selected
+						$("#card-search").val(ui.item.value);
+						$("#card-search-form").submit();
 					}
+				}).focus(function() {
+
+					// Show autocomplete options when re-focusing
+					if ($(this).val().length >= 2)
+						$(this).autocomplete("search", $(this).val());
+				});
+
+
+				// Upvotes / Downvote
+				$(".vote-form").submit(function(event) {
+					event.preventDefault();
+
+					var row = $(this).closest('.row');
+
+					$.ajax({
+						type: "POST",
+						url: $(this).attr('action'),
+						dataType: "json",
+						success: function(response) {
+							$(row).find('.upvote-count').text(response.upvotes);
+							$(row).find('.downvote-count').text(response.downvotes);
+						}
+					});
 				});
 			});
 
-        </script>
+		</script>
 
-        @yield('js')
-    </body>
+		@yield('js')
+	</body>
 </html>
