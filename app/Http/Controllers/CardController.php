@@ -227,13 +227,21 @@ class CardController extends Controller
 	public function upvote(Obsolete $obsolete)
 	{
 		$this->addVote($obsolete, true);
-		return response()->json(['upvotes' => $obsolete->upvotes, 'downvotes' => $obsolete->downvotes]);
+
+		if ($this->request->ajax())
+			return response()->json(['upvotes' => $obsolete->upvotes, 'downvotes' => $obsolete->downvotes]);
+		else
+			return back()->withInput();
 	}
 
 	public function downvote(Obsolete $obsolete)
 	{
 		$this->addVote($obsolete, false);
-		return response()->json(['upvotes' => $obsolete->upvotes, 'downvotes' => $obsolete->downvotes]);
+
+		if ($this->request->ajax())
+			return response()->json(['upvotes' => $obsolete->upvotes, 'downvotes' => $obsolete->downvotes]);
+		else
+			return back()->withInput();
 	}
 
 	protected function addVote(Obsolete $obsolete, $upvote) 
