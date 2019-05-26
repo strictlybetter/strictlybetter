@@ -29,7 +29,7 @@
 		      <li class="nav-item {{ Request::is('deck') ? 'active' : '' }}">
 		        <a class="nav-link" href="{{ route('deck.index') }}">Upgrade Deck</a>
 		      </li>
-		      <li class="nav-item {{ Request::is('card') ? 'active' : '' }}">
+		      <li class="nav-item {{ Request::is('card', 'card/*') ? 'active' : '' }}">
 		        <a class="nav-link" href="{{ route('card.create') }}">Add Suggestion</a>
 		      </li>
 		      <li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">
