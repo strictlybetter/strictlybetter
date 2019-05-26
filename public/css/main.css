@@ -7,23 +7,44 @@ html {
 }
 .mtgcard {
 	width: 223px;
-	height: 310px;
+	height: 311px;
 }
 .mtgcard-thumb {
 	width: 33%;
 	height: 33%;
 }
+.mtgcard-select-text {
+	white-space: pre-line;
+	margin: auto 0 auto 10px;
+	max-width: 63%;
+}
 .mtgcard-wrapper {
-	min-width: 223px;
-	min-height: 310px;
+	min-width: 233px;
+	min-height: 311px;
 	padding: 0;
 	margin-bottom: 10px;
 	margin-right: 5px;
 }
+.vote {
+	padding: .2rem .55rem;
+	margin: 0 .1rem 0 0;
+	font-size: 14px;
+}
 .select2-selection {
-	height: auto !important;
-	background-color: #EEEEEE !important;
+	height: 186px !important;
+	background-color: whitesmoke !important;
 }
 ul.select2-results__options {
-	max-height: 400px !important;
+	max-height: 600px !important;
+	height: 50% !important;
+}
+.select2-results__option.loading-results,
+.select2-results__option.select2-results__option--load-more {
+	display: none;
+	/*
+	background-image: url('/images/loading.gif');
+	background-repeat: no-repeat;
+	padding-left: 35px;
+	background-position: 10px 50%;
+	*/
 }

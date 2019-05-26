@@ -7,26 +7,28 @@
 
 		<div class="row" style="height:220px"> 
 			<div class="form-group col-md-5">
-				<label for="inferior">Inferior Card</label>
-				{{ Form::select('inferior', isset($inferiors) ? $inferiors : [], null, ['id' => 'inferior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
+				<label for="inferior" style="font-size:larger;">Current Card</label>
+				{{ Form::select('inferior', [], null, ['id' => 'inferior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
 			</div>
 
-			<div id="upgrade_sign_wrapper" class="col-md-1 text-center" style="padding-top: 32px;">
+			<div id="upgrade_sign_wrapper" class="col-md-1 text-center" style="margin: auto">
 				<i class="fa fa-arrow-right" style="font-size:30px;"></i>
 			</div>
 
 			<div class="form-group col-md-5">
-				<label for="superior">Superior Card</label>
-				{{ Form::select('superior', isset($superiors) ? $superiors : [], null, ['id' => 'superior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
+				<label for="superior" style="font-size:larger;">Strictly Better Card</label>
+				{{ Form::select('superior', [], null, ['id' => 'superior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
 			</div>
 		
 
-		<div class="form-group col-md-1" style="padding-top: 32px">
-			{{ Form::submit('Add', ['class' => 'btn btn-primary align-self-bottom']) }}
+		<div class="form-group col-md-1" style="margin: auto">
+			{{ Form::submit('Add', ['class' => 'btn btn-primary btn-lg']) }}
 		</div>
 		</div>
 	{{ Form::close() }}
-	<br>
+	<div>
+		<br><br><br>
+	</div>
 
 	@if($card)
 		@include('card.partials.upgrade')
@@ -36,18 +38,27 @@
 
 @section('js')
 <script>
+
+var inferiors = {!! json_encode($inferiors) !!};
+var superiors = {!! json_encode($superiors) !!};
+
 $(document).ready(function() { 
 
 	function select2_template(data) {
-		if (!data.imageUrl) {
-			return data.text;
-		}
 
 		var template = $('<span class="row">');
-		var text = $('<span style="white-space: pre-line;margin: auto 10px">').text(data.text + "\n" + data.typeline);
+		var text = $('<span class="mtgcard-select-text">');
+
+		var name = $('<strong>').text(data.text + "\n");
+		text.append(name);
+
+		if (data.typeline) {
+			var typeline = $('<i>').text(data.typeline);
+			text.append(typeline);
+		}
 
 		var img = $('<img class="mtgcard-thumb">');
-		img.attr('src', data.imageUrl);
+		img.attr('src', (data.imageUrl ? data.imageUrl : "{{ asset('image/card-back.jpg') }}"));
 
 		template.append(img);
 		template.append(text);
@@ -55,10 +66,11 @@ $(document).ready(function() {
 		return template[0].outerHTML;
 	}
 
-	$(".selectpicker").select2({
+	var select2_options = {
 		allowClear: true, 
 		placeholder: "Select card",
 		minimumInputLength: 2,
+		data: [],
 		ajax: {
 			url: "{{ route('card.autocomplete') }}",
 			dataType: 'json',
@@ -91,17 +103,14 @@ $(document).ready(function() {
 		templateSelection: function(data) {
 			return select2_template(data);
 		}
-	});
+	};
 
-/*
-	$('.selectpicker').on('select2:select', function (e) {
-		var data = e.params.data;
-
-		var img = $('<img>');
-		img.attr('src', data.imageUrl);
-		img.appendTo('#inferior_image');
-
-	});*/
+	select2_options.data = inferiors;
+	$("#inferior").select2(select2_options);
+	
+	select2_options.data = superiors;
+	select2_options.placeholder = "Select strictly better card"
+	$("#superior").select2(select2_options);
 
 	$(".tell_superior").on('click', function(event) {
 		event.preventDefault();

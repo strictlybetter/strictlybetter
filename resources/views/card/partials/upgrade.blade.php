@@ -30,15 +30,15 @@
 				<div class="row">
 
 					{{ Form::open(['route' => ['upvote', $superior->pivot->id], 'class' => 'form-inline vote-form']) }}
-						<button type="submit" class="btn btn-light" style="color:green;padding:.2rem .55rem;margin:.2rem">
-							Better
+						<button type="submit" class="btn btn-light vote" style="color:green;">
+							Strictly Better
 							<i class="fa fa-thumbs-up" style="font-size:24px;"></i>
 							<span class="upvote-count">{{ $superior->pivot->upvotes }}</span>
 						</button>
 					{{ Form::close() }}
 
 					{{ Form::open(['route' => ['downvote', $superior->pivot->id], 'class' => 'form-inline vote-form']) }}
-						<button type="submit" class="btn btn-light" style="color:red;padding:.2rem .55rem;margin:.1rem">
+						<button type="submit" class="btn btn-light vote" style="color:red;">
 							Not
 							<i class="fa fa-thumbs-down" style="font-size:24px;"></i>
 							<span class="downvote-count">{{ $superior->pivot->downvotes }}</span>

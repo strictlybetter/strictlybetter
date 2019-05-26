@@ -68,11 +68,26 @@ class CardController extends Controller
 		$superiors = [];
 
 		if ($card) {
-			$inferiors = [$card->name => $card->name];
-			$superiors = $card->superiors()->pluck('name', 'name');
+			$card->load('superiors');
+			$inferiors = $this->convertToSelect2Data([$card]);
+			$superiors = $this->convertToSelect2Data($card->superiors);
 		}
 
 	    return view('card.create')->with(['card' => $card, 'inferiors' => $inferiors, 'superiors' => $superiors]);
+	}
+
+	protected function convertToSelect2Data($cards)
+	{
+		$list = [];
+		foreach ($cards as $card) {
+			$list[] = [
+				'text' => $card->name,
+				'id' => $card->name,
+				'imageUrl' => $card->imageUrl,
+				'typeline' => $card->typeLine
+			];
+		}
+		return $list;
 	}
 
 	/**
@@ -95,20 +110,13 @@ class CardController extends Controller
 			return back()->withErrors(['Card not found'])->withInput();
 
 		if ($inferior->name == $superior->name)
-			return redirect()->route('card.create', $inferior->id)->withErrors(['Inferior and superior cards must be different'])->withInput();
+			return redirect()->route('card.create', $inferior->id)->withErrors(['The cards must be different'])->withInput();
 
 		if (!$superior->isSuperior($inferior))
-			return redirect()->route('card.create', $inferior->id)->withErrors(['Selected superior card does not seem to be strictly-better'])->withInput();
+			return redirect()->route('card.create', $inferior->id)->withErrors(['The strictly better card does not seem to fill the requirements of the term'])->withInput();
 
-		if (!$inferior->exists)
-			$inferior->save();
-		else
-			$inferior->touch();	// Touch inferior, so we can easily show recent updates on 'Browse' page
-
-		if (!$superior->exists)
-			$superior->save();
-		else
-			$superior->touch();
+		$inferior->touch();	// Touch inferior, so we can easily show recent updates on 'Browse' page
+		$superior->touch();
 
 		$superior->inferiors()->syncWithoutDetaching([$inferior->id]);
 
@@ -193,16 +201,8 @@ class CardController extends Controller
 		$list = [];
 
 		// Additional formatting for select2 requests
-		if ($request->input('select2')) {
-			foreach ($cards as $card) {
-				$list[] = [
-					'id' => $card->name,
-					'text' => $card->name,
-					'imageUrl' => $card->imageUrl,
-					'typeline' => $card->typeLine
-				];
-			}
-		}
+		if ($request->input('select2'))
+			$list = $this->convertToSelect2Data($cards);
 		else 
 			$list = $cards->pluck('name');
 
