@@ -49,6 +49,20 @@
 
 	<br><br>
 
+	<h3>Functional Reprints</h3>
+	<p>
+		Many cards have functional reprints. Eg. Llanowar Elves, Elvish Mystic and Fyndhorn Elves function just the same.<br>
+		Use following url to find all cards that have functional reprints grouped by the functionality.<br>
+		<br>
+		Note that cards with different types are not grouped as functionally equal.
+	</p>
+
+	<code>
+		{{ route('api.functional_reprints') }}
+	</code>
+
+	<br><br>
+
 	<h3>Throttling</h3>
 	<p>
 		All available API requests are throttled to prevent excessive use. Current limit is 100 requests per minute.<br>
