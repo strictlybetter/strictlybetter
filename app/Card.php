@@ -78,6 +78,10 @@ class Card extends Model
 
     public function isSuperior(Card $other)
     {
+    	// Must not be a duplicate
+    	if ($this->id === $other->id || ($other->functional_reprints_id && $this->functional_reprints_id === $other->functional_reprints_id))
+    		return false;
+
     	// Types must match
     	if (count($this->supertypes) != count($other->supertypes) || array_diff($this->supertypes, $other->supertypes))
     		return false;
@@ -92,7 +96,7 @@ class Card extends Model
     	if (count($this->subtypes) != count($other->subtypes) || array_diff($this->subtypes, $other->subtypes))
     		return false;
 
-    	if (count($this->colors) != count($other->colors) || array_diff($this->colors, $other->colors))
+    	if (array_diff($this->colors, $other->colors))
     		return false;
 
     	if ($this->cmc > $other->cmc)

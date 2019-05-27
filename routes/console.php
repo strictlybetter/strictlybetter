@@ -116,6 +116,24 @@ Artisan::command('populate-functional-reprints', function () {
 			$card->save();
 		}
 	}
-
-
 })->describe('Populates functional reprints table based on existing cards');
+
+
+Artisan::command('remove-bad-suggestions', function () {
+
+	$this->comment("Removing bad suggestions...");
+	$count = 0;
+
+	$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
+	foreach ($obsoletes as $obsolete) {
+		if (!$obsolete->superior->isSuperior($obsolete->inferior)) {
+
+			$this->comment("Removing suggestion: " . $obsolete->inferior->name . " -> " . $obsolete->superior->name);
+
+			$obsolete->delete();
+			$count++;
+		}
+	}
+	$this->comment("Removed " . $count . " bad suggestions.");
+
+})->describe('Removes suggestions that no longer pass inferior-superior check');
