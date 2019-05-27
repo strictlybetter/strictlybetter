@@ -82,7 +82,7 @@ class CardController extends Controller
 		foreach ($cards as $card) {
 			$list[] = [
 				'text' => $card->name,
-				'id' => $card->name,
+				'id' => $card->id,
 				'imageUrl' => $card->imageUrl,
 				'typeline' => $card->typeLine
 			];
@@ -99,12 +99,12 @@ class CardController extends Controller
 	public function store(Request $request)
 	{
 		$request->validate([
-			'inferior' => 'required|max:191|min:3',
-			'superior' => 'required|max:191|min:3|different:inferior',
+			'inferior' => 'required',
+			'superior' => 'required|different:inferior',
 		]);
 
-		$inferior = Card::where('name', $request->input('inferior'))->first();
-		$superior = Card::where('name', $request->input('superior'))->first();
+		$inferior = Card::with('functionalReprints')->where('id', $request->input('inferior'))->first();
+		$superior = Card::with('functionalReprints')->where('id', $request->input('superior'))->first();
 
 		if (!$inferior || !$superior)
 			return back()->withErrors(['Card not found'])->withInput();
@@ -118,7 +118,19 @@ class CardController extends Controller
 		$inferior->touch();	// Touch inferior, so we can easily show recent updates on 'Browse' page
 		$superior->touch();
 
-		$superior->inferiors()->syncWithoutDetaching([$inferior->id]);
+		// Find duplicates of inferior
+		$inferior_list = $inferior->functionalReprints->pluck('id');
+		$inferior_list[] = $inferior->id;
+
+		// Add all inferior duplicates to all superiors
+		if (empty($superior->functionalReprints))
+			$superior->inferiors()->syncWithoutDetaching($inferior_list);
+
+		else {
+			foreach ($superior->functionalReprints as $superior_item) {
+				$superior_item->inferiors()->syncWithoutDetaching($inferior_list);
+			}
+		}
 
 		// Add vote
 		$obsolete = Obsolete::where('superior_card_id', $superior->id)->where('inferior_card_id', $inferior->id)->first();

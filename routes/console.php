@@ -120,6 +120,31 @@ Artisan::command('populate-functional-reprints', function () {
 })->describe('Populates functional reprints table based on existing cards');
 
 
+Artisan::command('create-functional-obsoletes', function () {
+
+	$this->comment("Building additonal suggestions based on functional reprints...");
+
+	$results = FunctionalReprint::with(['cards.inferiors', 'cards.superiors'])->get();
+	$old_obsolete_count = Obsolete::count();
+
+	foreach ($results as $reprint_group) {
+
+		$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('id');
+		$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('id');
+
+		foreach ($reprint_group->cards as $card) {
+
+			$card->inferiors()->syncWithoutDetaching($inferior_ids);
+			$card->superiors()->syncWithoutDetaching($superior_ids);
+		}
+	}
+	$new_obsolete_count = Obsolete::count();
+
+	$this->comment(($new_obsolete_count - $old_obsolete_count) . " new suggestions created.");
+
+})->describe('Creates suggestions based on functional reprints and their existing suggestions');
+
+
 Artisan::command('remove-bad-suggestions', function () {
 
 	$this->comment("Removing bad suggestions...");
