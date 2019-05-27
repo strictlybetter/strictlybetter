@@ -3,16 +3,35 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use App\FunctionalReprint;
 
 class Card extends Model
 {
-	protected $fillable = ['name', 'multiverse_id', 'legalities', 'price', 'manacost', 'cmc', 'supertypes', 'types', 'subtypes'];
+	protected $fillable = [
+		'name', 
+		'multiverse_id', 
+		'legalities', 
+		'price', 
+		'manacost', 
+		'cmc', 
+		'supertypes', 
+		'types', 
+		'subtypes',
+		'colors',
+		'color_identity',
+		'rules',
+		'power',
+		'toughness',
+		'loyalty'
+	];
 
 	protected $casts = [
         'legalities' => 'array',
         'supertypes' => 'array',
         'types' => 'array',
-        'subtypes' => 'array'
+        'subtypes' => 'array',
+        'colors' => 'array',
+        'color_identity' => 'array'
     ];
 
     protected $appends = ['imageUrl', 'gathererUrl'];
@@ -25,6 +44,16 @@ class Card extends Model
     public function superiors()
     {
     	return $this->belongsToMany(Card::class, 'obsoletes', 'inferior_card_id', 'superior_card_id')->withPivot(['upvotes', 'downvotes', 'id'])->withTimestamps();
+    }
+
+    public function functionalReprintGroup()
+    {
+    	return $this->belongsTo(FunctionalReprint::class, 'functional_reprints_id');
+    }
+
+    public function functionalReprints()
+    {
+    	return $this->hasMany(Card::class, 'functional_reprints_id', 'functional_reprints_id');
     }
 
     public function getImageUrlAttribute()
@@ -42,6 +71,11 @@ class Card extends Model
     	return trim(implode(" ", $this->supertypes) . " " . implode(" ", $this->types) . " - " . implode(" ", $this->subtypes), " -");
     }
 
+    public function getFunctionalReprintLineAttribute()
+    {
+    	return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->rules;
+    }
+
     public function isSuperior(Card $other)
     {
     	// Types must match
@@ -56,6 +90,9 @@ class Card extends Model
     	}
 
     	if (count($this->subtypes) != count($other->subtypes) || array_diff($this->subtypes, $other->subtypes))
+    		return false;
+
+    	if (count($this->colors) != count($other->colors) || array_diff($this->types, $other->colors))
     		return false;
 
     	if ($this->cmc > $other->cmc)
