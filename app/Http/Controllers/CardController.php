@@ -123,7 +123,7 @@ class CardController extends Controller
 		$inferior_list[] = $inferior->id;
 
 		// Add all inferior duplicates to all superiors
-		if (empty($superior->functionalReprints))
+		if (count($superior->functionalReprints) == 0)
 			$superior->inferiors()->syncWithoutDetaching($inferior_list);
 
 		else {
