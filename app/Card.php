@@ -92,7 +92,7 @@ class Card extends Model
     	if (count($this->subtypes) != count($other->subtypes) || array_diff($this->subtypes, $other->subtypes))
     		return false;
 
-    	if (count($this->colors) != count($other->colors) || array_diff($this->types, $other->colors))
+    	if (count($this->colors) != count($other->colors) || array_diff($this->colors, $other->colors))
     		return false;
 
     	if ($this->cmc > $other->cmc)
