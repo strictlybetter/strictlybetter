@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 
 use App\Card;
+use App\Obsolete;
 use App\FunctionalReprint;
 
 /*
