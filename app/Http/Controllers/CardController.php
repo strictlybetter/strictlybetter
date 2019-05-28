@@ -42,7 +42,7 @@ class CardController extends Controller
 		if (!in_array($format, Card::$formats))
 			$format = "";
 
-		$cards = $this->browse($request, $format, $term, "name");
+		$cards = $this->browse($request, $format, $term, "updated_at");
 
 		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term]);
 	}
