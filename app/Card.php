@@ -73,7 +73,13 @@ class Card extends Model
 
     public function getFunctionalReprintLineAttribute()
     {
-    	return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->rules;
+
+    	$name = preg_quote($this->name, '/');
+    	$pattern = '/\b' . preg_replace('/\s+/u', '\s+', $name)  . '\b/u';
+
+    	$substituted_rules = preg_replace($pattern, '@@@', $this->rules);
+
+    	return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $substituted_rules;
     }
 
     public function isSuperior(Card $other)
