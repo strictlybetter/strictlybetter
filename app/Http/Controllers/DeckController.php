@@ -14,7 +14,7 @@ class DeckController extends Controller
 	 */
 	public function index()
 	{
-		return view('deck.index')->with(['deck' => session('deck'), 'deckupgrades' => session('deckupgrades')]);
+		return view('deck.index')->with(['formatlist' => make_format_list(), 'deck' => session('deck'), 'deckupgrades' => session('deckupgrades')]);
 	}
 
 	public function upgrade(Request $request)
@@ -26,9 +26,21 @@ class DeckController extends Controller
 			return redirect()->route('upgradedDeck')->with(['deck' => $deck, 'deckupgrades' => []]);
 		}
 
+		$format = $request->input('format');
+		if (!in_array($format, Card::$formats))
+			$format = "";
+
 		// Find replacements
-		$upgrades = Card::with('superiors')->whereIn('name', array_keys($deck))->whereHas('superiors', function($q) {
-			$q->has('superiors', '=', 0);
+		$upgrades = Card::with(['superiors' => function($q) use ($format) {
+
+			if ($format !== "")
+				$q->where('legalities->' . $format, 'legal');
+
+		}])->whereIn('name', array_keys($deck))->whereHas('superiors', function($q) use ($format) {
+
+			if ($format !== "")
+				$q->where('legalities->' . $format, 'legal');
+
 		})->get();
 
 		return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => $upgrades])->withInput();

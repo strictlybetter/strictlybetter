@@ -4,7 +4,10 @@
 
 	<h1>Browse</h1>
 
-	{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-6', 'placeholder' => 'Quick search']) }}
+	<div class="row">
+		{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-5', 'placeholder' => 'Quick search']) }}
+		<span>{{ Form::select('format', $formatlist, request()->input('format') ? request()->input('format') : null, ['id' => 'format', 'class' => 'form-control']) }}</span>
+	</div>
 	<br>
 
 	<div id="cards">
@@ -28,16 +31,22 @@
 			quicksearch_timer = setTimeout(quicksearch, 50); 
 		});
 
+		$("#format").on('change', function(event) {
+			quicksearch();
+		});
+
 		function quicksearch(page) {
 
 			if (page === undefined)
 				page = 1;
 
 			var search = $("#quicksearch").val();
+			var format = $('#format').find(":selected").val();
 
 			var params = new URLSearchParams({
+				'format': format,
 				'search': search,
-				'page':page
+				'page': page
 			});
 			window.history.replaceState(null, '', '/?' + params.toString());
 
@@ -48,7 +57,8 @@
 				type: "GET",
 				url: "{{ route('card.quicksearch') }}",
 				dataType: "html",
-				data: { 
+				data: {
+					"format": format,
 					"search": search,
 					"page": page
 				},
@@ -57,14 +67,6 @@
 				}
 			});
 		}
-		/*
-			if ($("#quicksearch").val()) {
-
-				var params = new URLSearchParams(window.location.search);
-				var page = params.get('page');
-				quicksearch(page);
-			}
-		*/
 	});
 
 </script>

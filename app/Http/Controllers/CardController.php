@@ -22,20 +22,15 @@ class CardController extends Controller
 		$term = $request->input('search', '');
 		if ($term === null) $term = "";
 
-		$cards = Card::with(['superiors'])->whereHas('superiors');
+		$formatlist = make_format_list();
 
-		// Apply search term if any
-		if ($term !== "") {
-			$cards = $cards->where('name', 'like', escapeLike($term).'%');
-		}
+		$format = $request->input('format');
+		if (!in_array($format, Card::$formats))
+			$format = "";
 
-		$cards = $cards->orderBy('updated_at', 'desc')->paginate(10);
+		$cards = $this->browse($request, $format, $term, "updated_at");
 
-		$cards->setPath(route('index', ['search' => $term]));
-
-		//$cards = Obsolete::with(['superior', 'inferior'])->orderBy('created_at', 'desc')->paginate(10);
-
-	    return view('index')->with(['search' => $term, 'cards' => $cards]);
+	    return view('index')->with(['cards' => $cards, 'search' => $term, 'formatlist' => $formatlist]);
 	}
 
 	public function quicksearch(Request $request)
@@ -43,18 +38,44 @@ class CardController extends Controller
 		$term = $request->input('search', '');
 		if ($term === null) $term = "";
 
-		$cards = Card::with(['superiors'])->whereHas('superiors');
+		$format = $request->input('format');
+		if (!in_array($format, Card::$formats))
+			$format = "";
+
+		$cards = $this->browse($request, $format, $term, "name");
+
+		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term]);
+	}
+
+	protected function browse(Request $request, $format = '', $term = '', $orderBy = 'name')
+	{
+		$cards = Card::with(['superiors' => function($q) use ($format) {
+
+			if ($format !== "")
+				$q->where('legalities->' . $format, 'legal');
+
+		}])->whereHas('superiors', function($q) use ($format) {
+
+			if ($format !== "")
+				$q->where('legalities->' . $format, 'legal');
+		});
 
 		// Apply search term if any
 		if ($term !== "") {
 			$cards = $cards->where('name', 'like', escapeLike($term).'%');
 		}
 
-		$cards = $cards->orderBy('updated_at', 'desc')->paginate(10);
+		// We might not need to filter the inferior cards through formats
+		/*
+		if ($format !== "") {
+			$cards = $cards->where('legalities->' . $format, 'legal');
+		}*/
 
-		$cards->setPath(route('index', ['search' => $term]));
+		$cards = $cards->orderBy($orderBy, 'desc')->paginate(10);
 
-		return view('card.partials.browse')->with(['cards' => $cards, 'term' => $term]);
+		$cards->setPath(route('index', ['search' => $term, 'format' => $format]));
+
+		return $cards;
 	}
 
 	/**
@@ -160,45 +181,6 @@ class CardController extends Controller
 	public function destroy(Card $card)
 	{
 	    //
-	}
-
-	public function getCard($cardname)
-	{
-		// Try local DB first
-		$card = Card::where('name', $cardname)->first();
-
-		if ($card)
-			return $card;
-
-		// No? Then query API
-		$fetched_card = $this->queryCardApi($cardname);
-
-		if (!$fetched_card)
-			return null;
-
-		// Make the card entry into a Card object we can save locally
-		return new Card([
-			'name' => $fetched_card['name'],
-			'multiverse_id' => $fetched_card['multiverseid'],
-			'legalities' => $fetched_card['legalities'],
-			'price' => 0
-		]);
-	}
-
-	protected function queryCardApi($cardname)
-	{
-		// Perform query
-		$api_request = CardApi::where(['name' => $cardname, 'page' => 1])->array();
-
-		// Find a card entry with valid data
-		$fetched_card = null;
-		foreach ($api_request as $item)
-		{
-			if (isset($item['multiverseid']) && $item['multiverseid'] && $item['name'] == $cardname) {
-				return $item;
-			}
-		}
-		return null;
 	}
 
 	public function cardAutocomplete(Request $request)

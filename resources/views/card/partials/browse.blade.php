@@ -19,10 +19,12 @@
 @if(count($cards) == 0)
 	<br>
 	<p>
-		@if(isset($term))
-			There are no upgrades for "{{ $term }}".<br>
+		@if(isset($search) && $search)
+			There are no upgrades for "{{ $search }}" in 
+			{{ request()->input('format') ? ucfirst(request()->input('format')) : 'any format' }}
+			<br>
 		@else
-			No upgrades found.
+			No upgrades found.<br>
 		@endif
 		Perhaps you'd like to <a href="{{ route('card.create') }}">tell us otherwise</a>?
 	</p>

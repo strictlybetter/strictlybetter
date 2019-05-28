@@ -8,3 +8,13 @@ function escapeLike(string $value, string $char = '\\')
 		$value
 	);
 }
+
+function make_format_list()
+{
+	// Make list of supported formats
+	$formatlist = ['' => 'Any Format'];
+	foreach (App\Card::$formats as $formatname) {
+		$formatlist[$formatname] = ucfirst($formatname);
+	}
+	return $formatlist;
+}

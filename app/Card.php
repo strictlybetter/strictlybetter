@@ -34,6 +34,8 @@ class Card extends Model
         'color_identity' => 'array'
     ];
 
+    public static $formats = ['standard', 'modern', 'legacy', 'vintage', 'commander', 'pauper', 'penny', 'duel',  'future', 'frontier', 'oldschool'];
+
     protected $appends = ['imageUrl', 'gathererUrl'];
 
     public function inferiors() 
