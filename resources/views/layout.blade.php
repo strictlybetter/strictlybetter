@@ -122,7 +122,7 @@
 
 
 				// Upvotes / Downvote
-				$(".vote-form").submit(function(event) {
+				$(".container").on("submit", ".vote-form", function(event) {
 					event.preventDefault();
 
 					var row = $(this).closest('.row');

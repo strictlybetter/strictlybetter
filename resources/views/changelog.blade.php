@@ -29,6 +29,8 @@
 		<li>If commander format is selected when ugrading deck, the suggestions must follow the color identity of the cards in the deck</li>
 
 		<li>To speed up Browse -page initial load time, images are only fetched after everything else is ready</li>
+
+		<li>Voting no longer refreshes the page, but is done in the background instead</li>
 	</ul>
 
 	<h4>05/28/19</h4>
