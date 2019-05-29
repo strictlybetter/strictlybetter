@@ -72,9 +72,9 @@
 	<h3>How to contact the developer</h3>
 	<p>
 		<address>
-			Site is run by Henri Aho. You may contact me at <a href="mailto:henrij.aho@gmail.com">henrij.aho@gmail.com</a>
+			Site is run by Henri Aho. You may contact me at <a href="mailto:henrij.aho@gmail.com" rel="noreferrer noopener">henrij.aho@gmail.com</a>
 		</address>
-		There is also a <a href="https://www.reddit.com/r/magicTCG/comments/bt7ocz/i_just_put_up_a_website_for_finding_strictly/">Reddit thread about the site</a>.
+		There is also a <a href="https://www.reddit.com/r/magicTCG/comments/bt7ocz/i_just_put_up_a_website_for_finding_strictly/" rel="noreferrer noopener">Reddit thread about the site</a>.
 	</p>
 
 @stop
