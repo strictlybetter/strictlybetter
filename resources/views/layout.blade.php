@@ -39,6 +39,12 @@
 		      <li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">
 		        <a class="nav-link" href="{{ route('api.guide') }}">API Guide</a>
 		      </li>
+		      <li class="nav-item {{ Request::is('about') ? 'active' : '' }}">
+		        <a class="nav-link" href="{{ route('about') }}">About</a>
+		      </li>
+		      <li class="nav-item {{ Request::is('changelog') ? 'active' : '' }}">
+		        <a class="nav-link" href="{{ route('changelog') }}">Changelog</a>
+		      </li>
 		    </ul>
 		    {{ Form::open(['id' => 'card-search-form', 'route' => 'card.search', 'autocomplete' => 'off', 'class' => 'form-inline my-2 my-lg-0']) }}
 		      <div class="ui-widget">

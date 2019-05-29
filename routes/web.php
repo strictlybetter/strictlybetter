@@ -30,6 +30,9 @@ Route::post('/card', 'CardController@store')->name('card.store');
 Route::post('/upvote/{obsolete}', 'CardController@upvote')->name('upvote');
 Route::post('/downvote/{obsolete}', 'CardController@downvote')->name('downvote');
 
+Route::get('/about', function () { return view('about'); })->name('about');
+Route::get('/changelog', function () { return view('changelog'); })->name('changelog');
+
 
 // API
 Route::get('/api-guide', 'ApiController@guide')->name('api.guide');
