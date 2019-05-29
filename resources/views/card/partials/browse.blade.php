@@ -21,7 +21,7 @@
 	<p>
 		@if(isset($search) && $search)
 			There are no upgrades for "{{ $search }}" in 
-			{{ request()->input('format') ? ucfirst(request()->input('format')) : 'any format' }}
+			{{ (isset($format) && $format) ? ucfirst($format) : 'any format' }}
 			<br>
 		@else
 			No upgrades found.<br>

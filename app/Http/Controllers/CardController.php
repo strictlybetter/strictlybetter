@@ -28,9 +28,12 @@ class CardController extends Controller
 		if (!in_array($format, Card::$formats))
 			$format = "";
 
-		$cards = $this->browse($request, $format, $term, "updated_at");
+		$page = $request->input('page', 1);
+		if ($page === null) $page = 1;
 
-	    return view('index')->with(['cards' => $cards, 'search' => $term, 'formatlist' => $formatlist]);
+		//$cards = $this->browse($request, $format, $term, "updated_at");
+
+	    return view('index')->with(['search' => $term, 'format' => $format, 'page' => $page, 'formatlist' => $formatlist]);
 	}
 
 	public function quicksearch(Request $request)
@@ -44,21 +47,20 @@ class CardController extends Controller
 
 		$cards = $this->browse($request, $format, $term, "updated_at");
 
-		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term]);
+		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'format' => $format]);
 	}
 
 	protected function browse(Request $request, $format = '', $term = '', $orderBy = 'name')
 	{
-		$cards = Card::with(['superiors' => function($q) use ($format) {
+
+		$card_filters = function($q) use ($format) {
 
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
 
-		}])->whereHas('superiors', function($q) use ($format) {
+		};
 
-			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
-		});
+		$cards = Card::with(['superiors' => $card_filters])->whereHas('superiors', $card_filters);
 
 		// Apply search term if any
 		if ($term !== "") {
