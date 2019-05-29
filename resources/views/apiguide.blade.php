@@ -1,5 +1,10 @@
 @extends('layout')
 
+@section('meta')
+	<meta name="Description" content="API information and usage instructions">
+	<title>StrictlyBetter - Api Guide</title>
+@stop
+
 @section('head')
 	<style>
 		.content p {

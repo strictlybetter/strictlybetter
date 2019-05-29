@@ -1,5 +1,10 @@
 @extends('layout')
 
+@section('meta')
+	<meta name="Description" content="Tell us which MTG cards are strictly better than others">
+	<title>StrictlyBetter - Add Suggestion</title>
+@stop
+
 @section('content')
 	
 	<h1>Add Suggestion</h1>
