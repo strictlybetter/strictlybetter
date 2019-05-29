@@ -23,6 +23,12 @@
 
 	<ul>
 		<li>Added About and Changelog pages</li>
+
+		<li>Changed API formats to save bandwidth (the info is available from other sites). Function reprints API uses the same paging format.</li>
+
+		<li>If commander format is selected when ugrading deck, the suggestions must follow the color identity of the cards in the deck</li>
+
+		<li>To speed up Browse -page initial load time, images are only fetched after everything else is ready</li>
 	</ul>
 
 	<h4>05/28/19</h4>
