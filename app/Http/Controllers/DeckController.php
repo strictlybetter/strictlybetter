@@ -30,21 +30,40 @@ class DeckController extends Controller
 		if (!in_array($format, Card::$formats))
 			$format = "";
 
+		
+		// Find colors the deck musn't contain (useful for Commander)
+		$un_color_identity = [];
+		if ($format === 'commander') {
+			$cards = Card::whereIn('name', array_keys($deck))->get();
+			
+			$deck_colors = $this->getDeckColors($cards);
+			$un_color_identity = array_diff(["W","B","U","R","G"], $deck_colors);
+		}
+
+		$card_restrictions = function($q) use ($format, $un_color_identity) {
+
+			if ($format !== "")
+				$q->where('legalities->' . $format, 'legal');
+
+			foreach ($un_color_identity as $un_color) {
+				$q->whereJsonDoesntContain('color_identity', $un_color);
+			}
+		};
+
 		// Find replacements
-		$upgrades = Card::with(['superiors' => function($q) use ($format) {
-
-			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
-
-		}])->whereIn('name', array_keys($deck))->whereHas('superiors', function($q) use ($format) {
-
-			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
-
-		})->get();
+		$upgrades = Card::with(['superiors' => $card_restrictions])->whereIn('name', array_keys($deck))->whereHas('superiors', $card_restrictions)->get();
 
 		return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => $upgrades])->withInput();
     }
+
+	public function getDeckColors($cards)
+	{
+		$deck_colors = [];
+		foreach ($cards as $card) {
+			$deck_colors = array_merge($deck_colors, array_diff($card->color_identity, $deck_colors)); 
+		}
+		return $deck_colors;
+	}
 
 	public function parseDeck($rawdeck) 
 	{
