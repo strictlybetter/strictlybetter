@@ -45,12 +45,12 @@ class CardController extends Controller
 		if (!in_array($format, Card::$formats))
 			$format = "";
 
-		$cards = $this->browse($request, $format, $term, "updated_at");
+		$cards = $this->browse($request, $format, $term);
 
 		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'format' => $format]);
 	}
 
-	protected function browse(Request $request, $format = '', $term = '', $orderBy = 'name')
+	protected function browse(Request $request, $format = '', $term = '')
 	{
 
 		$card_filters = function($q) use ($format) {
@@ -71,7 +71,10 @@ class CardController extends Controller
 			$cards = $cards->where('legalities->' . $format, 'legal');
 		}
 
-		$cards = $cards->orderBy($orderBy, 'desc')->paginate(10);
+		$orderBy = ($term == "") ? "updated_at" : "name";
+		$direction = ($term == "") ? "desc" : "asc";
+
+		$cards = $cards->orderBy($orderBy, $direction)->paginate(10);
 
 		// Remove self from functional reprints
 		foreach ($cards as $i => $card) {
