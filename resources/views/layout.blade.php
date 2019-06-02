@@ -55,7 +55,7 @@
 		  </div>
 		</nav>
 
-		<div class="container">
+		<div class="container-fluid">
 			<br>
 			@if ($errors->any())
 				<div class="alert alert-danger alert-dismissible fade show" role="alert">

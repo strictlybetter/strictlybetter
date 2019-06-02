@@ -31,8 +31,11 @@ class Card extends Model
         'types' => 'array',
         'subtypes' => 'array',
         'colors' => 'array',
-        'color_identity' => 'array'
+        'color_identity' => 'array',
+        'manacost_sorted' => 'array'
     ];
+
+    protected $colorManaCount = false;
 
     public static $formats = ['standard', 'modern', 'legacy', 'vintage', 'commander', 'pauper', 'penny', 'duel',  'future', 'frontier', 'oldschool'];
 
@@ -40,12 +43,12 @@ class Card extends Model
 
     public function inferiors() 
     {
-    	return $this->belongsToMany(Card::class, 'obsoletes', 'superior_card_id', 'inferior_card_id')->withPivot(['upvotes', 'downvotes', 'id'])->withTimestamps();
+    	return $this->belongsToMany(Card::class, 'obsoletes', 'superior_card_id', 'inferior_card_id')->using('App\Obsolete')->withPivot(['upvotes', 'downvotes', 'id', 'labels'])->withTimestamps();
     }
 
     public function superiors()
     {
-    	return $this->belongsToMany(Card::class, 'obsoletes', 'inferior_card_id', 'superior_card_id')->withPivot(['upvotes', 'downvotes', 'id'])->withTimestamps();
+    	return $this->belongsToMany(Card::class, 'obsoletes', 'inferior_card_id', 'superior_card_id')->using('App\Obsolete')->withPivot(['upvotes', 'downvotes', 'id', 'labels'])->withTimestamps();
     }
 
     public function functionalReprintGroup()
@@ -73,15 +76,110 @@ class Card extends Model
     	return trim(implode(" ", $this->supertypes) . " " . implode(" ", $this->types) . " - " . implode(" ", $this->subtypes), " -");
     }
 
-    public function getFunctionalReprintLineAttribute()
+	/*
+		Should only be used to generate/populate substituted_rules field
+	*/
+    public function getSubstitutedRulesAttribute() 
     {
-
     	$name = preg_quote($this->name, '/');
     	$pattern = '/\b' . preg_replace('/\s+/u', '\s+', $name)  . '\b/u';
 
-    	$substituted_rules = preg_replace($pattern, '@@@', $this->rules);
+    	return preg_replace($pattern, '@@@', $this->rules);
+    }
 
-    	return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $substituted_rules;
+    public function getFunctionalReprintLineAttribute()
+    {
+    	return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->substitutedRules;
+    }
+
+	/*
+		Should only be used to generate/populate manacost_sorted field
+	*/
+    public function getColorManaCountsAttribute() 
+    {
+    	if ($this->colorManaCount)
+    		return $this->colorManaCount;
+
+    	if (!preg_match_all('/({[^\d]+?})/u', $this->manacost, $symbols))
+			return false;
+
+		$costs = [];
+		foreach ($symbols[1] as $symbol) {
+			if (!isset($costs[$symbol]))
+				$costs[$symbol] = 1;
+			else
+				$costs[$symbol]++;
+		}
+
+		$this->colorManaCount = $costs;
+
+		return $costs;
+    }
+
+    public function costsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
+    {
+    	// If this costs nothing colored, it can't cost more
+    	if ($this->manacost_sorted === false)
+    		return false;
+
+    	// If the other costs nothing colored, then this must cost more
+    	if ($other->manacost_sorted === false)
+    		return true;
+
+    	$mana_left = $other->manacost_sorted;
+
+    	$variable_costs = ['{X}','{Y}','{Z}'];
+
+    	foreach ($variable_costs as $variable_cost)
+    		unset($mana_left[$variable_cost]);
+
+    	$anytype_left = $other->cmc - array_sum(array_values($mana_left));
+
+    	foreach ($this->manacost_sorted as $symbol => $cost) {
+
+    		if (in_array($symbol, $variable_costs))
+    			continue;
+
+			if (!isset($mana_left[$symbol])) {
+
+				// Is it hybrid mana?
+				$pos = mb_strpos($symbol, '/');
+				if ($pos === false || $pos < 1)
+					return true;
+
+				// Translate Phyrexian mana to the base color
+				// Phyrexian red > red
+				if ($symbol[$pos + 1] === 'P')
+					$symbol = '{'.$symbol[$pos-1].'}';
+
+				// Translate multicolor / 2-generic/color to one of the left colors if any
+				// multicolor / 2-generic/color > base color
+				else {
+					$symbol = '{'.$symbol[$pos+1].'}';
+					if (!isset($mana_left[$symbol]) || 
+						($cost > $mana_left[$symbol] && (!$may_cost_more_of_same || $cost > ($anytype_left + $mana_left[$symbol]))))
+						$symbol = '{'.$symbol[$pos-1].'}';
+				}
+
+				if (!isset($mana_left[$symbol]))
+					return true;
+
+			}
+
+			// Reduce usable mana for next iteration, unless we alredy ran out
+			if ($cost > $mana_left[$symbol]) {
+				if (!$may_cost_more_of_same || $cost > ($anytype_left + $mana_left[$symbol]))
+					return true;
+				else {
+					$anytype_left -= ($cost - $mana_left[$symbol]);
+					$mana_left[$symbol] = 0;
+				}
+			}
+			else
+				$mana_left[$symbol] -= $cost;
+		}
+
+		return false;
     }
 
     public function isSuperior(Card $other)
@@ -103,13 +201,25 @@ class Card extends Model
 
     	if (count($this->subtypes) != count($other->subtypes) || array_diff($this->subtypes, $other->subtypes))
     		return false;
-
+/*
     	if (array_diff($this->colors, $other->colors))
-    		return false;
+    		return false;*/
 
     	if ($this->cmc > $other->cmc)
     		return false;
 
+    	if ($this->costsMoreColoredThan($other, false))
+    		return false;
     	return true;
+    }
+
+    public function hasStats()
+    {
+    	return ($this->power !== null && $this->toughness !== null);
+    }
+
+    public function hasLoyalty() 
+    {
+    	return ($this->loyalty !== null);
     }
 }

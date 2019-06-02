@@ -26,6 +26,7 @@ Artisan::command('load-scryfall', function () {
     $filename = 'scryfall-default-cards.json';
     $type_pattern = '/^(.*?)(?: — (.*))?$/';
     $supertypes = ["Basic", "Elite", "Host", "Legendary", "Ongoing", "Snow", "World"];
+    $ignore_layouts = ["planar", "scheme", "token", "double_faced_token", "emblem"];
 
 	if ($fh = fopen($filename, 'r')) {
 
@@ -37,7 +38,7 @@ Artisan::command('load-scryfall', function () {
 			$obj = json_decode($line);
 			
 			// Check validity of the card
-			if ($obj === null || empty($obj->multiverse_ids))
+			if ($obj === null || empty($obj->multiverse_ids) || in_array($obj->layout, $ignore_layouts))
 				continue;
 
 			if (!preg_match($type_pattern, $obj->type_line, $match))
@@ -49,8 +50,13 @@ Artisan::command('load-scryfall', function () {
 			if ($card->exists && $card->multiverse_id > $obj->multiverse_ids[0])
 				continue;
 
+			// Don't update updated_at field
+			if ($card->exists)
+				$card->timestamps = false;
+
 			$types = explode(" ", $match[1]);
 			$subtypes = isset($match[2]) ? explode(" ", $match[2]) : [];
+
 
 			$card->fill([
 				'multiverse_id' => $obj->multiverse_ids[0],
@@ -67,6 +73,10 @@ Artisan::command('load-scryfall', function () {
 				'toughness' => isset($obj->toughness) ? $obj->toughness : null,
 				'loyalty' => isset($obj->loyalty) ? $obj->loyalty : null
 			]);
+
+			// Create a efw helper columns using existing data
+			$card->substituted_rules = $card->substitutedRules;
+			$card->manacost_sorted = $card->colorManaCounts;
 
 			if ($card->isDirty()) {
 				$card->save();
@@ -119,6 +129,22 @@ Artisan::command('populate-functional-reprints', function () {
 	}
 })->describe('Populates functional reprints table based on existing cards');
 
+Artisan::command('remove-bad-cards', function () {
+
+	$count = Card::count();
+	$cards = Card::whereJsonContains('types', 'Token')->orWhereJsonContains('types', 'Plane')->orWhereJsonContains('types', 'Scheme')->orWhere(function($q) {
+
+		foreach (Card::$formats as $format) {
+			$q->whereJsonContains('legalities->' . $format, 'not_legal');
+		}
+
+	})->delete();
+	$count = $count - Card::count();
+
+	$this->comment("Removed " . $count . " bad cards");
+
+});
+
 
 Artisan::command('create-functional-obsoletes', function () {
 
@@ -128,6 +154,8 @@ Artisan::command('create-functional-obsoletes', function () {
 	$old_obsolete_count = Obsolete::count();
 
 	foreach ($results as $reprint_group) {
+
+		$labels = create_labels($reprint_group->cards[0], $reprint_group->cards[1]);
 
 		$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('id');
 		$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('id');
@@ -144,6 +172,14 @@ Artisan::command('create-functional-obsoletes', function () {
 
 })->describe('Creates suggestions based on functional reprints and their existing suggestions');
 
+Artisan::command('create-labels', function () {
+	$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
+
+	foreach ($obsoletes as $obsolete) {
+		$obsolete->labels = create_labels($obsolete->inferior, $obsolete->superior);
+		$obsolete->save();
+	}
+});
 
 Artisan::command('remove-bad-suggestions', function () {
 

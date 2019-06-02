@@ -6,12 +6,12 @@ html {
 	margin-right: 0;
 }
 .mtgcard {
-	width: 223px;
-	height: 311px;
+	/*width: 223px;*/
+	max-height: 311px;
+	border-radius: 11px;
 }
 .mtgcard-thumb {
-	width: 33%;
-	height: 33%;
+	width: 131px
 }
 .mtgcard-select-text {
 	white-space: pre-line;
@@ -19,15 +19,16 @@ html {
 	max-width: 63%;
 }
 .mtgcard-wrapper {
-	min-width: 243px;
+	min-width: 233px;
 	min-height: 311px;
 	padding: 0;
 	margin-bottom: 10px;
-	margin-right: 5px;
+	margin-right: 45px;
+	text-align: left;
 }
 .vote {
 	padding: .2rem .55rem;
-	margin: 0 .1rem 0 0;
+	margin: .3rem .1rem 0 0;
 	font-size: 14px;
 }
 .select2-selection {
@@ -47,4 +48,116 @@ ul.select2-results__options {
 	padding-left: 35px;
 	background-position: 10px 50%;
 	*/
+}
+.card-label-container {
+	position: absolute;
+	top: 45px;
+	max-width: 140px;
+	right: 0px;
+}
+.card-label {
+	background-color: yellow;
+	border-radius: 5px;
+	padding-left: 1px;
+	padding-right: 5px;
+	border: 1px solid black;
+	font-size: 14px;
+}
+.reprint-stack {
+	position: absolute;
+	display : none;
+}
+.reprint-stack:hover {
+	z-index: 201;
+	transition-delay: 0.15s;
+}
+.reprint-stack img {
+	transition: transform 0.25s;
+}
+.reprint-stack img:hover {
+	transform-style: flat;
+	-webkit-transform-style: flat;
+	-moz-transform-style: flat;
+	-ms-transform: translateY(-25px);
+	-webkit-transform: translateY(-25px);
+	-moz-transform: translateY(-25px);
+	-o-transform: translateY(-25px);
+	transform: translateY(-25px);
+}
+.reprint-stack a.link {
+	display: none;
+}
+.reprint-0 {
+	left: 0px;
+
+	z-index: 0;
+	display : block;
+	position: relative !important;
+}
+.reprint-1 {
+	left: 40px;
+
+	z-index: 1;
+	display : block;
+}
+.reprint-2 {
+	left: 80px;
+
+	z-index: 2;
+	display : block;
+}
+.reprint-3 {
+	left: 120px;
+
+	z-index: 2;
+	display : block;
+}
+.reprint-4 {
+	left: 160px;
+
+	z-index: 3;
+	display : block;
+}
+.reprint-5 {
+	left: 200px;
+	top: -100px;
+	z-index: 4;
+	display : block;
+}
+.reprint-primary {
+	z-index: 200;
+	display : block;
+	position: absolute;
+}
+.cardpanel-current {
+	background-color: lightgray;
+	padding: 10px;
+	padding-top: 46px;
+}
+.centered {
+	/*margin-left: auto;
+	margin-right: auto;*/
+}
+.cardpanel-superior {
+	background-color: lightsteelblue;
+	padding: 10px;
+}
+.cardpanel-inferior {
+	background-color: pink;
+	padding: 10px;
+	text-align: right;
+}
+.cardrow {
+	border-bottom: 3px solid black;
+	min-height: 405px;
+	margin-right: -15px;
+	margin-left: -15px;
+}
+.cardpanel-right {
+	width: 100%;
+	
+	display: inline-block;
+}
+.pagination {
+	margin-bottom: 0.5rem;
 }

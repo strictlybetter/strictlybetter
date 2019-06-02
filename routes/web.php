@@ -23,6 +23,7 @@ Route::post('/upgrade_deck', 'DeckController@upgrade')->name('deck.upgrade');
 Route::get('/quicksearch', 'CardController@quicksearch')->name('card.quicksearch');
 Route::get('/card_autocomplete', 'CardController@cardAutocomplete')->name('card.autocomplete');
 Route::post('/card/search', 'CardController@search')->name('card.search');
+Route::get('/upgradeview/{card}', 'CardController@upgradeview')->name('card.upgradeview');
 
 Route::get('/card/{card?}', 'CardController@create')->name('card.create');
 Route::post('/card', 'CardController@store')->name('card.store');

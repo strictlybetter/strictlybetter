@@ -7,31 +7,38 @@
 
 @section('content')
 
-	<h1>Upgrade Deck</h1>
+	<div class="container">
+		<h1>Upgrade Deck</h1>
 
-	{{ Form::open(['route' => 'deck.upgrade']) }}
-		Paste your deck here<br>
-		{{ Form::textarea('deck', null, ['class' => 'form-control', 'required', 'placeholder' => '4x Llanowar Elves&#x0a;2x Tinder Wall']) }}<br>
-		<div class="row">
-			<div class="col-md-2" style="padding-left: 0;">{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control']) }}</div>
-			<div class="col-md-3">{{ Form::submit('Upgrade', ['class' => 'btn btn-primary']) }}</div>
-		</div>
+		{{ Form::open(['route' => 'deck.upgrade']) }}
+			Paste your deck here<br>
+			{{ Form::textarea('deck', null, ['class' => 'form-control', 'required', 'placeholder' => '4x Llanowar Elves&#x0a;2x Tinder Wall']) }}<br>
+			<div class="row">
+				<span class="form-group row" >
+					<span><label for="format" style="padding: 6px 6px 0px 0px">Suggestions from format</label></span>
+					<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control']) }}</span>
+				</span>
+				<span class="form-group" style="margin-left: 20px">{{ Form::submit('Upgrade', ['class' => 'btn btn-primary']) }}</span>
+			</div>
 
-	{{ Form::close() }}
-	<br>
+		{{ Form::close() }}
 
-	@if(isset($deckupgrades))
+		@if(isset($deckupgrades))
 
-		<h2>Results</h2>
+			<h2>Results</h2>
 
-		@if(count($deckupgrades) === 0)
-			<p>Congratulations! No upgrades needed.</p>
-		@else
-			@foreach($deckupgrades as $card)
-				@include('card.partials.upgrade')
-			@endforeach
+			@if(count($deckupgrades) === 0)
+				<p>Congratulations! No upgrades needed.</p>
+			@else
+				@foreach($deckupgrades as $card)
+					<div class="row cardrow">
+						@include('card.partials.upgrade')
+					</div>
+				@endforeach
+			@endif
 		@endif
-	@endif
+		<br><br>
+	</div>
 
 @stop
 

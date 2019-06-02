@@ -6,38 +6,42 @@
 @stop
 
 @section('content')
-	
-	<h1>Add Suggestion</h1>
-	{{ Form::open(['route' => 'card.store']) }}
+	<div class="container">
+		<h1>Add Suggestion</h1>
+		{{ Form::open(['route' => 'card.store']) }}
 
-		<div class="row" style="height:220px"> 
-			<div class="form-group col-md-5">
-				<label for="inferior" style="font-size:larger;">Current Card</label>
-				{{ Form::select('inferior', [], null, ['id' => 'inferior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
+			<div class="row" style="height:220px"> 
+				<div class="form-group col-lg-5">
+					<label for="inferior" style="font-size:larger;">Current Card</label>
+					{{ Form::select('inferior', [], null, ['id' => 'inferior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
+				</div>
+
+				<div id="upgrade_sign_wrapper" class="col-lg-1 text-center" style="margin: auto">
+					<i class="fa fa-arrow-right" style="font-size:30px;"></i>
+				</div>
+
+				<div class="form-group col-lg-5">
+					<label for="superior" style="font-size:larger;">Strictly Better Card</label>
+					{{ Form::select('superior', [], null, ['id' => 'superior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
+				</div>
+			
+
+			<div class="form-group col-lg-1" style="margin: auto">
+				{{ Form::submit('Add', ['class' => 'btn btn-primary btn-lg']) }}
 			</div>
-
-			<div id="upgrade_sign_wrapper" class="col-md-1 text-center" style="margin: auto">
-				<i class="fa fa-arrow-right" style="font-size:30px;"></i>
 			</div>
-
-			<div class="form-group col-md-5">
-				<label for="superior" style="font-size:larger;">Strictly Better Card</label>
-				{{ Form::select('superior', [], null, ['id' => 'superior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
-			</div>
-		
-
-		<div class="form-group col-md-1" style="margin: auto">
-			{{ Form::submit('Add', ['class' => 'btn btn-primary btn-lg']) }}
+		{{ Form::close() }}
+		<div>
+			<br>
 		</div>
+
+
+		<div class="row" id="upgrade_view">
+		@if($card)
+			@include('card.partials.upgrade')
+		@endif
 		</div>
-	{{ Form::close() }}
-	<div>
-		<br><br><br>
 	</div>
-
-	@if($card)
-		@include('card.partials.upgrade')
-	@endif
 
 @stop
 
@@ -111,7 +115,17 @@ $(document).ready(function() {
 	};
 
 	select2_options.data = inferiors;
-	$("#inferior").select2(select2_options);
+	$("#inferior").select2(select2_options).on('select2:select', function (e) {
+
+		$.ajax({
+			type: "GET",
+			url: "{{ route('index') }}/upgradeview/" + e.params.data.id,
+			dataType: "html",
+			success: function(response) {
+				$("#upgrade_view").html(response);
+			}
+		});
+	});
 	
 	select2_options.data = superiors;
 	select2_options.placeholder = "Select strictly better card"

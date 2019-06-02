@@ -7,11 +7,13 @@
 
 @section('content')
 
-	<h1>Browse</h1>
+	<div class="container">
+		<h1>Browse</h1>
 
-	<div class="row">
-		{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-5', 'placeholder' => 'Quick search']) }}
-		<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control']) }}</span>
+		<div class="row">
+			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-6', 'placeholder' => 'Quick search']) }}
+			<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control']) }}</span>
+		</div>
 	</div>
 	<br>
 

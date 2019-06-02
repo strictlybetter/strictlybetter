@@ -57,10 +57,9 @@ class CardController extends Controller
 
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
-
 		};
 
-		$cards = Card::with(['superiors' => $card_filters])->whereHas('superiors', $card_filters);
+		$cards = Card::with(['superiors' => $card_filters, 'inferiors' => $card_filters, 'functionalReprints' => $card_filters]);
 
 		// Apply search term if any
 		if ($term !== "") {
@@ -68,12 +67,20 @@ class CardController extends Controller
 		}
 
 		// We might not need to filter the inferior cards through formats
-		/*
-		if ($format !== "") {
+		if ($format !== "" && $term === "") {
 			$cards = $cards->where('legalities->' . $format, 'legal');
-		}*/
+		}
 
 		$cards = $cards->orderBy($orderBy, 'desc')->paginate(10);
+
+		// Remove self from functional reprints
+		foreach ($cards as $i => $card) {
+			if (count($card->functionalReprints) > 0) {
+				$cards[$i]->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
+					return ($card->id === $item->id);
+				})->values();
+			}
+		}
 
 		$cards->setPath(route('index', ['search' => $term, 'format' => $format]));
 
@@ -91,24 +98,51 @@ class CardController extends Controller
 		$superiors = [];
 
 		if ($card) {
-			$card->load('superiors');
-			$inferiors = $this->convertToSelect2Data([$card]);
+			$card->load(['functionalReprints', 'superiors']);
+
+			$inferiors = $card->functionalReprints;
+			if ($inferiors->isEmpty())
+				$inferiors->push($card);
+
+			$inferiors = $this->convertToSelect2Data($inferiors, $card);
 			$superiors = $this->convertToSelect2Data($card->superiors);
+
+			// Remove self from reprints
+			$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
+				return ($card->id === $item->id);
+			})->values();
 		}
 
-	    return view('card.create')->with(['card' => $card, 'inferiors' => $inferiors, 'superiors' => $superiors]);
+		return view('card.create')->with(['card' => $card, 'inferiors' => $inferiors, 'superiors' => $superiors]);
 	}
 
-	protected function convertToSelect2Data($cards)
+	public function upgradeview(Card $card)
+	{
+		$card->load(['functionalReprints', 'superiors']);
+
+		// Remove self from reprints
+		$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
+			return ($card->id === $item->id);
+		})->values();
+
+	    return view('card.partials.upgrade')->with(['card' => $card]);
+	}
+
+	protected function convertToSelect2Data($cards, Card $selected_card = null)
 	{
 		$list = [];
 		foreach ($cards as $card) {
-			$list[] = [
+			$item = [
 				'text' => $card->name,
 				'id' => $card->id,
 				'imageUrl' => $card->imageUrl,
 				'typeline' => $card->typeLine
 			];
+
+			if ($selected_card && $card->id == $selected_card->id)
+				$item['selected'] = true;
+
+			$list[] = $item;
 		}
 		return $list;
 	}
@@ -141,19 +175,7 @@ class CardController extends Controller
 		$inferior->touch();	// Touch inferior, so we can easily show recent updates on 'Browse' page
 		$superior->touch();
 
-		// Find duplicates of inferior
-		$inferior_list = $inferior->functionalReprints->pluck('id');
-		$inferior_list[] = $inferior->id;
-
-		// Add all inferior duplicates to all superiors
-		if (count($superior->functionalReprints) == 0)
-			$superior->inferiors()->syncWithoutDetaching($inferior_list);
-
-		else {
-			foreach ($superior->functionalReprints as $superior_item) {
-				$superior_item->inferiors()->syncWithoutDetaching($inferior_list);
-			}
-		}
+		create_obsolete($inferior, $superior, true);
 
 		// Add vote
 		$obsolete = Obsolete::where('superior_card_id', $superior->id)->where('inferior_card_id', $inferior->id)->first();
