@@ -105,8 +105,10 @@ Artisan::command('populate-functional-reprints', function () {
 
 	$this->comment(count($results) . " duplicate families found. Populating...");
 
-	// Clear previous entries
+	// Clear previous entries and reset auto increment 
+	// Note: truncate could be faster, but we have foreign keys that must be cleared on cards table
 	FunctionalReprint::query()->delete();
+	DB::statement("ALTER TABLE functional_reprints AUTO_INCREMENT = 1");
 
 	foreach ($results as $reprint_group) {
 
