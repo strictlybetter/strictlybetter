@@ -14,7 +14,7 @@
 @stop
 
 @section('content')
-
+<div class="container">
 	<h1>About</h1>
 
 	<p>
@@ -76,7 +76,7 @@
 		</address>
 		There is also a <a href="https://www.reddit.com/r/magicTCG/comments/bt7ocz/i_just_put_up_a_website_for_finding_strictly/" rel="noreferrer noopener">Reddit thread about the site</a>.
 	</p>
-
+</div>
 @stop
 
 @section('js')

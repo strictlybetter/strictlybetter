@@ -15,6 +15,7 @@
 
 @section('content')
 
+<div class="container">
 	<h1>Api Guide</h1>
 
 	<p>
@@ -82,7 +83,7 @@
 		You are free to use the API and it's results for any purpose for which I may not be held liable for.<br>
 		However, you must still adhere to <a href="https://company.wizards.com/fancontentpolicy" rel="noopner nofollow">Wizards of the Coast Fan Content Policy</a>.
 	</p>
-
+</div>
 @stop
 
 @section('js')

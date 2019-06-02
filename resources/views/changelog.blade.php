@@ -14,7 +14,7 @@
 @stop
 
 @section('content')
-
+<div class="container">
 	<h1>Changelog</h1>
 
 	<p>This page lists usage affecting changes on the site.</p>
@@ -61,7 +61,7 @@
 	<ul>
 		<li>Initial release</li>
 	</ul>
-
+</div>
 @stop
 
 @section('js')
