@@ -208,7 +208,7 @@ class Card extends Model
     	if ($this->cmc > $other->cmc)
     		return false;
 
-    	if ($this->costsMoreColoredThan($other, false))
+    	if ($this->costsMoreColoredThan($other, true))
     		return false;
     	return true;
     }
