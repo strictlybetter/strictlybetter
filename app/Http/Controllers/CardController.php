@@ -209,15 +209,12 @@ class CardController extends Controller
 		if ($inferior->name == $superior->name)
 			return redirect()->route('card.create', $inferior->id)->withErrors(['The cards must be different'])->withInput();
 
-		if (!$superior->isSuperior($inferior))
+		if (!$superior->isNotWorseThan($inferior))
 			return redirect()->route('card.create', $inferior->id)->withErrors(['The strictly better card does not seem to fill the requirements of the term'])->withInput();
-
-		$inferior->touch();	// Touch inferior, so we can easily show recent updates on 'Browse' page
-		$superior->touch();
 
 		create_obsolete($inferior, $superior, true);
 
-		// Add vote
+		// Add votef
 		$obsolete = Obsolete::where('superior_card_id', $superior->id)->where('inferior_card_id', $inferior->id)->first();
 		$this->addVote($obsolete, true);
 

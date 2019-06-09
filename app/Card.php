@@ -77,23 +77,28 @@ class Card extends Model
     }
 
 	/*
-		Should only be used to generate/populate substituted_rules field
+		Should only be used to generate/populate substituted_rules field,
+		in other cases use substituted_rules attribute
 	*/
-    public function getSubstitutedRulesAttribute() 
+    public function getSubstituteRulesAttribute() 
     {
     	$name = preg_quote($this->name, '/');
     	$pattern = '/\b' . preg_replace('/\s+/u', '\s+', $name)  . '\b/u';
 
-    	return preg_replace($pattern, '@@@', $this->rules);
+    	$substitute_rules = preg_replace($pattern, '@@@', $this->rules);
+
+    	// Remove reminder text
+    	return preg_replace('/^\(.*?\)\n/um', '', $substitute_rules);
     }
 
     public function getFunctionalReprintLineAttribute()
     {
-    	return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->substitutedRules;
+    	return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->substituted_rules;
     }
 
 	/*
-		Should only be used to generate/populate manacost_sorted field
+		Should only be used to generate/populate manacost_sorted field,
+		in other cases use manacost_sorted attribute
 	*/
     public function getColorManaCountsAttribute() 
     {
@@ -182,7 +187,7 @@ class Card extends Model
 		return false;
     }
 
-    public function isSuperior(Card $other)
+    public function isNotWorseThan(Card $other)
     {
     	// Must not be a duplicate
     	if ($this->id === $other->id || ($other->functional_reprints_id && $this->functional_reprints_id === $other->functional_reprints_id))
@@ -195,12 +200,19 @@ class Card extends Model
     	if (count($this->types) != count($other->types) || array_diff($this->types, $other->types)) {
 
     		// Instant vs Sorcery is an exception
-    		if (!(in_array("Instant", $this->types) && in_array("Sorcery", $other->types)))
+    		// Creatures may have any other types
+    		if (!(in_array("Instant", $this->types) && in_array("Sorcery", $other->types)) &&
+    			!(in_array("Creature", $this->types) && in_array("Creature", $other->types)))
     			return false;
     	}
 
-    	if (count($this->subtypes) != count($other->subtypes) || array_diff($this->subtypes, $other->subtypes))
+    	// If both have subtypes, atleast one of them has to be a common one
+    	if (count($this->subtypes) > 0 && count($other->subtypes) > 0 && empty(array_intersect($this->subtypes, $other->subtypes)))
     		return false;
+
+/*
+    	if (count($this->subtypes) != count($other->subtypes) || array_diff($this->subtypes, $other->subtypes))
+    		return false;*/
 /*
     	if (array_diff($this->colors, $other->colors))
     		return false;*/

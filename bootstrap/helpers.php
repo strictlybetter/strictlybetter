@@ -47,6 +47,8 @@ function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_rep
 
 	$superior->inferiors()->syncWithoutDetaching([$inferior->id => ['labels' => $labels]]);
 
+	$inferior->touch();
+
 	// Handle reprints
 	if ($cascade_to_reprints) {
 
@@ -69,4 +71,19 @@ function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_rep
 			}
 		}
 	}
+}
+
+function get_line_count($filename) {
+
+	$count = 0;
+	if ($fp = fopen($filename, 'r')) {
+
+		while (!feof($fp)) {
+			fgets($fp);
+			$count++;
+		}
+
+		fclose($fp);
+	}
+	return $count;
 }
