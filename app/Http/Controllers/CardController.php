@@ -247,11 +247,13 @@ class CardController extends Controller
 	public function cardAutocomplete(Request $request)
 	{
 		$request->validate([
-			'term' => 'required|max:191|min:2'
+			'term' => 'required|max:191|min:2',
+			'limit' => 'integer|min:1|max:50'
 		]);
 
+		$limit = $request->input('limit') ? $request->input('limit') : 25;
 		$term = escapeLike($request->input('term'));
-		$cards = Card::where('name', 'like', $term.'%')->orderBy('name')->paginate(25);
+		$cards = Card::where('name', 'like', $term.'%')->orderBy('name')->paginate($limit);
 
 		$list = [];
 
