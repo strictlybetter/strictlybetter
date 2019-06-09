@@ -46,10 +46,11 @@
 		</p>-->
 @else
 	@foreach($cards as $card)
+	
 	<div class="row cardrow">
 
 		@if($card->relationLoaded('inferiors'))
-		<div class="col-lg-4 cardpanel-inferior">
+		<div class="col-sm-4 cardpanel-inferior">
 			<h4>Inferiors</h4>
 			<div class="row" style="float:right">
 				@if(count($card->inferiors) > 0)
@@ -65,7 +66,7 @@
 		</div>
 		@endif
 	
-		<div class="row col-lg-8" style="margin:0;padding:0">
+		<div class="row col-sm-8" style="margin:0;padding:0;background-color:lightgray">
 			@include('card.partials.upgrade')
 		</div>
 	</div>

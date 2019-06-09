@@ -11,11 +11,32 @@
 		<h1>Browse</h1>
 
 		<div class="row">
-			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-6', 'placeholder' => 'Quick search']) }}
+			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-5', 'placeholder' => 'Quick search']) }}
+			<span class="spinner-border spinner-border-sm search-spinner" role="status"></span>
 			<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control']) }}</span>
+			<span>{{ Form::select('filters', $filterlist, isset($filters) ? $filters : null, ['id' => 'filters', 'multiple' => 'multiple', 'class' => 'form-control']) }}</span>
 		</div>
+		<br>
+<!--
+		<div class="row filterlist">
+			<span class="form-check">
+				{{ Form::checkbox('filter_less_colors', null, null, ['id' => 'filter_less_colors', 'class' => 'form-check-input', 'title' => 'Suggestions may have less or more colors, but must still be playable with colors of the original card']) }}
+				<label for="filter_less_colors" class="form-check-label disable-select" title="Suggestions may have less or more colors, but must still be playable with colors of the original card">{{ Lang::get('card.filters.less_colors') }}</label>
+			</span>
+
+			<span class="form-check">
+				{{ Form::checkbox('filter_subtypes_differ', null, null, ['id' => 'filter_subtypes_differ', 'class' => 'form-check-input', 'title' => 'Cards may have other tribes or be artifacts/enchantments/lands in addition to original cards types or vice versa']) }}
+				<label for="filter_subtypes_differ" class="form-check-label disable-select" title="Cards may have other tribes or be artifacts/enchantments/lands in addition to original cards types or vice versa">{{ Lang::get('card.filters.subtypes_differ') }}</label>
+			</span>
+
+			<span class="form-check">
+				{{ Form::checkbox('filter_more_colored_mana', null, null, ['id' => 'filter_more_colored_mana', 'class' => 'form-check-input', 'title' => 'Cards may cost more colored mana of the colors already present in original card, but converted mana cost must still be less or equal']) }}
+				<label for="filter_more_colored_mana" class="form-check-label disable-select" title="Cards may cost more colored mana of the colors already present in original card, but converted mana cost must still be less or equal">{{ Lang::get('card.filters.more_colored_mana') }}</label>
+			</span>
+
+		</div>
+-->
 	</div>
-	<br>
 
 	<div id="cards">
 		
@@ -34,20 +55,28 @@
 	function quicksearch(page) {
 
 		if (page === undefined)
-			page = 1;
+			page = initial_page;
+		else
+			initial_page = page;
 
 		var search = $("#quicksearch").val();
 		var format = $('#format').find(":selected").val();
+		var filters = $('#filters').val();
 
 		var params = new URLSearchParams({
 			'format': format,
 			'search': search,
+			'filters': filters,
 			'page': page
 		});
+
+		// Replace url, so current browse page may copied, pasted and followed correctly
 		window.history.replaceState(null, '', '/?' + params.toString());
 
 		if (quicksearch_ajax)
 			quicksearch_ajax.abort();
+
+		$(".search-spinner").show();
 
 		quicksearch_ajax = $.ajax({
 			type: "GET",
@@ -56,9 +85,11 @@
 			data: {
 				"format": format,
 				"search": search,
+				"filters": filters,
 				"page": page
 			},
 			success: function(response) {
+				$(".search-spinner").hide();
 				$("#cards").html(response);
 			}
 		});
@@ -69,12 +100,28 @@
 		$("#quicksearch").on('input', function(event) {
 
 			clearTimeout(quicksearch_timer);
-			quicksearch_timer = setTimeout(quicksearch, 50); 
+			quicksearch_timer = setTimeout(function() { quicksearch(1); }, 50); 
 		});
 
 		$("#format").on('change', function(event) {
 			quicksearch();
 		});
+
+		$('#filters').multiselect({
+			placeholder: 'No Label Filters',
+			texts: {
+				selectAll: "Strictly better only",
+				unselectAll: "No Label Filters"
+			},
+			selectAll: true,
+			onOptionClick: function(element, option) {
+				quicksearch();
+			},
+			onSelectAll: function(element, option) {
+				quicksearch();
+			}
+		});
+
 
 		$("#cards").on('click', 'a.page-link', function(e) {
 			e.preventDefault();
@@ -86,6 +133,16 @@
 		});
 
 		quicksearch(initial_page);
+
+		card_autocomplete("#quicksearch", 4, function(event, ui) {
+
+			if ($("#quicksearch").val() != ui.item.value) {
+				$("#quicksearch").val(ui.item.value);
+				quicksearch(1);
+			}
+			else
+				quicksearch();
+		});
 
 	});
 

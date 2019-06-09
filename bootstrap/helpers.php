@@ -21,18 +21,6 @@ function make_format_list()
 
 function create_labels(App\Card $inferior, App\Card $superior)
 {
-	/*
-	$more_colored_mana = false;
-	$variable_mana = ['{X}', '{Y}', '{Z}'];
-
-	foreach ($superior->manacost_sorted as $symbol => $amount) {
-
-		if (in_array($symbol, $variable_mana))
-			continue;
-
-		if (isset($inferior->manacost_sorted[$symbol]) && $amout > $inferior->manacost_sorted[$symbol])
-			$more_colored_mana = true;
-	}*/
 
 	$labels = [
 		'more_colors' => (count($superior->colors) > count($inferior->colors)),

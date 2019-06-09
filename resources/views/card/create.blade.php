@@ -10,7 +10,7 @@
 		<h1>Add Suggestion</h1>
 		{{ Form::open(['route' => 'card.store']) }}
 
-			<div class="row" style="height:220px"> 
+			<div class="row" style="min-height:220px"> 
 				<div class="form-group col-lg-5">
 					<label for="inferior" style="font-size:larger;">Current Card</label>
 					{{ Form::select('inferior', [], null, ['id' => 'inferior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
@@ -128,8 +128,22 @@ $(document).ready(function() {
 	});
 	
 	select2_options.data = superiors;
-	select2_options.placeholder = "Select strictly better card"
+	select2_options.placeholder = "Select strictly better card";
 	$("#superior").select2(select2_options);
+
+	// Rebuild on resize for responsive design
+	window.addEventListener('resize', function(event){
+
+		select2_options.data = inferiors;
+		select2_options.placeholder = "Select card";
+
+		$("#inferior").select2(select2_options);
+
+		select2_options.data = superiors;
+		select2_options.placeholder = "Select strictly better card";
+
+		$("#superior").select2(select2_options);
+	});
 
 	$(".tell_superior").on('click', function(event) {
 		event.preventDefault();

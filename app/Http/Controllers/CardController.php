@@ -31,9 +31,23 @@ class CardController extends Controller
 		$page = $request->input('page', 1);
 		if ($page === null) $page = 1;
 
-		//$cards = $this->browse($request, $format, $term, "updated_at");
+		$filters = $request->input('filters');
 
-	    return view('index')->with(['search' => $term, 'format' => $format, 'page' => $page, 'formatlist' => $formatlist]);
+		$filterlist = [];
+		foreach (Obsolete::$labellist as $label) {
+			if ($label == "strictly_better")
+				continue;
+			$filterlist[$label] = \Lang::get('card.filters.' . $label);
+		}
+
+	    return view('index')->with([
+	    	'search' => $term, 
+	    	'format' => $format, 
+	    	'page' => $page, 
+	    	'formatlist' => $formatlist, 
+	    	'filters' => $filters,
+	    	'filterlist' => $filterlist
+	    ]);
 	}
 
 	public function quicksearch(Request $request)
@@ -45,21 +59,44 @@ class CardController extends Controller
 		if (!in_array($format, Card::$formats))
 			$format = "";
 
-		$cards = $this->browse($request, $format, $term);
+		$filters = $request->input('filters');
+
+		$cards = $this->browse($request, $format, $term, $filters);
+
+		if (count($cards) == 0)
+			$cards = $this->browse($request, $format, $term, $filters, false);
 
 		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'format' => $format]);
 	}
 
-	protected function browse(Request $request, $format = '', $term = '')
+	protected function browse(Request $request, $format = '', $term = '', $filters = [], $has_obsoletes = true)
 	{
 
-		$card_filters = function($q) use ($format) {
+		$card_filters = function($q) use ($format, $filters) {
 
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
+
+			// Apply filters
+			if (is_array($filters)) {
+				foreach ($filters as $filter) {
+					if (in_array($filter, Obsolete::$labellist))
+						$q->where('obsoletes.labels->' . $filter, false);
+				}
+			}
 		};
 
-		$cards = Card::with(['superiors' => $card_filters, 'inferiors' => $card_filters, 'functionalReprints' => $card_filters]);
+		$cards = Card::with(['superiors' => $card_filters, 'inferiors' => $card_filters, 'functionalReprints' => function ($q) use ($format) {
+			if ($format !== "")
+				$q->where('legalities->' . $format, 'legal');
+		}]);
+
+		if ($has_obsoletes) {
+			$cards = $cards->where(function($q) use ($card_filters) {
+				$q->whereHas('superiors', $card_filters);
+				//	->orWhereHas('inferiors', $card_filters);
+			});
+		}
 
 		// Apply search term if any
 		if ($term !== "") {
@@ -67,9 +104,9 @@ class CardController extends Controller
 		}
 
 		// We might not need to filter the inferior cards through formats
-		if ($format !== "" && $term === "") {
+		/*if ($format !== "" && $term === "") {
 			$cards = $cards->where('legalities->' . $format, 'legal');
-		}
+		}*/
 
 		$orderBy = ($term == "") ? "updated_at" : "name";
 		$direction = ($term == "") ? "desc" : "asc";
@@ -85,7 +122,7 @@ class CardController extends Controller
 			}
 		}
 
-		$cards->setPath(route('index', ['search' => $term, 'format' => $format]));
+		$cards->setPath(route('index', ['search' => $term, 'format' => $format, 'filters' => $filters]));
 
 		return $cards;
 	}

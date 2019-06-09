@@ -14,6 +14,7 @@
         <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
         <link href="{{ URL::to('css/select2.min.css') }}" rel="stylesheet">
+        <link href="{{ URL::to('css/jquery.multiselect.css') }}" rel="stylesheet">
         <link href="{{ URL::to('css/main.css') }}" rel="stylesheet">
         @yield('head')
     </head>
@@ -78,6 +79,7 @@
 		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 		<script src="{{ URL::to('js/select2/select2.min.js') }}"></script>
+		<script src="{{ URL::to('js/jquery.multiselect.js') }}"></script>
 
 		<script>
 			$.ajaxSetup({
@@ -86,12 +88,11 @@
 				}
 			});
 
-			$(document).ready(function() { 
+			var card_cache = {};
+			function card_autocomplete(selector, minlen, select_callback) {
 
-				// Card search
-				var card_cache = {};
-				$("#card-search").autocomplete({
-					minLength: 2,
+				$(selector).autocomplete({
+					minLength: minlen,
 					delay: 50,
 					source: function(request, response) {
 
@@ -107,19 +108,24 @@
 							response(data);
 						});
 					},
-					select: function(event, ui) {
-
-						// Automatically submit search if an autocomplete option was selected
-						$("#card-search").val(ui.item.value);
-						$("#card-search-form").submit();
-					}
+					select: select_callback
 				}).focus(function() {
 
 					// Show autocomplete options when re-focusing
-					if ($(this).val().length >= 2)
+					if ($(this).val().length >= minlen)
 						$(this).autocomplete("search", $(this).val());
 				});
+			}
 
+			$(document).ready(function() { 
+
+				// Card search
+				card_autocomplete("#card-search", 2, function(event, ui) {
+
+					// Automatically submit search if an autocomplete option was selected
+					$("#card-search").val(ui.item.value);
+					$("#card-search-form").submit();
+				});
 
 				// Upvotes / Downvote
 				$(".container").on("submit", ".vote-form", function(event) {

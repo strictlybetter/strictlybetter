@@ -14,12 +14,30 @@ return [
     */
 
     'labels' => [
-    	'more_colors' => '⚠️More Colors',
-		'more_colored_mana' => '⚠️Manacost',
+    	'more_colors' => '⚠️More colors',
+		'more_colored_mana' => '⚠️Costs more colored',
 		'supertypes_differ' => '⚠️Supertype mismatch',
 		'types_differ' => '⚠️Type mismatch',
 		'subtypes_differ' => '⚠️Tribe mismatch',
 		'less_colors' => '⚠️Less colors',
+		'strictly_better' => 'Strictly better'
+    ],
+    'inferior_labels' => [
+    	'more_colors' => '⚠️Less colors',
+		'more_colored_mana' => '',
+		'supertypes_differ' => '⚠️Supertype mismatch',
+		'types_differ' => '⚠️Type mismatch',
+		'subtypes_differ' => '⚠️Tribe mismatch',
+		'less_colors' => '⚠️More colors',
+		'strictly_better' => 'Strictly worse'
+    ],
+    'filters' => [
+		'more_colors' => 'More colors',
+		'more_colored_mana' => 'Costs more colored',
+		'supertypes_differ' => 'Supertype mismatch',
+		'types_differ' => 'Type mismatch',
+		'subtypes_differ' => 'Tribe mismatch',
+		'less_colors' => 'Less colors',
 		'strictly_better' => 'Strictly better'
     ]
 
