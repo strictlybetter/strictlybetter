@@ -100,7 +100,7 @@
 		$("#quicksearch").on('input', function(event) {
 
 			clearTimeout(quicksearch_timer);
-			quicksearch_timer = setTimeout(function() { quicksearch(1); }, 50); 
+			quicksearch_timer = setTimeout(function() { quicksearch(1); }, 200); 
 		});
 
 		$("#format").on('change', function(event) {
@@ -134,14 +134,12 @@
 
 		quicksearch(initial_page);
 
-		card_autocomplete("#quicksearch", 4, function(event, ui) {
+		card_autocomplete("#quicksearch", 5, function(event, ui) {
 
 			if ($("#quicksearch").val() != ui.item.value) {
 				$("#quicksearch").val(ui.item.value);
 				quicksearch(1);
 			}
-			else
-				quicksearch();
 		});
 
 	});

@@ -89,22 +89,29 @@
 			});
 
 			var card_cache = {};
-			function card_autocomplete(selector, minlen, select_callback) {
+			function card_autocomplete(selector, max_results, select_callback) {
+
+				var autocomplete_query = null;
 
 				$(selector).autocomplete({
-					minLength: minlen,
-					delay: 50,
+					minLength: 2,
+					delay: 200,
 					source: function(request, response) {
 
 						// Check cache before query
 						if (request.term in card_cache) {
-							response(card_cache[request.term]);
+							response(card_cache[request.term + '|' + max_results]);
 							return;
 						}
 
+						request.limit = max_results;
+
+						if (autocomplete_query)
+							autocomplete_query.abort();
+
 						// Query
-						$.getJSON("{{ route('card.autocomplete') }}", request, function(data, status, xhr) {
-							card_cache[request.term] = data;
+						autocomplete_query = $.getJSON("{{ route('card.autocomplete') }}", request, function(data, status, xhr) {
+							card_cache[request.term + '|' + max_results] = data;
 							response(data);
 						});
 					},
@@ -112,7 +119,7 @@
 				}).focus(function() {
 
 					// Show autocomplete options when re-focusing
-					if ($(this).val().length >= minlen)
+					if ($(this).val().length >= 2)
 						$(this).autocomplete("search", $(this).val());
 				});
 			}
@@ -120,7 +127,7 @@
 			$(document).ready(function() { 
 
 				// Card search
-				card_autocomplete("#card-search", 2, function(event, ui) {
+				card_autocomplete("#card-search", 25, function(event, ui) {
 
 					// Automatically submit search if an autocomplete option was selected
 					$("#card-search").val(ui.item.value);
