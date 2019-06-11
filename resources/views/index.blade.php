@@ -52,7 +52,7 @@
 	var quicksearch_ajax = null;
 	var initial_page = "{{ isset($page) ? $page : 1 }}";
 
-	function quicksearch(page) {
+	function quicksearch(page, push_state) {
 
 		if (page === undefined)
 			page = initial_page;
@@ -71,7 +71,10 @@
 		});
 
 		// Replace url, so current browse page may copied, pasted and followed correctly
-		window.history.replaceState(null, '', '/?' + params.toString());
+		if (push_state)
+			window.history.pushState(params, '', '/?' + params.toString());
+		else
+			window.history.replaceState(params, '', '/?' + params.toString());
 
 		if (quicksearch_ajax)
 			quicksearch_ajax.abort();
@@ -129,8 +132,19 @@
 			var url = new URL(this.href);
 			var page = url.searchParams.get('page');
 
-			quicksearch(page ? page : 1);
+			quicksearch(page ? page : 1, true);
 		});
+
+		$("#cards").on('click', 'a.card-link', function(e) {
+			e.preventDefault();
+
+			var url = new URL(this.href);
+			var search = url.searchParams.get('search');
+
+			$("#quicksearch").val(search);
+			quicksearch(1, true);
+		});
+
 
 		quicksearch(initial_page);
 
@@ -141,6 +155,18 @@
 				quicksearch(1);
 			}
 		});
+
+		window.onpopstate = function(event) {
+
+			var params = event.state;
+
+			$("#quicksearch").val(params.get('search'));
+			$('#format').val(params.get('format'));
+			$('#filters').val(params.get('filters').split(","));
+			initial_page = params.get('page') ? params.get('page') : 1;
+
+			quicksearch();
+		};
 
 	});
 

@@ -66,7 +66,7 @@ class CardController extends Controller
 		if (count($cards) == 0)
 			$cards = $this->browse($request, $format, $term, $filters, false);
 
-		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'format' => $format]);
+		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'format' => $format, 'filters' => $filters]);
 	}
 
 	protected function browse(Request $request, $format = '', $term = '', $filters = [], $has_obsoletes = true)
@@ -138,19 +138,28 @@ class CardController extends Controller
 		$superiors = [];
 
 		if ($card) {
-			$card->load(['functionalReprints', 'superiors']);
 
-			$inferiors = $card->functionalReprints;
-			if ($inferiors->isEmpty())
-				$inferiors->push($card);
+			if ($this->request->input('inferior')) {
 
-			$inferiors = $this->convertToSelect2Data($inferiors, $card);
-			$superiors = $this->convertToSelect2Data($card->superiors);
+				$superiors = $this->convertToSelect2Data([$card], $card);
+				$card = null;
+			}
+			else {
 
-			// Remove self from reprints
-			$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
-				return ($card->id === $item->id);
-			})->values();
+				$card->load(['functionalReprints', 'superiors']);
+
+				$inferiors = $card->functionalReprints;
+				if ($inferiors->isEmpty())
+					$inferiors->push($card);
+
+				$inferiors = $this->convertToSelect2Data($inferiors, $card);
+				$superiors = $this->convertToSelect2Data($card->superiors);
+
+				// Remove self from reprints
+				$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
+					return ($card->id === $item->id);
+				})->values();
+			}
 		}
 
 		return view('card.create')->with(['card' => $card, 'inferiors' => $inferiors, 'superiors' => $superiors]);

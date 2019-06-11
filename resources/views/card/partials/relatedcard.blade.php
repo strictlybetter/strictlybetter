@@ -1,5 +1,9 @@
 <div class="mtgcard-wrapper">
-	<a href="{{ URL::route('card.create', $related->id) }}">
+	@if(Request::is('card/*'))
+		<a class="card-link" href="{{ route('card.create', [$related->id]) }}" title="{{ $related->name }}">
+	@else
+		<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $related->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $related->name }}">
+	@endif
 		{{ Html::image($related->imageUrl, $related->name, ['class' => 'mtgcard']) }}
 		<span class="mtgcard-text">{{ $related->name }}</span>
 	</a>
@@ -36,5 +40,5 @@
 		{{ Form::close() }}
 
 	</div>
-	<a href="{{ $related->gathererUrl }}" rel="noopener nofollow" style="padding:.2rem .25rem">Gatherer</a>
+	<a class="btn btn-light btn-gatherer" href="{{ $related->gathererUrl }}" rel="noopener nofollow">Gatherer</a>
 </div>
