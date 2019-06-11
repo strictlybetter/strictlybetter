@@ -39,6 +39,13 @@ return [
 		'subtypes_differ' => 'Tribe variation',
 		'less_colors' => 'Less colors',
 		'strictly_better' => 'Strictly better'
+    ],
+    'filter_explanations' => [
+    	'more_colors' => 'Suggested cards may have more colors. (ie Dryad Militant vs Eager Cadet)',
+		'more_colored_mana' => 'Suggested cards may cost more colored mana, but must still not have higher cmc. (ie Counterspell vs Mana Leak)',
+		'supertypes_differ' => 'Suggested cards may have different supertypes (Legandary, Snow, ...)',
+		'types_differ' => 'Suggested cards may have different types (Instant vs Sorcery, Artifact Creature vs Creature)',
+		'subtypes_differ' => 'Suggested cards may have different subtypes (Elf vs Elf Druid)',
+		'less_colors' => 'Suggested cards may have less colors (ie. Devoid spells do not have a color, but may otherwise be better than a colored counterpart)',
     ]
-
 ];
