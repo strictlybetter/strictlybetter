@@ -63,18 +63,20 @@
 		var format = $('#format').find(":selected").val();
 		var filters = $('#filters').val();
 
-		var params = new URLSearchParams({
+		var params = {
 			'format': format,
 			'search': search,
 			'filters': filters,
 			'page': page
-		});
+		};
+
+		var search_params = new URLSearchParams(params);
 
 		// Replace url, so current browse page may copied, pasted and followed correctly
 		if (push_state)
-			window.history.pushState(params, '', '/?' + params.toString());
+			window.history.pushState(params, '', '/?' + search_params.toString());
 		else
-			window.history.replaceState(params, '', '/?' + params.toString());
+			window.history.replaceState(params, '', '/?' + search_params.toString());
 
 		if (quicksearch_ajax)
 			quicksearch_ajax.abort();
@@ -160,10 +162,10 @@
 
 			var params = event.state;
 
-			$("#quicksearch").val(params.get('search'));
-			$('#format').val(params.get('format'));
-			$('#filters').val(params.get('filters').split(","));
-			initial_page = params.get('page') ? params.get('page') : 1;
+			$("#quicksearch").val(params.search);
+			$('#format').val(params.format);
+			$('#filters').val(params.filters);
+			initial_page = params.page ? params.page : 1;
 
 			quicksearch();
 		};
