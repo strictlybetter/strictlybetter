@@ -206,8 +206,6 @@ ul.select2-results__options {
 .cardrow {
 	/*border-bottom: 2px solid black;*/
 	min-height: 405px;
-	margin-right: -15px;
-	margin-left: -15px;
 }
 .cardpanel-right {
 	width: 100%;
