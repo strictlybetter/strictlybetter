@@ -96,6 +96,21 @@
 			success: function(response) {
 				$(".search-spinner").hide();
 				$("#cards").html(response);
+
+				// Toggle pagination buttons for mobile view
+				$('ul.pagination li.active')
+					.prev().addClass('show-mobile')
+					.prev().addClass('show-mobile');
+				$('ul.pagination li.active')
+					.next().addClass('show-mobile')
+					.next().addClass('show-mobile');
+				$('ul.pagination li:last-child')
+					.prev().addClass('show-mobile')
+					.prev()
+					.prev().addClass('show-mobile');
+				$('ul.pagination')
+					.find('li:first-child, li:last-child, li.active')
+					.addClass('show-mobile');
 			}
 		});
 	}

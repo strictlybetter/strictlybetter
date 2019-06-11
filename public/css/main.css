@@ -271,7 +271,10 @@ ul.select2-results__options {
 @media (max-width: 580px) {
 	.cardpanel-inferior{
 		display: none;
-	} 
+	}
+	.pagination .page-item:not(.show-mobile) {
+        display: none;
+    }
 }
 @media (max-width: 991px) {
 	.mtgcard-text {
