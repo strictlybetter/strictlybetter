@@ -55,7 +55,7 @@
 			    {{ Form::close() }}
 			  </div>
 			</nav>
-			
+
 			<br>
 			@if ($errors->any())
 				<div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -134,7 +134,7 @@
 				});
 
 				// Upvotes / Downvote
-				$(".container").on("submit", ".vote-form", function(event) {
+				$(".container-fluid").on("submit", ".vote-form", function(event) {
 					event.preventDefault();
 
 					var row = $(this).closest('.row');
