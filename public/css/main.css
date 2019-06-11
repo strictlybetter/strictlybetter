@@ -270,6 +270,11 @@ ul.select2-results__options {
 	max-width: 136px;
 	overflow-x: hidden;
 }
+@media (max-width: 580px) {
+	.cardpanel-inferior{
+		display: none;
+	} 
+}
 @media (max-width: 991px) {
 	.mtgcard-text {
 		display: block;
@@ -283,7 +288,7 @@ ul.select2-results__options {
 	.mtgcard-wrapper {
 		min-height: inherit;
 		padding: 5px;
-		min-width: 150px;
+		min-width: 80px;
 	}
 	.cardpanel-current {
 		min-height: 140px;
