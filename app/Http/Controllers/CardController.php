@@ -287,7 +287,7 @@ class CardController extends Controller
 		if (!$card)
 			return back()->withErrors(['No results for card: '. $request->input('term')])->withInput();
 
-		return redirect()->route('card.create', $card->id);
+		return redirect()->route('index', ["search" => $card->name]);
 	}
 
 	public function upvote(Obsolete $obsolete)
