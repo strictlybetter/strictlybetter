@@ -51,6 +51,8 @@
 var inferiors = {!! json_encode($inferiors) !!};
 var superiors = {!! json_encode($superiors) !!};
 
+var window_width = $(window).width();
+
 $(document).ready(function() { 
 
 	function select2_template(data) {
@@ -133,6 +135,12 @@ $(document).ready(function() {
 
 	// Rebuild on resize for responsive design
 	window.addEventListener('resize', function(event){
+
+		// Skip if width wasn't changed. Also fixes touchscreend devices, that pop keyboard when select2 is opened
+		if (window_width == $(window).width())
+			return;
+		
+		window_width = $(window).width();
 
 		select2_options.data = inferiors;
 		select2_options.placeholder = "Select card";
