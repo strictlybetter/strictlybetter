@@ -36,6 +36,8 @@
 		The suggestions listed on the site are added via <a href="{{ route('card.create') }}">Add Suggestion</a> page by anonymous Magic the Gathering players.<br>
 		Adding new suggestions and voting for them requires no login or account.<br>
 		<br>
+		Some suggestions are also generated programmatically. Due to complex rules of the cards, only cards with identical rules are considered when evaluating strict-betterness this way.<br>
+		<br>
 		The card database is downloaded from <a href="https://scryfall.com/" rel="noreferrer noopener">Scryfall</a> using their <a href="https://scryfall.com/docs/api/bulk-data" rel="noreferrer noopener">bulk-data files</a>
 	</p>
 	<br>
@@ -47,25 +49,42 @@
 		<br><br>
 		Any suggestions with following conditions are automatically rejected
 		<ul>
-			<li>Cards type lines do not match (sorcery vs instant is an exception)</li>
-
 			<li>The supposed better card has higher CMC</li>
 
-			<li>The supposed better card has colors the worse card doesn't</li>
+			<li>The supposed better card has manacolors in manacost the worse card doesn't have. (Hybrid mana is an exception)</li>
+
+			<li>The cards do not share types. (Sorcery vs Instant is an exception. Creatures may also have other card types, but both must still be creatures)</li>
+
+			<li>Both cards have subtypes, but no common subtype is found</li>
 
 			<li>The cards are the same or functional reprints of each other</li>
 		</ul>
 	</p>
 	<br>
 
+	<h3>Labels and searching</h3>
+	<p>
+		When browsing, you may see labels on card suggestions indicating there might be cases the suggestion is not a strictly better choice.<br>
+		Suggestions with labels are still listed when searching as they may still be useful when considering card replacements, unless you specifically hide them via filter menu on the Browse page.<br>
+		<br>
+		List of current labels:
+		<ul>
+			@foreach(Lang::get('card.filters') as $filter => $value)
+				@if($filter != "strictly_better")
+					<li><span class="card-label">{{ $value }}</span> - {{ Lang::get('card.filter_explanations.' . $filter) }}</li>
+				@endif
+			@endforeach
+		</ul>
+	</p>
+	<br>
+
 	<h3>The "strictly better" controversy</h3>
 	<p>
-		People have disagreements about what constitutes as "strictly better". So it is good to remember the site is primarily a tool for finding better options. Other than automated rules mentioned above, StrictlyBetter makes no ruling over what is truly strictly better, as I believe it is better to have the voters decide.<br>
+		People have disagreements about what constitutes as "strictly better". So it is good to remember the site is primarily a tool for finding better options. Other than automated rules and labels/filters mentioned above, StrictlyBetter makes no ruling over what is truly strictly better, as I believe it is better to have the voters decide.<br>
 		<br>
 		Personally I prefer card suggestions that are better when considered <i>in a vacuum</i>. (Without knowledge of the deck it is played in or decks it's facing)<br>
 		This outlines a few base rules like: <b>opponents card to exile > graveyard, "each" > "target 3", double strike > first strike</b><br>
 		<br>
-		The site will in the future employ search options and show disclaimers/infoboxes for each suggestion which show in which formats, creature types, color decks, etc the card is better in to help users decide about betterness.<br>
 	</p>
 	<br>
 
@@ -76,6 +95,8 @@
 		</address>
 		There is also a <a href="https://www.reddit.com/r/magicTCG/comments/bt7ocz/i_just_put_up_a_website_for_finding_strictly/" rel="noreferrer noopener">Reddit thread about the site</a>.
 	</p>
+	<br>
+	<br>
 </div>
 @stop
 

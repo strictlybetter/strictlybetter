@@ -19,6 +19,39 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>06/11/19</h4>
+
+	<ul>
+		<li>Major UI rework
+			<ul>
+				<li>Changed card listing layout</li>
+				<li>Inferior cards are listed aswell on Browse -page</li>
+				<li>Functional reprints are listed for searched cards</li>
+				<li>Clicking a card on Browse page or using the searchbox on navbar displays the card Browse page instead of going to Add Suggestion page</li>
+				<li>Inferior and superior suggestions can be added via Browse page cards with big "+" sign on them</li>
+				<li>Added labels for suggestions indicating "issues" with their worse-better relation if any</li>
+				<li>If no suggestions are found for a card name searched on Browse -page, the card database is searched instead</li>
+				<li>When worse card is selected on Add Suggetion -page, current superiors are shown, so people know if a suggestion alredy exists</li>
+				<li>Mobile-friendly UI</li>
+				<li>Added autocomplete for quicksearch</li>
+				<li>Adjusted search timers to prevent excessive calls when typing to search inputs, potentially also increasing response speed</li>
+			</ul>
+		</li>
+		<li>Suggestions adding rules changed
+			<ul>
+				<li>Color is no longer checked</li>
+				<li>If better and worse cards have subtypes/tribes, they must have atleast 1 in common</li>
+				<li>Better card may not use manacolors in manacost not present in worse card, hybrid mana is an exception</li>
+				<li>Better card may cost more mana of a color, but must still have less or equal CMC. A label is added to better cards that cost more colored mana.</li>
+				<li>Better/Worse creature may also have other types. The difference is indicated with a label</li>
+			</ul>
+		</li>
+		<li>Removed non-playable cards like tokens, schemes, emblems, etc</li>
+		<li>Removed cards not legal in any format</li>
+		<li>Added suggestion labels to API</li>
+		<li>Added some suggestions programmatically (only works for cards with identical rules texts)</li>
+	</ul>
+
 	<h4>05/29/19</h4>
 
 	<ul>
