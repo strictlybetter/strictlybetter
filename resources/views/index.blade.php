@@ -52,7 +52,7 @@
 	var quicksearch_ajax = null;
 	var initial_page = "{{ isset($page) ? $page : 1 }}";
 
-	function quicksearch(page, push_state) {
+	function quicksearch(page, push_state, scrollTop) {
 
 		if (page === undefined)
 			page = initial_page;
@@ -73,10 +73,28 @@
 		var search_params = new URLSearchParams(params);
 
 		// Replace url, so current browse page may copied, pasted and followed correctly
-		if (push_state)
+		if (push_state) {
+
+			// Replace current state first, so we can remember the scroll position
+			if (window.history.state !== undefined) {
+
+				current_state = window.history.state;
+
+				if (current_state.scrollTop !== undefined)
+					delete current_state.scrollTop;
+
+				current_search_params = new URLSearchParams(current_state);
+				current_state.scrollTop = $(window).scrollTop();
+
+				window.history.replaceState(current_state, '', '/?' + current_search_params.toString());
+			}
+
 			window.history.pushState(params, '', '/?' + search_params.toString());
-		else
+		}
+		else if (scrollTop === undefined) {
+			params.scrollTop = $(window).scrollTop();
 			window.history.replaceState(params, '', '/?' + search_params.toString());
+		}
 
 		if (quicksearch_ajax)
 			quicksearch_ajax.abort();
@@ -111,8 +129,26 @@
 				$('ul.pagination')
 					.find('li:first-child, li:last-child, li.active')
 					.addClass('show-mobile');
+
+				// Scroll to where we were, or back to top if history is not relevant
+				if (scrollTop !== undefined)
+					$(window).scrollTop(scrollTop);
+
+				else if (!isScrolledIntoView('.pagination'))
+					$(window).scrollTop(0);
 			}
 		});
+	}
+
+	function isScrolledIntoView(elem)
+	{
+		var docViewTop = $(window).scrollTop();
+		var docViewBottom = docViewTop + $(window).height();
+
+		var elemTop = $(elem).offset().top;
+		var elemBottom = elemTop + $(elem).height();
+
+		return ((elemBottom <= docViewBottom) && (elemTop >= docViewTop));
 	}
 
 	$(document).ready(function() {
@@ -124,7 +160,7 @@
 		});
 
 		$("#format").on('change', function(event) {
-			quicksearch();
+			quicksearch(initial_page, true);
 		});
 
 		$('#filters').multiselect({
@@ -135,10 +171,10 @@
 			},
 			selectAll: true,
 			onOptionClick: function(element, option) {
-				quicksearch();
+				quicksearch(initial_page, true);
 			},
 			onSelectAll: function(element, option) {
-				quicksearch();
+				quicksearch(initial_page, true);
 			}
 		});
 
@@ -169,11 +205,16 @@
 
 			if ($("#quicksearch").val() != ui.item.value) {
 				$("#quicksearch").val(ui.item.value);
-				quicksearch(1);
+				quicksearch(1, false);
 			}
 		});
 
 		window.onpopstate = function(event) {
+
+			if (event.state === undefined || event.state === null) {
+				quicksearch();
+				return;
+			}
 
 			var params = event.state;
 
@@ -182,7 +223,7 @@
 			$('#filters').val(params.filters);
 			initial_page = params.page ? params.page : 1;
 
-			quicksearch();
+			quicksearch(initial_page, false, params.scrollTop);
 		};
 
 	});
