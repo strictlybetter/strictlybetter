@@ -223,6 +223,8 @@
 			$('#filters').val(params.filters);
 			initial_page = params.page ? params.page : 1;
 
+			$('#filters').multiselect('reload');
+
 			quicksearch(initial_page, false, params.scrollTop);
 		};
 

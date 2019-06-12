@@ -19,6 +19,12 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>06/12/19</h4>
+	<ul>
+		<li>Back/Forward navigation works more intuitively on Browse page. Remembers scroll positions and records format/label filter changes to page history.</li>
+		<li>Scroll to top when clicking navigation elements in Browse page (only if top pagination menu is not visible)</li>
+	</ul>
+
 	<h4>06/11/19</h4>
 
 	<ul>
