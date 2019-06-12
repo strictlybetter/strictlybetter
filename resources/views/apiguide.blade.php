@@ -40,6 +40,12 @@
 	</code>
 
 	<br>
+	<p>
+		You should treat the API entries with healthy skepticism as they are mainly inserted by the community.<br>
+		To mitigate issues evaluate number of up/down votes and labels array of each entry in your own app.<br>
+		You can find out more labels on <a href="{{ route('about') }}">About</a> page.
+	</p>
+	<br>
 
 	<h3>Searching</h3>
 	<p>
@@ -83,6 +89,7 @@
 		You are free to use the API and it's results for any purpose for which I may not be held liable for.<br>
 		However, you must still adhere to <a href="https://company.wizards.com/fancontentpolicy" rel="noopner nofollow">Wizards of the Coast Fan Content Policy</a>.
 	</p>
+
 </div>
 @stop
 

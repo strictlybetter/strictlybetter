@@ -89,4 +89,3 @@
 		{{ $cards->links() }}
 	</div>
 </div>
-<br><br>

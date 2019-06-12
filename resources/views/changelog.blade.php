@@ -100,6 +100,7 @@
 	<ul>
 		<li>Initial release</li>
 	</ul>
+
 </div>
 @stop
 

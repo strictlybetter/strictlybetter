@@ -1,6 +1,9 @@
 html {
 	overflow-y: scroll;
 }
+body {
+	margin-bottom: 50px;
+}
 .row {
 	margin-left: 0;
 	margin-right: 0;
