@@ -114,9 +114,10 @@
 				// Scroll to where we were, or back to top if history is not relevant
 				if (scrollTop !== undefined)
 					$(window).scrollTop(scrollTop);
-
+/*
 				else if (!isScrolledIntoView('.pagination'))
 					$(window).scrollTop(0);
+				*/
 			}
 		});
 	}
@@ -166,7 +167,7 @@
 			var url = new URL(this.href);
 			var page = url.searchParams.get('page');
 
-			quicksearch(page ? page : 1, true);
+			quicksearch(page ? page : 1, true, 0);
 		});
 
 		$("#cards").on('click', 'a.card-link', function(e) {
@@ -176,7 +177,7 @@
 			var search = url.searchParams.get('search');
 
 			$("#quicksearch").val(search);
-			quicksearch(1, true);
+			quicksearch(1, true, 0);
 		});
 
 
