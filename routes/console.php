@@ -97,6 +97,17 @@ Artisan::command('load-scryfall', function () {
 
 })->describe('Load scryfall cards from json in to the local database');
 
+Artisan::command('remove-functional-reprints', function () {
+
+	$this->comment("Removing previous entries...");
+
+	// Clear previous entries and reset auto increment 
+	// Note: truncate could be faster, but we have foreign keys that must be cleared on cards table
+	FunctionalReprint::query()->delete();
+	DB::statement("ALTER TABLE functional_reprints AUTO_INCREMENT = 1");
+
+})->describe('Remove all functional reprints and reset autoincrement');
+
 
 Artisan::command('populate-functional-reprints', function () {
 
@@ -108,30 +119,35 @@ Artisan::command('populate-functional-reprints', function () {
 
 	$this->comment(count($results) . " duplicate families found. Populating...");
 
-	// Clear previous entries and reset auto increment 
-	// Note: truncate could be faster, but we have foreign keys that must be cleared on cards table
-	FunctionalReprint::query()->delete();
-	DB::statement("ALTER TABLE functional_reprints AUTO_INCREMENT = 1");
+	$count = FunctionalReprint::count();
+	$card_count = 0;
 
 	foreach ($results as $reprint_group) {
 
 		$sample = $reprint_group[0];
 
-		$group = FunctionalReprint::create([
+		$group = FunctionalReprint::FirstOrCreate([
 			'typeline' => $sample->typeLine,
 			'manacost' => $sample->manacost, 
 			'power' => $sample->power, 
 			'toughness' => $sample->toughness, 
 			'loyalty' => $sample->loyalty, 
-			'rules' => $sample->rules,
+			'rules' => $sample->substituted_rules,
 		]);
 
 		//$group->cards()->associate($reprint_group->pluck('id'));
 		foreach ($reprint_group as $card) {
-			$card->functional_reprints_id = $group->id;
-			$card->save();
+			if ($card->functional_reprints_id != $group->id) {
+				$card->functional_reprints_id = $group->id;
+				$card->save();
+				$card_count++;
+			}
 		}
 	}
+
+	$results = FunctionalReprint::count() - $count;
+	$this->comment($results . " new families created and " . $card_count . " cards added");
+
 })->describe('Populates functional reprints table based on existing cards');
 
 Artisan::command('remove-bad-cards', function () {
