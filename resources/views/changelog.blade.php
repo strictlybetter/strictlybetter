@@ -19,6 +19,19 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>06/21/19</h4>
+	<ul>
+		<li>Added new cards to database (some M20 spoilers).</li>
+		<li>Added Scryfall links for cards</li>
+		<li>Use Scryfall images for cards without multiverse id (instead of Gatherer)</li>
+		<li>Re-added non-legal cards (Unhinged, etc)</li>
+		<li>Functional reprints API now uses "@@@" in place of the cards name in rules text</li>
+		<li>Reset functional reprints IDs in the API. The IDs will NOT be reset again in the future</li>
+		<li>Added 1 new functional reprint family (now totaling 148) and 3 individual cards to new/existing families (now totaling 306)</li>
+		<li>Added 8 new strictly-better suggestions programmatically</li>
+		<li>Fixed a scroll issue with small screens when selecting a format or labels to filter on Browse page</li>
+	</ul>
+
 	<h4>06/12/19</h4>
 	<ul>
 		<li>Back/Forward navigation works more intuitively on Browse page. Remembers scroll positions and records format/label filter changes to page history.</li>
