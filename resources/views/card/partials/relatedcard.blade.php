@@ -40,5 +40,6 @@
 		{{ Form::close() }}
 
 	</div>
-	<a class="btn btn-light btn-gatherer" href="{{ $related->gathererUrl }}" rel="noopener nofollow">Gatherer</a>
+	@if($related->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $related->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
+	@if($related->multiverse_id)<a class="btn btn-light btn-gatherer" href="{{ $related->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
 </div>

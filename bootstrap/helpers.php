@@ -47,8 +47,6 @@ function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_rep
 
 	$superior->inferiors()->syncWithoutDetaching([$inferior->id => ['labels' => $labels]]);
 
-	$inferior->touch();
-
 	// Handle reprints
 	if ($cascade_to_reprints) {
 

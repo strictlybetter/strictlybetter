@@ -17,25 +17,6 @@
 			<span>{{ Form::select('filters', $filterlist, isset($filters) ? $filters : null, ['id' => 'filters', 'multiple' => 'multiple', 'class' => 'form-control']) }}</span>
 		</div>
 		<br>
-<!--
-		<div class="row filterlist">
-			<span class="form-check">
-				{{ Form::checkbox('filter_less_colors', null, null, ['id' => 'filter_less_colors', 'class' => 'form-check-input', 'title' => 'Suggestions may have less or more colors, but must still be playable with colors of the original card']) }}
-				<label for="filter_less_colors" class="form-check-label disable-select" title="Suggestions may have less or more colors, but must still be playable with colors of the original card">{{ Lang::get('card.filters.less_colors') }}</label>
-			</span>
-
-			<span class="form-check">
-				{{ Form::checkbox('filter_subtypes_differ', null, null, ['id' => 'filter_subtypes_differ', 'class' => 'form-check-input', 'title' => 'Cards may have other tribes or be artifacts/enchantments/lands in addition to original cards types or vice versa']) }}
-				<label for="filter_subtypes_differ" class="form-check-label disable-select" title="Cards may have other tribes or be artifacts/enchantments/lands in addition to original cards types or vice versa">{{ Lang::get('card.filters.subtypes_differ') }}</label>
-			</span>
-
-			<span class="form-check">
-				{{ Form::checkbox('filter_more_colored_mana', null, null, ['id' => 'filter_more_colored_mana', 'class' => 'form-check-input', 'title' => 'Cards may cost more colored mana of the colors already present in original card, but converted mana cost must still be less or equal']) }}
-				<label for="filter_more_colored_mana" class="form-check-label disable-select" title="Cards may cost more colored mana of the colors already present in original card, but converted mana cost must still be less or equal">{{ Lang::get('card.filters.more_colored_mana') }}</label>
-			</span>
-
-		</div>
--->
 	</div>
 
 	<div id="cards">

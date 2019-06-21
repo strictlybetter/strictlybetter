@@ -36,7 +36,7 @@ Artisan::command('load-scryfall', function () {
 			$bar->advance();
 			
 			// Check validity of the card
-			if ($obj === null || empty($obj->multiverse_ids) || in_array($obj->layout, $ignore_layouts))
+			if ($obj === null || in_array($obj->layout, $ignore_layouts))
 				continue;
 
 			if (!preg_match($type_pattern, $obj->type_line, $match))
@@ -45,7 +45,7 @@ Artisan::command('load-scryfall', function () {
 			$card = Card::firstOrNew(['name' =>  $obj->name]);
 
 			// Keep newest multiverse id
-			if ($card->exists && $card->multiverse_id > $obj->multiverse_ids[0])
+			if ($card->exists && $card->multiverse_id && (empty($obj->multiverse_ids) || $card->multiverse_id > $obj->multiverse_ids[0]))
 				continue;
 
 			// Don't update updated_at field
@@ -57,7 +57,7 @@ Artisan::command('load-scryfall', function () {
 
 
 			$card->fill([
-				'multiverse_id' => $obj->multiverse_ids[0],
+				'multiverse_id' => empty($obj->multiverse_ids) ? null : $obj->multiverse_ids[0],
 				'legalities' => $obj->legalities,
 				'manacost' => isset($obj->mana_cost) ? $obj->mana_cost : "",
 				'cmc' => isset($obj->cmc) ? ceil($obj->cmc) : null,
@@ -69,10 +69,13 @@ Artisan::command('load-scryfall', function () {
 				'rules' => isset($obj->oracle_text) ? $obj->oracle_text : "",
 				'power' => isset($obj->power) ? $obj->power : null,
 				'toughness' => isset($obj->toughness) ? $obj->toughness : null,
-				'loyalty' => isset($obj->loyalty) ? $obj->loyalty : null
+				'loyalty' => isset($obj->loyalty) ? $obj->loyalty : null,
+				'scryfall_img' => (isset($obj->image_uris) && $obj->image_uris->normal) ? $obj->image_uris->normal : null,
+				'scryfall_api' => isset($obj->uri) ? $obj->uri : null,
+				'scryfall_link' => isset($obj->scryfall_uri) ? $obj->scryfall_uri : null
 			]);
 
-			// Create a efw helper columns using existing data
+			// Create a few helper columns using existing data
 			$card->substituted_rules = $card->substituteRules;
 			$card->manacost_sorted = $card->colorManaCounts;
 
@@ -134,13 +137,7 @@ Artisan::command('populate-functional-reprints', function () {
 Artisan::command('remove-bad-cards', function () {
 
 	$count = Card::count();
-	$cards = Card::whereJsonContains('types', 'Token')->orWhereJsonContains('types', 'Plane')->orWhereJsonContains('types', 'Scheme')->orWhere(function($q) {
-
-		foreach (Card::$formats as $format) {
-			$q->whereJsonContains('legalities->' . $format, 'not_legal');
-		}
-
-	})->delete();
+	$cards = Card::whereJsonContains('types', 'Token')->orWhereJsonContains('types', 'Plane')->orWhereJsonContains('types', 'Scheme')->delete();
 	$count = $count - Card::count();
 
 	$this->comment("Removed " . $count . " bad cards");

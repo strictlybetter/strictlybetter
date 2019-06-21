@@ -18,6 +18,7 @@ class Obsolete extends Pivot
 	protected $appends = ['votesum'];
 
 	protected $casts = ['labels' => 'array'];
+	protected $touches = ['inferior'];
 
 	public function superior()
 	{

@@ -342,7 +342,7 @@ class CardController extends Controller
 		else
 			$obsolete->downvotes++;
 
-		$obsolete->save();
+		$obsolete->save(['touch' => false]);
 
 		return true;
 	}

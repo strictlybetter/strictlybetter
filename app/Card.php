@@ -22,7 +22,10 @@ class Card extends Model
 		'rules',
 		'power',
 		'toughness',
-		'loyalty'
+		'loyalty',
+		'scryfall_img',
+		'scryfall_api',
+		'scryfall_link'
 	];
 
 	protected $casts = [
@@ -63,12 +66,12 @@ class Card extends Model
 
     public function getImageUrlAttribute()
     {
-    	return 'https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=' . $this->multiverse_id . '&type=card';
+    	return $this->multiverse_id ? ('https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=' . $this->multiverse_id . '&type=card') : $this->scryfall_img;
     }
 
     public function getGathererUrlAttribute()
     {
-    	return 'https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=' . $this->multiverse_id;
+    	return $this->multiverse_id ? ('https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=' . $this->multiverse_id) : null;
     }
 
     public function getTypeLineAttribute()

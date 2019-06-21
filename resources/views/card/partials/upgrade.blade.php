@@ -35,7 +35,8 @@
 					<span class="mtgcard-text">{{ $card->name }}</span>
 				</a><br>
 				<div class="row"></div>
-				<a class="btn btn-light btn-gatherer" href="{{ $card->gathererUrl }}" rel="noopener nofollow"><i class="fa fa-wizards-of-the-coast"></i>Gatherer</a>
+				@if($card->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $card->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
+				@if($card->multiverse_id)<a class="btn btn-light btn-gatherer" href="{{ $card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
 			</div>
 		</div>
 	</div>
