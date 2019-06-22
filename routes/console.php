@@ -184,9 +184,9 @@ Artisan::command('create-functional-obsoletes', function () {
 			$card->superiors()->syncWithoutDetaching($superior_ids);
 		}
 	}
-	$new_obsolete_count = Obsolete::count();
+	$new_obsoletes = Obsolete::count() - $old_obsolete_count;
 
-	$this->comment(($new_obsolete_count - $old_obsolete_count) . " new suggestions created.");
+	$this->comment($new_obsoletes . " new suggestions created.");
 
 })->describe('Creates suggestions based on functional reprints and their existing suggestions');
 
@@ -195,9 +195,9 @@ Artisan::command('create-labels', function () {
 
 	foreach ($obsoletes as $obsolete) {
 		$obsolete->labels = create_labels($obsolete->inferior, $obsolete->superior);
-		$obsolete->save();
+		$obsolete->save(['touch' => false]);
 	}
-});
+})->describe('Re-creates labels for obsolete cards');
 
 Artisan::command('remove-bad-suggestions', function () {
 

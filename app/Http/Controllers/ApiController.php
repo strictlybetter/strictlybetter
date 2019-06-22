@@ -43,7 +43,7 @@ class ApiController extends Controller
 				'inferior' => [
 					'name' => $obsolete->inferior->name,
 					'multiverseid' => $obsolete->inferior->multiverse_id,
-					'functional_reprints_id' => $obsolete->superior->functional_reprints_id
+					'functional_reprints_id' => $obsolete->inferior->functional_reprints_id
 				],
 				'superior' => [
 					'name' => $obsolete->superior->name,
