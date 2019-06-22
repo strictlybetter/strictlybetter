@@ -13,7 +13,7 @@ class Obsolete extends Pivot
 	protected $fillable = ['inferior_card_id', 'superior_card_id', 'upvotes', 'downvotes', 'labels'];
 	/*'more_colors', 'more_colored_mana', 'supertypes_differ', 'types_differ', 'subtypes_differ', 'less_colors', 'strictly_better'*/
 
-	public static $labellist = ['more_colors', 'more_colored_mana', 'supertypes_differ', 'types_differ', 'subtypes_differ', 'less_colors', 'strictly_better'];
+	public static $labellist = ['more_colors', 'more_colored_mana', 'supertypes_differ', 'types_differ', 'subtypes_differ', 'less_colors', 'strictly_better', 'downvoted'];
 
 	protected $appends = ['votesum'];
 

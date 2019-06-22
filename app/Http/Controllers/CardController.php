@@ -342,6 +342,8 @@ class CardController extends Controller
 		else
 			$obsolete->downvotes++;
 
+		$obsolete->labels['downvoted'] = ($obsolete->upvotes - $obsolete->downvotes <= -10);
+
 		$obsolete->save(['touch' => false]);
 
 		return true;

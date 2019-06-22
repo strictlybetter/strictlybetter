@@ -19,7 +19,7 @@ function make_format_list()
 	return $formatlist;
 }
 
-function create_labels(App\Card $inferior, App\Card $superior)
+function create_labels(App\Card $inferior, App\Card $superior, App\Obsolete $obsolete = null)
 {
 
 	$labels = [
@@ -28,7 +28,8 @@ function create_labels(App\Card $inferior, App\Card $superior)
 		'supertypes_differ' => (count($superior->supertypes) != count($inferior->supertypes) || array_diff($superior->supertypes, $inferior->supertypes)),
 		'types_differ' => (count($superior->types) != count($inferior->types) || array_diff($superior->types, $inferior->types)),
 		'subtypes_differ' => (count($superior->subtypes) != count($inferior->subtypes) || array_diff($superior->subtypes, $inferior->subtypes)),
-		'less_colors' => (count($superior->colors) < count($inferior->colors))
+		'less_colors' => (count($superior->colors) < count($inferior->colors)),
+		'downvoted' => ($obsolete && ($obsolete->upvotes - $obsolete->downvotes) <= -10)
 	];
 
 	$strictly_better = true;

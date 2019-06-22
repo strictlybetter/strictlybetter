@@ -173,10 +173,17 @@ Artisan::command('create-functional-obsoletes', function () {
 		if (count($reprint_group->cards) < 2)
 			continue;
 
-		$labels = create_labels($reprint_group->cards[0], $reprint_group->cards[1]);
+		$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('pivot.labels', 'id');
+		$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('pivot.labels', 'id');
 
-		$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('id');
-		$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('id');
+		foreach ($inferior_ids as $id => $labels) {
+			$labels['downvoted'] = false;
+			$inferior_ids[$id] = ["labels" => $labels];
+		}
+		foreach ($superior_ids as $id => $labels) {
+			$labels['downvoted'] = false;
+			$superior_ids[$id] = ["labels" => $labels];
+		}
 
 		foreach ($reprint_group->cards as $card) {
 
@@ -194,7 +201,7 @@ Artisan::command('create-labels', function () {
 	$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
 
 	foreach ($obsoletes as $obsolete) {
-		$obsolete->labels = create_labels($obsolete->inferior, $obsolete->superior);
+		$obsolete->labels = create_labels($obsolete->inferior, $obsolete->superior, $obsolete);
 		$obsolete->save(['touch' => false]);
 	}
 })->describe('Re-creates labels for obsolete cards');
