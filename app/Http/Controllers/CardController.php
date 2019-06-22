@@ -342,7 +342,9 @@ class CardController extends Controller
 		else
 			$obsolete->downvotes++;
 
-		$obsolete->labels['downvoted'] = ($obsolete->upvotes - $obsolete->downvotes <= -10);
+		$labels = $obsolete->labels;
+		$labels['downvoted'] = (($obsolete->upvotes - $obsolete->downvotes) <= -10);
+		$obsolete->labels = $labels;
 
 		$obsolete->save(['touch' => false]);
 
