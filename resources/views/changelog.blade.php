@@ -19,6 +19,21 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>06/22/19</h4>
+	<ul>
+		<li>Harshly downvoted cards have a label on them (requires 10 more downvotes than upvotes).</li>
+		<li>Harshly downvoted cards can be hidden from results with Labels Filters on Browse page</li>
+		<li>UI rework for Browse page
+			<ul>
+				<li>For smaller screens cards may scaled a bit smaller. Put cursor over them to enlarge.</li>
+				<li>Inferior/Superior panels can now be hidden, so you can see more cards for the side you want to see</li>
+				<li>Inferior/Superior panels become exclusive if screen width is less than 1070px</li>
+			</ul>
+		</li>
+		<li>Fixed obsoletes API not showing functional reprint IDs for inferior cards</li>
+		<li>Fixed labels not being generated programmatic additions</li>
+	</ul>
+
 	<h4>06/21/19</h4>
 	<ul>
 		<li>Added new cards to database (some M20 spoilers).</li>
