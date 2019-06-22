@@ -18,8 +18,7 @@
 			@endif
 		@endforeach
 		@endif
-	</div>	
-	<br>
+	</div>
 
 	<div class="row">
 

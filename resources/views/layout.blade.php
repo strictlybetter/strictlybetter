@@ -79,8 +79,18 @@
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 		<script src="{{ URL::to('js/select2/select2.min.js') }}"></script>
 		<script src="{{ URL::to('js/jquery.multiselect.js') }}"></script>
-
+	
 		<script>
+			$.fn.removeClassRegex = function(regex) {
+				return $(this).removeClass(function(index, classes) {
+					return classes.split(/\s+/).filter(function(c) {
+						return regex.test(c);
+					}).join(' ');
+				});
+			};
+		</script>
+		<script>
+
 			$.ajaxSetup({
 				headers: {
 					'X-CSRF-TOKEN': "{{ csrf_token() }}"

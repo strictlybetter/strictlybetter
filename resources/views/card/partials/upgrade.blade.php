@@ -3,7 +3,13 @@
 	$reprint_count = $card->relationLoaded('functionalReprints') ? count($card->functionalReprints) : 0; 
 ?>
 <div class="col-sm-3 cardpanel-current" style="min-height: {{ 405 + $reprint_count * 35}}px">
-	<div class="row" style="position:relative">
+	<div class="panel-toggles">
+		@if(Request::is('quicksearch'))
+			<a href="#" class="inferior-toggle">Hide Inferiors</a>
+			<a href="#" class="superior-toggle">Hide Superiors</a>
+		@endif
+	</div>
+	<div class="row" style="position:relative">	
 		<div class="centered">
 
 			@if($reprint_count > 0)
@@ -33,7 +39,7 @@
 				@endif
 					{{ Html::image($card->imageUrl, $card->name, ['class' => 'mtgcard']) }}
 					<span class="mtgcard-text">{{ $card->name }}</span>
-				</a><br>
+				</a>
 				<div class="row"></div>
 				@if($card->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $card->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
 				@if($card->multiverse_id)<a class="btn btn-light btn-gatherer" href="{{ $card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif

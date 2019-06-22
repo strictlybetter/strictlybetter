@@ -33,6 +33,13 @@
 	var quicksearch_ajax = null;
 	var initial_page = "{{ isset($page) ? $page : 1 }}";
 
+	var collapsed_panel = "";
+	var only_one_panel = ($(window).width() <= 1070);
+	var panel_autocollapsed = only_one_panel;
+
+	if (only_one_panel)
+		toggle_panels('inferior');
+
 	function quicksearch(page, push_state, scrollTop) {
 
 		if (page === undefined)
@@ -111,6 +118,9 @@
 					.find('li:first-child, li:last-child, li.active')
 					.addClass('show-mobile');
 
+				$('.inferior-toggle').text((collapsed_panel == "inferior") ? 'Show Inferiors' : 'Hide Inferiors');
+				$('.superior-toggle').text((collapsed_panel == "superior") ? 'Show Superiors' : 'Hide Superiors');
+
 				// Scroll to where we were, or back to top if history is not relevant
 				if (scrollTop !== undefined)
 					$(window).scrollTop(scrollTop);
@@ -120,6 +130,52 @@
 				*/
 			}
 		});
+	}
+
+	function toggle_panels(selector, scrollTo) {
+
+		// If no element is defined, find first visible element
+		if (!scrollTo) {
+			var cutoff = $(window).scrollTop();
+			$('.cardpanel-current .mtgcard-wrapper').each(function() {
+				if ($(this).offset().top > cutoff) {
+					scrollTo = this;
+					return false;
+				}
+			});
+			if (!scrollTo)
+				scrollTo = document.body;
+		}
+
+		var offset = scrollTo.getBoundingClientRect().top;
+
+		if (only_one_panel) {
+
+			collapsed_panel = (collapsed_panel != 'inferior') ? 'inferior' : 'superior';
+			if (collapsed_panel == 'inferior')
+				$('#cards').removeClass('collapse-superior').addClass('collapse-inferior');
+			else
+				$('#cards').removeClass('collapse-inferior').addClass('collapse-superior');
+		}
+		else {
+
+			if (selector == collapsed_panel || selector == '')
+				$('#cards').removeClass('collapse-inferior collapse-superior');
+			else if (selector == 'inferior')
+				$('#cards').removeClass('collapse-superior').addClass('collapse-inferior');
+			else if (selector == 'superior')
+				$('#cards').removeClass('collapse-inferior').addClass('collapse-superior');
+
+			collapsed_panel = (collapsed_panel == selector) ? '' : selector;
+		}
+
+		setTimeout(function(){ 
+			var current = scrollTo.getBoundingClientRect().top + window.scrollY;
+			$('html').animate({ scrollTop: current - offset }, 100);
+		}, 405);
+
+		$('.inferior-toggle').text((collapsed_panel == "inferior") ? 'Show Inferiors' : 'Hide Inferiors');
+		$('.superior-toggle').text((collapsed_panel == "superior") ? 'Show Superiors' : 'Hide Superiors');
 	}
 
 	function isScrolledIntoView(elem)
@@ -191,6 +247,15 @@
 			}
 		});
 
+		$("#cards").on('click', 'a.inferior-toggle', function(e) {
+			e.preventDefault();
+			toggle_panels('inferior', e.target);
+		});
+		$("#cards").on('click', 'a.superior-toggle', function(e) {
+			e.preventDefault();
+			toggle_panels('superior', e.target);
+		});
+
 		window.onpopstate = function(event) {
 
 			if (event.state === undefined || event.state === null) {
@@ -209,6 +274,24 @@
 
 			quicksearch(initial_page, false, params.scrollTop);
 		};
+
+		window.addEventListener('resize', function(event){
+			if ($(window).width() <= 1070) {
+				only_one_panel = true;
+				if (!collapsed_panel) {
+					panel_autocollapsed = true;
+					toggle_panels('inferior');
+				}
+			}
+			else {
+				only_one_panel = false;
+				if (panel_autocollapsed) {
+					panel_autocollapsed = false;
+					if (collapsed_panel)
+						toggle_panels('');
+				}
+			}
+		});
 
 	});
 

@@ -14,8 +14,20 @@ body {
 	border-radius: 11px;
 	filter: drop-shadow(8px 8px 10px gray);
 }
-.mtgcard:hover {
+.mtgcard-wrapper a.card-link:hover {
+	z-index: 300;
+}
+a.card-link:hover,a.card-create-link:hover .mtgcard {
 	filter: drop-shadow(8px 8px 10px #3e95e1);
+}
+.mtgcard-wrapper:not(.newcard) .mtgcard:hover {
+	max-height: 311px;
+	border-radius: 11px !important;
+	position: relative;
+	z-index: 201;
+}
+.cardpanel-current .mtgcard-wrapper:not(.newcard) .mtgcard:hover {
+	position: relative !important;
 }
 .mtgcard-text {
 	display: none;
@@ -53,7 +65,7 @@ body {
 	height: 100px;
 	border-radius: 10px;
 	background-color: whitesmoke;
-	opacity: 0.5
+	opacity: 0.5;
 }
 .vote {
 	padding: .2rem .55rem;
@@ -65,6 +77,9 @@ body {
 	color: #4693ea;
 	padding: .2rem .25rem;
 	margin: .3rem .1rem 0 0;
+}
+.reprint-stack .btn-gatherer {
+	display: none;
 }
 .btn-gatherer:hover {
 	background-color: #9f9f9f82;
@@ -96,6 +111,7 @@ ul.select2-results__options {
 	top: 45px;
 	max-width: 155px;
 	right: 0px;
+	z-index: 500;
 }
 .card-label {
 	background-color: yellow;
@@ -187,27 +203,39 @@ ul.select2-results__options {
 .cardpanel-current {
 	background-color: #f3f3f3;
 	padding: 10px;
-	padding-top: 46px;
 	position: relative;
 	min-height: 405px;
+	transition: max-width 0.40s, visibility 0.10s;
 }
 .centered {
 	/*margin-left: auto;
 	margin-right: auto;*/
 }
+#cards {
+	transition: max-width 0.20s;
+}
 .cardpanel-superior {
 	/*background-color: #f3f3f3;*/
 	padding: 10px;
 	border-left: 1px dotted black;
+	transition: max-width 0.40s, visibility 0.10s;
 }
 .cardpanel-inferior {
 	/*background-color: #f3f3f3;*/
 	padding: 10px;
 	text-align: right;
 	border-right: 1px dotted black;
+	transition: max-width 0.40s, visibility 0.10s;
+}
+.cardpanel-inferior > .row {
+	flex-direction: row-reverse;
+}
+
+.cardpanel-main {
+	transition: max-width 0.40s, visibility 0.10s;
 }
 .cardrow {
-	/*border-bottom: 2px solid black;*/
+	border-bottom: 1px dotted black;
 	min-height: 405px;
 }
 .cardpanel-right {
@@ -271,15 +299,121 @@ ul.select2-results__options {
 	max-width: 136px;
 	overflow-x: hidden;
 }
+.panel-toggles {
+	height: 36px;
+}
+.panel-toggles::after {
+	clear: both;
+}
+.inferior-toggle {
+	float: left;
+}
+.superior-toggle {
+	float: right;
+}
 @media (max-width: 580px) {
-	.cardpanel-inferior{
-		display: none;
-	}
 	.pagination .page-item:not(.show-mobile) {
         display: none;
     }
 }
-@media (max-width: 991px) {
+@media (max-width: 1070px) {
+	.card-label-container {
+		position: relative;
+		top: 0;
+	}
+	.inferior-toggle,.superior-toggle  {
+		float: none;
+	}
+	.collapse-superior .inferior-toggle {
+		display:none;
+	}
+	.collapse-inferior .superior-toggle {
+		display:none;
+	}
+	.panel-toggles {
+		text-align: center;
+	}
+}
+@media (max-width: 1620px) {
+	.mtgcard {
+		max-height: 260px;
+		border-radius: 7px;
+	}
+	.mtgcard-wrapper {
+		min-width: 187px;
+		min-height: 260px;
+		margin-right: 10px;
+	}
+	.plus-sign {
+		top: 90px;
+		right: 0px;
+	}
+	.vote-text {
+		display: none;
+	}
+	.cardpanel-superior .mtgcard-wrapper:not(.newcard) .mtgcard:hover {
+		left: -36px;
+		margin-right: -36px;
+	}
+	.cardpanel-inferior .mtgcard-wrapper:not(.newcard) .mtgcard:hover {
+		left: -36px;
+		margin-right: -36px;
+	}
+}
+@media (max-width: 1320px) {
+	#cards:not(.collapse-inferior):not(.collapse-superior) .cardpanel-current {
+		max-width: 41.666667%;
+		flex: 0 0 41.666667%;
+		-ms-flex: 0 0 41.666667%;
+	}
+	#cards:not(.collapse-inferior):not(.collapse-superior) .cardpanel-superior {
+		max-width: 58.333333%;
+		flex: 0 0 58.333333%;
+		-ms-flex: 0 0 58.333333%;
+	}
+}
+@media (max-width: 900px) {
+
+	.collapse-inferior .cardpanel-current {
+		max-width: 50% !important;
+		flex: 0 0 50% !important;
+		-ms-flex: 0 0 50% !important;
+	}
+	.collapse-inferior .cardpanel-superior {
+		max-width: 50% !important;
+		flex: 0 0 50% !important;
+		-ms-flex: 0 0 50% !important;
+	}
+	.collapse-superior .cardpanel-main {
+		max-width: 50% !important;
+		flex: 0 0 50% !important;
+		-ms-flex: 0 0 50% !important;
+	}
+	.collapse-superior .cardpanel-inferior {
+		max-width: 50% !important;
+		flex: 0 0 50% !important;
+		-ms-flex: 0 0 50% !important;
+	}
+}
+@media (max-width: 450px) {
+	.cardrow {
+		min-height: inherit;
+	}
+	.mtgcard-wrapper {
+		min-height: inherit;
+		padding: 5px;
+		min-width: 80px;
+		border: 1px solid #BBBBBB;
+		background-color: #DDDDDD;
+		border-radius: 6px;
+	}
+	.mtgcard-wrapper.reprint-stack {
+		border-bottom: none;
+		padding-bottom: 15px;
+	}
+	.cardpanel-current .mtgcard-wrapper {
+		width: 100%;
+	}
 	.mtgcard-text {
 		display: block;
 	}
@@ -289,19 +423,8 @@ ul.select2-results__options {
 	.plus-sign {
 		display: none;
 	}
-	.mtgcard-wrapper {
-		min-height: inherit;
-		padding: 5px;
-		min-width: 80px;
-	}
 	.cardpanel-current {
 		min-height: 140px;
-	}
-	.cardpanel-current .mtgcard-wrapper {
-		width: 100%;
-	}
-	.cardrow {
-		min-height: inherit;
 	}
 	.reprint-stack img:hover {
 		-ms-transform: none;
@@ -310,49 +433,68 @@ ul.select2-results__options {
 		-o-transform: none;
 		transform: none
 	}
-	.reprint-stack .btn-gatherer {
-		display: none;
-	}
-	.vote-text {
-		display: none;
-	}
-	.mtgcard-wrapper.reprint-stack {
-		border: 1px solid #BBBBBB;
-		background-color: #DDDDDD;
-		border-radius: 6px;
-		border-bottom: none;
-		padding-bottom: 15px;
-	}
-	.mtgcard-wrapper:not(.reprint-stack) {
-		border: 1px solid #BBBBBB;
-		background-color: #DDDDDD;
-		border-radius: 6px;
-	}
 	.mtgcard-wrapper a.card-link:hover .mtgcard {
 		display: block;
 		position: absolute;
 		left: -230px;
 		top: -50px;
-		z-index: 202;
+		max-height: 311px;
+		border-radius: 11px;
 	}
-	.cardpanel-inferior .mtgcard-wrapper a:hover .mtgcard {
+	.cardpanel-inferior .mtgcard-wrapper a.card-link:hover .mtgcard {
 		margin-left: 0;
 		left: 200px;
 	}
-	.card-label-container {
-		position: relative;
-		top: 0;
+	.collapse-inferior .cardpanel-current .mtgcard-wrapper a.card-link:hover .mtgcard {
+		margin-left: 0;
+		left: 100px;
 	}
 }
-@media (max-width: 1600px) {
-	.cardpanel-current {
-		max-width: 41.666667%;
-		flex: 0 0 41.666667%;
-		-ms-flex: 0 0 41.666667%;
-	}
-	.cardpanel-superior {
-		max-width: 58.333333%;
-		flex: 0 0 58.333333%;
-		-ms-flex: 0 0 58.333333%;
-	}
+
+/* Collapse inferior */
+.collapse-inferior .cardpanel-inferior {
+	max-width: 0%;
+	flex: 0 0 0%;
+	-ms-flex: 0 0 0%;
+	visibility: hidden;
+	position: absolute;
+}
+.collapse-inferior .cardpanel-main {
+	max-width: 100%;
+	flex: 0 0 100%;
+	-ms-flex: 0 0 100%;
+}
+.collapse-inferior .cardpanel-current {
+	max-width: 25%;
+	flex: 0 0 25%;
+	-ms-flex: 0 0 25%;
+}
+.collapse-inferior .cardpanel-superior {
+	max-width: 75%;
+	flex: 0 0 75%;
+	-ms-flex: 0 0 75%;
+}
+
+/* Collapse superior */
+.collapse-superior .cardpanel-superior {
+	max-width: 0%;
+	flex: 0 0 0%;
+	-ms-flex: 0 0 0%;
+	visibility: hidden;
+	position: absolute;
+}
+.collapse-superior .cardpanel-main {
+	max-width: 25%;
+	flex: 0 0 25%;
+	-ms-flex: 0 0 25%;
+}
+.collapse-superior .cardpanel-current {
+	max-width: 100%;
+	flex: 0 0 100%;
+	-ms-flex: 0 0 100%;
+}
+.collapse-superior .cardpanel-inferior {
+	max-width: 75%;
+	flex: 0 0 75%;
+	-ms-flex: 0 0 75%;
 }
