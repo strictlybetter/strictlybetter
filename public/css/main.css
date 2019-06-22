@@ -106,6 +106,14 @@ ul.select2-results__options {
 #upgrade_view {
 
 }
+@media (max-width: 990px) {
+	#upgrade_view_container {
+		padding: 0;
+		max-width: 100% !important;
+		width: 100%;
+	}
+}
+
 .card-label-container {
 	position: absolute;
 	top: 45px;
@@ -361,12 +369,12 @@ ul.select2-results__options {
 	}
 }
 @media (max-width: 1320px) {
-	#cards:not(.collapse-inferior):not(.collapse-superior) .cardpanel-current {
+	div:not(.collapse-inferior):not(.collapse-superior) .cardpanel-current {
 		max-width: 41.666667%;
 		flex: 0 0 41.666667%;
 		-ms-flex: 0 0 41.666667%;
 	}
-	#cards:not(.collapse-inferior):not(.collapse-superior) .cardpanel-superior {
+	div:not(.collapse-inferior):not(.collapse-superior) .cardpanel-superior {
 		max-width: 58.333333%;
 		flex: 0 0 58.333333%;
 		-ms-flex: 0 0 58.333333%;

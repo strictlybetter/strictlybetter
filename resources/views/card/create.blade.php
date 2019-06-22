@@ -34,12 +34,13 @@
 		<div>
 			<br>
 		</div>
+	</div>
 
-
+	<div class="container collapse-inferior" id="upgrade_view_container">
 		<div class="row" id="upgrade_view">
-		@if($card)
-			@include('card.partials.upgrade')
-		@endif
+			@if($card)
+				@include('card.partials.upgrade')
+			@endif
 		</div>
 	</div>
 

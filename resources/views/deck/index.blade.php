@@ -22,6 +22,8 @@
 			</div>
 
 		{{ Form::close() }}
+	</div>
+	<div class="container collapse-inferior" id="upgrade_view_container">
 
 		@if(isset($deckupgrades))
 
