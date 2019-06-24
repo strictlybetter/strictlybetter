@@ -369,12 +369,22 @@ ul.select2-results__options {
 	}
 }
 @media (max-width: 1320px) {
-	div:not(.collapse-inferior):not(.collapse-superior) .cardpanel-current {
+	#cards:not(.collapse-inferior):not(.collapse-superior) .cardpanel-current {
 		max-width: 41.666667%;
 		flex: 0 0 41.666667%;
 		-ms-flex: 0 0 41.666667%;
 	}
-	div:not(.collapse-inferior):not(.collapse-superior) .cardpanel-superior {
+	#cards:not(.collapse-inferior):not(.collapse-superior) .cardpanel-superior {
+		max-width: 58.333333%;
+		flex: 0 0 58.333333%;
+		-ms-flex: 0 0 58.333333%;
+	}
+	#upgrade_view_container:not(.collapse-inferior):not(.collapse-superior) .cardpanel-current {
+		max-width: 41.666667%;
+		flex: 0 0 41.666667%;
+		-ms-flex: 0 0 41.666667%;
+	}
+	#upgrade_view_container:not(.collapse-inferior):not(.collapse-superior) .cardpanel-superior {
 		max-width: 58.333333%;
 		flex: 0 0 58.333333%;
 		-ms-flex: 0 0 58.333333%;
