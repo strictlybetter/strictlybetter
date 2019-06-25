@@ -416,3 +416,73 @@ Artisan::command('create-obsoletes', function () {
 	$this->comment($count . " better cards found. " . (Obsolete::count() - $old_obsolete_count) . "  new records created for database. ");
 
 })->describe('Populates obsoletes table with programmatically findable strictly better cards');
+
+
+Artisan::command('download-scryfall', function () {
+
+	$filename = 'scryfall-default-cards.json';
+
+	$this->comment("Requesting bulkfile metadata...");
+
+	$client = new \GuzzleHttp\Client();
+	$request = $client->get('https://api.scryfall.com/bulk-data');
+
+	if ($request->getStatusCode() != 200) {
+		$this->comment("Download failed");
+		return 1;
+	}
+
+	$response = json_decode($request->getBody(), true);	
+
+	if ($response === null) {
+		$this->comment("Failed to parse json");
+		return 1;
+	}
+
+	$mtime = 0;
+	if (is_file($filename))
+		$mtime = filemtime($filename);
+
+	foreach ($response["data"] as $bulkfile) {
+
+		if ($bulkfile["type"] != "default_cards")
+			continue;
+
+		$updated_at = new DateTime($bulkfile["updated_at"]);
+
+		if ($updated_at->getTimestamp() < $mtime) {
+			$this->comment("No need to update.");
+			return 1;
+		}
+
+		$localfile = fopen($filename, 'w');
+		if (!$localfile) {
+			$this->comment("Couldn't open " . $filename . " for writing.");
+			return 1;
+		}
+
+		$this->comment("Downloading " . $filename . "...");
+
+		$client->get($bulkfile["permalink_uri"], ['sink' => $localfile]);
+
+		$this->comment("Download complete");
+
+		return 0;
+		
+	}
+	$this->comment("Couldn't find correct bulk file type");
+	return 1;
+
+})->describe('Downloads newest card database from Scryfall');
+
+Artisan::command('full-update', function () {
+
+	if (Artisan::call('download-scryfall', [], $this->getOutput()) !== 0)
+		return;
+
+	Artisan::call('load-scryfall', [], $this->getOutput());
+	Artisan::call('populate-functional-reprints', [], $this->getOutput());
+	Artisan::call('create-functional-obsoletes', [], $this->getOutput());
+	Artisan::call('create-obsoletes', [], $this->getOutput());
+
+})->describe('Performs full update cycle');
