@@ -44,6 +44,10 @@ function create_labels(App\Card $inferior, App\Card $superior, App\Obsolete $obs
 
 function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_reprints = true)
 {
+	// Confirm this relation doesn't already exist (to prevent timestamp touching)
+	if (in_array($superior->id, $inferior->superiors->pluck('id')->toArray()))
+		return false;
+
 	$labels = create_labels($inferior, $superior);
 
 	$superior->inferiors()->syncWithoutDetaching([$inferior->id => ['labels' => $labels]]);
@@ -70,6 +74,7 @@ function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_rep
 			}
 		}
 	}
+	return true;
 }
 
 function get_line_count($filename) {

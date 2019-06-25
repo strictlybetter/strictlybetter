@@ -173,8 +173,8 @@ Artisan::command('create-functional-obsoletes', function () {
 		if (count($reprint_group->cards) < 2)
 			continue;
 
-		$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('pivot.labels', 'id');
-		$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('pivot.labels', 'id');
+		$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
+		$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
 
 		foreach ($inferior_ids as $id => $labels) {
 			$labels['downvoted'] = false;
@@ -187,8 +187,14 @@ Artisan::command('create-functional-obsoletes', function () {
 
 		foreach ($reprint_group->cards as $card) {
 
-			$card->inferiors()->syncWithoutDetaching($inferior_ids);
-			$card->superiors()->syncWithoutDetaching($superior_ids);
+			$inferiors_to_add = array_diff_key($inferior_ids, $card->inferiors->pluck('', 'id')->toArray());
+			$superiors_to_add = array_diff_key($superior_ids, $card->superiors->pluck('', 'id')->toArray());
+
+			if (count($inferiors_to_add) > 0)
+				$card->inferiors()->syncWithoutDetaching($inferior_to_add);
+
+			if (count($superiors_to_add) > 0)
+				$card->superiors()->syncWithoutDetaching($superiors_to_add);
 		}
 	}
 	$new_obsoletes = Obsolete::count() - $old_obsolete_count;
@@ -230,7 +236,8 @@ Artisan::command('create-obsoletes', function () {
 
 	$this->comment("Looking for better cards...");
 
-	$cards = Card::whereNull('loyalty')
+	$cards = Card::with(['superiors'])
+		->whereNull('loyalty')
 		->where('name', 'not like', "% // %")
 		->orderBy('id', 'asc')->get();
 
@@ -362,7 +369,7 @@ Artisan::command('create-obsoletes', function () {
 					return true;
 				}
 
-				$this->comment("#" . $card->id . " " . $card->name . " is not better than #" . $better->id . " " . $better->name);
+				// $this->comment("#" . $card->id . " " . $card->name . " is not better than #" . $better->id . " " . $better->name);
 
 				return false;
 			})->values();
@@ -398,7 +405,7 @@ Artisan::command('create-obsoletes', function () {
 		*/
 
 		foreach ($betters as $better) {
-			$this->comment("#" . $card->id . " " . $card->name . " can be upgraded to #" . $better->id . " " . $better->name);
+			//$this->comment("#" . $card->id . " " . $card->name . " can be upgraded to #" . $better->id . " " . $better->name);
 			create_obsolete($card, $better, false);
 			$count++;
 		}
