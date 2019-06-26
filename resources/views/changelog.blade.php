@@ -19,6 +19,12 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>06/26/19</h4>
+	<ul>
+		<li>Card database is now updated daily to match the cards available at Scryfall</li>
+		<li>New programmatic suggestions and functional reprints are added automatically when card database is updated</li>
+	</ul>
+
 	<h4>06/22/19</h4>
 	<ul>
 		<li>Harshly downvoted cards have a label on them (requires 10 more downvotes than upvotes).</li>
