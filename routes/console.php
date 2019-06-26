@@ -477,6 +477,8 @@ Artisan::command('download-scryfall', function () {
 
 Artisan::command('full-update', function () {
 
+	$this->comment(date('[Y-m-d H:i:s]') . " Full update started");
+
 	if (Artisan::call('download-scryfall', [], $this->getOutput()) !== 0)
 		return;
 

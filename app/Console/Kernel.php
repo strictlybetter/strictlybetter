@@ -26,6 +26,8 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')
         //          ->hourly();
+
+        $schedule->command('full-update')->twiceDaily(1, 13)->appendOutputTo(\Storage::path('scheduled.log'));
     }
 
     /**
