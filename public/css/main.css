@@ -307,6 +307,12 @@ ul.select2-results__options {
 	max-width: 136px;
 	overflow-x: hidden;
 }
+.ms-options-wrap > .ms-options > ul label {
+	padding: 4px 8px 4px 8px;
+}
+.ms-options-wrap > .ms-options > ul input[type="checkbox"] {
+	position: static;
+}
 .panel-toggles {
 	height: 36px;
 }
