@@ -163,10 +163,15 @@ class Card extends Model
 				// Translate multicolor / 2-generic/color to one of the left colors if any
 				// multicolor / 2-generic/color > base color
 				else {
+					
+					$symbol2 = '{'.$symbol[$pos-1].'}';
 					$symbol = '{'.$symbol[$pos+1].'}';
-					if (!isset($mana_left[$symbol]) || 
-						($cost > $mana_left[$symbol] && (!$may_cost_more_of_same || $cost > ($anytype_left + $mana_left[$symbol]))))
-						$symbol = '{'.$symbol[$pos-1].'}';
+
+					if (!isset($mana_left[$symbol]) || (
+						($may_cost_more_of_same && $cost > ($anytype_left + $mana_left[$symbol])) || 
+						(!$may_cost_more_of_same && $cost > $mana_left[$symbol])
+					))
+						$symbol = $symbol2;
 				}
 
 				if (!isset($mana_left[$symbol]))
