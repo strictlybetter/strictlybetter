@@ -225,8 +225,13 @@ class Card extends Model
     	if (array_diff($this->colors, $other->colors))
     		return false;*/
 
-    	if ($this->cmc > $other->cmc)
-    		return false;
+    	if ($this->cmc > $other->cmc) {
+
+    		// Check for a special case, where mana cost is less based on target
+    		$result = preg_match('/this spell costs (?:{.+?})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
+    		if ($result != 1 || stripos($other->substituted_rules, "Target " . $match[1]) === false)
+    			return false;
+    	}
 
     	if ($this->costsMoreColoredThan($other, true))
     		return false;
