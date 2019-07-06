@@ -30,20 +30,22 @@ class DeckController extends Controller
 		if (!in_array($format, Card::$formats))
 			$format = "";
 
-		
+		$cards = Card::whereIn('name', array_keys($deck))->get();
+
 		// Find colors the deck musn't contain (useful for Commander)
 		$un_color_identity = [];
 		if ($format === 'commander') {
-			$cards = Card::whereIn('name', array_keys($deck))->get();
-			
+
 			$deck_colors = $this->getDeckColors($cards);
 			$un_color_identity = array_diff(["W","B","U","R","G"], $deck_colors);
 		}
 
-		$card_restrictions = function($q) use ($format, $un_color_identity) {
+		$card_restrictions = function($q) use ($format, $un_color_identity, $cards) {
 
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
+
+			$q->whereNotIn('name', $cards->pluck('name'));
 
 			foreach ($un_color_identity as $un_color) {
 				$q->whereJsonDoesntContain('color_identity', $un_color);
