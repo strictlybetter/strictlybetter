@@ -83,7 +83,6 @@ function create_card_from_scryfall($obj, array $supertypes, $parent = null)
 
 	if ($multiface) {
 		foreach ($obj->card_faces as $card_face) {
-			echo "creating " . $card_face->name;
 			create_card_from_scryfall($card_face, $supertypes, $card);
 		}
 	}
