@@ -14,6 +14,10 @@
 Route::pattern('card', '[0-9]+');
 Route::pattern('obsolete', '[0-9]+');
 
+// Prevent requests from accessing multiface card' faces directly (main_card_id must be null)
+Route::bind('card', function ($id) {
+	return App\Card::where('id', $id)->whereNull('main_card_id')->first() ?? abort(404);
+});
 
 Route::get('/', 'CardController@index')->name('index');
 

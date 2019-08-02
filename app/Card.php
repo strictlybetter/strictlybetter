@@ -25,7 +25,9 @@ class Card extends Model
 		'loyalty',
 		'scryfall_img',
 		'scryfall_api',
-		'scryfall_link'
+		'scryfall_link',
+		'flip',
+		'main_card_id'
 	];
 
 	protected $casts = [
@@ -37,6 +39,8 @@ class Card extends Model
         'color_identity' => 'array',
         'manacost_sorted' => 'array'
     ];
+
+    protected $with = ['cardFaces'];
 
     protected $colorManaCount = false;
 
@@ -62,6 +66,16 @@ class Card extends Model
     public function functionalReprints()
     {
     	return $this->hasMany(Card::class, 'functional_reprints_id', 'functional_reprints_id');
+    }
+
+    public function mainCard()
+    {
+    	return $this->belongsTo(Card::class, 'main_card_id', 'id');
+    }
+
+    public function cardFaces()
+    {
+    	return $this->hasMany(Card::class, 'main_card_id', 'id');
     }
 
     public function getImageUrlAttribute()
@@ -96,7 +110,16 @@ class Card extends Model
 
     public function getFunctionalReprintLineAttribute()
     {
-    	return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->substituted_rules;
+    	if (count($this->cardFaces) == 0)
+    		return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->substituted_rules;
+
+		$line = $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->substituted_rules;
+
+		foreach ($this->cardFaces as $face) {
+			$line = $line . '|' . $face->typeline .'|'. $face->manacost .'|'. $face->power .'|'. $face->toughness .'|'. $face->loyalty .'|'. $face->substituted_rules;
+		}
+
+		return $line;
     }
 
 	/*
@@ -141,7 +164,8 @@ class Card extends Model
     	foreach ($variable_costs as $variable_cost)
     		unset($mana_left[$variable_cost]);
 
-    	$anytype_left = $other->cmc - array_sum(array_values($mana_left));
+    	$cmc = $other->cmc ? $other->cmc : 0;
+    	$anytype_left = $cmc - array_sum(array_values($mana_left));
 
     	foreach ($this->manacost_sorted as $symbol => $cost) {
 
@@ -201,6 +225,30 @@ class Card extends Model
     	if ($this->id === $other->id || ($other->functional_reprints_id && $this->functional_reprints_id === $other->functional_reprints_id))
     		return false;
 
+    	// If this a multifaced card, check card faces against the other card
+    	// One of this cards faces must be better
+    	if (count($this->cardFaces) > 0) {
+
+    		if ($this->flip)
+    			return $this->cardFaces->first()->isNotWorseThan($other) ? $this->cardFaces->first() : false;
+
+    		foreach ($this->cardFaces as $face) {
+    			if ($face->isNotWorseThan($other))
+    				return $face;
+    		}
+    		return false;
+    	}
+
+    	// This card must not be worse than either of the other cards faces (in order to be truly superior)
+    	if (count($other->cardFaces) > 0) {
+
+    		foreach ($other->cardFaces as $other_face) {
+    			if (!$this->isNotWorseThan($other_face))
+    				return false;
+    		}
+    		return true;
+    	}
+
     	// Types must match
     	if (count($this->supertypes) != count($other->supertypes) || array_diff($this->supertypes, $other->supertypes))
     		return false;
@@ -225,7 +273,7 @@ class Card extends Model
     	if (array_diff($this->colors, $other->colors))
     		return false;*/
 
-    	if ($this->cmc > $other->cmc) {
+    	if ($other->cmc !== null && $this->cmc > $other->cmc) {
 
     		// Check for a special case, where mana cost is less based on target
     		$result = preg_match('/this spell costs (?:{.+?})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
@@ -246,5 +294,29 @@ class Card extends Model
     public function hasLoyalty() 
     {
     	return ($this->loyalty !== null);
+    }
+
+    public function calculateCmcFromCost()
+    {
+    	$cmc = null;
+    	
+    	if (preg_match('/{(\d+)}/u', $this->manacost, $matches))
+    		$cmc = $matches[1];
+
+    	$mana_counts = $this->colorManaCounts;
+
+    	if ($mana_counts === false)
+    		return $cmc;
+
+    	if ($cmc === null)
+    		$cmc = 0;
+
+    	foreach ($mana_counts as $symbol => $amount) {
+    		if (mb_strpos($symbol, '/2') === false)
+    			$cmc += $amount;
+    		else
+    			$cmc += ($amount * 2);
+    	}
+    	return $cmc;
     }
 }

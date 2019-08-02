@@ -111,7 +111,7 @@ class CardController extends Controller
 		$orderBy = ($term == "") ? "updated_at" : "name";
 		$direction = ($term == "") ? "desc" : "asc";
 
-		$cards = $cards->orderBy($orderBy, $direction)->paginate(10);
+		$cards = $cards->whereNull('main_card_id')->orderBy($orderBy, $direction)->paginate(10);
 
 		// Remove self from functional reprints
 		foreach ($cards as $i => $card) {
@@ -209,8 +209,8 @@ class CardController extends Controller
 			'superior' => 'required|different:inferior',
 		]);
 
-		$inferior = Card::with('functionalReprints')->where('id', $request->input('inferior'))->first();
-		$superior = Card::with('functionalReprints')->where('id', $request->input('superior'))->first();
+		$inferior = Card::with('functionalReprints')->where('id', $request->input('inferior'))->whereNull('main_card_id')->first();
+		$superior = Card::with('functionalReprints')->where('id', $request->input('superior'))->whereNull('main_card_id')->first();
 
 		if (!$inferior || !$superior)
 			return back()->withErrors(['Card not found'])->withInput();
@@ -223,7 +223,7 @@ class CardController extends Controller
 
 		create_obsolete($inferior, $superior, true);
 
-		// Add votef
+		// Add vote
 		$obsolete = Obsolete::where('superior_card_id', $superior->id)->where('inferior_card_id', $inferior->id)->first();
 		$this->addVote($obsolete, true);
 
@@ -262,7 +262,7 @@ class CardController extends Controller
 
 		$limit = $request->input('limit') ? $request->input('limit') : 25;
 		$term = escapeLike($request->input('term'));
-		$cards = Card::where('name', 'like', $term.'%')->orderBy('name')->paginate($limit);
+		$cards = Card::where('name', 'like', $term.'%')->whereNull('main_card_id')->orderBy('name')->paginate($limit);
 
 		$list = [];
 
@@ -282,7 +282,7 @@ class CardController extends Controller
 		]);
 
 		$term = escapeLike($request->input('term'));
-		$card = Card::where('name', 'like', $term.'%')->first();
+		$card = Card::where('name', 'like', $term.'%')->whereNull('main_card_id')->first();
 
 		if (!$card)
 			return back()->withErrors(['No results for card: '. $request->input('term')])->withInput();

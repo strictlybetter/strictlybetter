@@ -19,6 +19,11 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>08/03/19</h4>
+	<ul>
+		<li>Support for split and flip cards</li>
+	</ul>
+
 	<h4>07/06/19</h4>
 	<ul>
 		<li>Upgrade Deck -feature no longer suggests cards that are alredy in the deck. E.g. when playing both Murder and Hero's Downfall</li>

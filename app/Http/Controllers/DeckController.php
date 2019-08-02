@@ -30,7 +30,7 @@ class DeckController extends Controller
 		if (!in_array($format, Card::$formats))
 			$format = "";
 
-		$cards = Card::whereIn('name', array_keys($deck))->get();
+		$cards = Card::whereIn('name', array_keys($deck))->whereNull('main_card_id')->get();
 
 		// Find colors the deck musn't contain (useful for Commander)
 		$un_color_identity = [];
@@ -53,7 +53,7 @@ class DeckController extends Controller
 		};
 
 		// Find replacements
-		$upgrades = Card::with(['superiors' => $card_restrictions])->whereIn('name', array_keys($deck))->whereHas('superiors', $card_restrictions)->get();
+		$upgrades = Card::with(['superiors' => $card_restrictions])->whereIn('name', array_keys($deck))->whereNull('main_card_id')->whereHas('superiors', $card_restrictions)->get();
 
 		return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => $upgrades])->withInput();
     }

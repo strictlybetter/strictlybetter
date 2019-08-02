@@ -18,7 +18,6 @@ use App\FunctionalReprint;
 Artisan::command('load-scryfall', function () {
 
 	$filename = 'scryfall-default-cards.json';
-	$type_pattern = '/^(.*?)(?: — (.*))?$/';
 	$supertypes = ["Basic", "Elite", "Host", "Legendary", "Ongoing", "Snow", "World"];
 	$ignore_layouts = ["planar", "scheme", "token", "double_faced_token", "emblem"];
 
@@ -39,50 +38,8 @@ Artisan::command('load-scryfall', function () {
 			if ($obj === null || in_array($obj->layout, $ignore_layouts))
 				continue;
 
-			if (!preg_match($type_pattern, $obj->type_line, $match))
-				continue;
-
-			$card = Card::firstOrNew(['name' =>  $obj->name]);
-
-			// Keep newest multiverse id
-			if ($card->exists && $card->multiverse_id && (empty($obj->multiverse_ids) || $card->multiverse_id > $obj->multiverse_ids[0]))
-				continue;
-
-			// Don't update updated_at field
-			if ($card->exists)
-				$card->timestamps = false;
-
-			$types = explode(" ", $match[1]);
-			$subtypes = isset($match[2]) ? explode(" ", $match[2]) : [];
-
-
-			$card->fill([
-				'multiverse_id' => empty($obj->multiverse_ids) ? null : $obj->multiverse_ids[0],
-				'legalities' => $obj->legalities,
-				'manacost' => isset($obj->mana_cost) ? $obj->mana_cost : "",
-				'cmc' => isset($obj->cmc) ? ceil($obj->cmc) : null,
-				'supertypes' => array_intersect($types, $supertypes),
-				'types' => array_diff($types, $supertypes),
-				'subtypes' => $subtypes,
-				'colors' => isset($obj->colors) ? $obj->colors : [],
-				'color_identity' => isset($obj->color_identity) ? $obj->color_identity : [],
-				'rules' => isset($obj->oracle_text) ? $obj->oracle_text : "",
-				'power' => isset($obj->power) ? $obj->power : null,
-				'toughness' => isset($obj->toughness) ? $obj->toughness : null,
-				'loyalty' => isset($obj->loyalty) ? $obj->loyalty : null,
-				'scryfall_img' => (isset($obj->image_uris) && $obj->image_uris->normal) ? $obj->image_uris->normal : null,
-				'scryfall_api' => isset($obj->uri) ? $obj->uri : null,
-				'scryfall_link' => isset($obj->scryfall_uri) ? $obj->scryfall_uri : null
-			]);
-
-			// Create a few helper columns using existing data
-			$card->substituted_rules = $card->substituteRules;
-			$card->manacost_sorted = $card->colorManaCounts;
-
-			if ($card->isDirty()) {
-				$card->save();
+			if (create_card_from_scryfall($obj, $supertypes))
 				$count++;
-			}
 		}
 		fclose($fh);
 
@@ -113,7 +70,7 @@ Artisan::command('populate-functional-reprints', function () {
 
 	$this->comment("Looking for duplicate families...");
 
-	$results = Card::where('name', 'not like', '% // %')->get()->groupBy('functionalReprintLine')->reject(function($item) {
+	$results = Card::whereNull('main_card_id')->get()->groupBy('functionalReprintLine')->reject(function($item) {
 		return (count($item) <= 1);
 	})->values();
 
@@ -173,9 +130,12 @@ Artisan::command('create-functional-obsoletes', function () {
 		if (count($reprint_group->cards) < 2)
 			continue;
 
+		// Find all relations for all cards in the reprint group (+ their relation labels)
 		$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
 		$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
 
+		// Replace 'downvoted' label with false, since are only going to create new relations
+		// Other labels should be equal, since the cards are reprints of each other
 		foreach ($inferior_ids as $id => $labels) {
 			$labels['downvoted'] = false;
 			$inferior_ids[$id] = ["labels" => $labels];
@@ -185,16 +145,33 @@ Artisan::command('create-functional-obsoletes', function () {
 			$superior_ids[$id] = ["labels" => $labels];
 		}
 
+		// Sync all relations of each card in the group with each other card in the group
 		foreach ($reprint_group->cards as $card) {
 
+			// Filter attachable ids here, so we can rely on downvoted = false label
 			$inferiors_to_add = array_diff_key($inferior_ids, $card->inferiors->pluck('', 'id')->toArray());
 			$superiors_to_add = array_diff_key($superior_ids, $card->superiors->pluck('', 'id')->toArray());
 
-			if (count($inferiors_to_add) > 0)
-				$card->inferiors()->syncWithoutDetaching($inferior_to_add);
+			if (count($inferiors_to_add) > 0) {
+				$changes = $card->inferiors()->syncWithoutDetaching($inferiors_to_add);
 
-			if (count($superiors_to_add) > 0)
-				$card->superiors()->syncWithoutDetaching($superiors_to_add);
+				// Touch attached inferiors, so they are listed first on Browse page
+				if (!empty($changes['attached'])) {
+					$inferiors = $card->inferiors()->whereIn('cards.id', $changes['attached'])->get();
+
+					foreach ($inferiors as $inferior) {
+						$inferior->touch();
+					}
+				}	
+			}
+
+			if (count($superiors_to_add) > 0) {
+				$changes = $card->superiors()->syncWithoutDetaching($superiors_to_add);
+
+				// Touch this card if any new superiors were added, so this card is listed first on Browse page
+				if (!empty($changes['attached']))
+					$card->touch();
+			}
 		}
 	}
 	$new_obsoletes = Obsolete::count() - $old_obsolete_count;
@@ -237,8 +214,8 @@ Artisan::command('create-obsoletes', function () {
 	$this->comment("Looking for better cards...");
 
 	$cards = Card::with(['superiors'])
-		->whereNull('loyalty')
-		->where('name', 'not like', "% // %")
+		->whereNull('main_card_id')
+		->whereDoesntHave('cardFaces')
 		->orderBy('id', 'asc')->get();
 
 	$allcolors = ["W","B","U","R","G"];
@@ -254,7 +231,11 @@ Artisan::command('create-obsoletes', function () {
 		$betters = Card::where('substituted_rules', $card->substituted_rules)
 			->whereJsonContains('supertypes', $card->supertypes)
 			->whereJsonLength('supertypes', count($card->supertypes))
-			->where('id', "!=", $card->id);
+			->where('id', "!=", $card->id)
+			->whereDoesntHave('cardFaces')
+			->where(function($q) {
+				$q->where('flip', false)->orWhereNotNull('cmc');
+			});
 
 		// Sorcery may be substituted by an Instant
 		if (in_array("Sorcery", $card->types)) {
@@ -406,7 +387,13 @@ Artisan::command('create-obsoletes', function () {
 
 		foreach ($betters as $better) {
 			//$this->comment("#" . $card->id . " " . $card->name . " can be upgraded to #" . $better->id . " " . $better->name);
-			create_obsolete($card, $better, false);
+
+			if ($better->main_card_id) {
+				//$this->comment("Would create " . $card->name . " -> " .$better->name . " (". $better->mainCard->name . ")");
+				create_obsolete($card, $better->mainCard, false);
+			}
+			else
+				create_obsolete($card, $better, false);
 			$count++;
 		}
 		
