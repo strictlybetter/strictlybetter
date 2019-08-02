@@ -92,8 +92,12 @@ class CardController extends Controller
 		}]);
 
 		if ($has_obsoletes) {
-			$cards = $cards->where(function($q) use ($card_filters) {
-				$q->whereHas('superiors', $card_filters);
+			$cards = $cards->where(function($q) use ($card_filters, $term) {
+
+				if ($term !== "")
+					$q->where('name', $term)->orWhereHas('superiors', $card_filters);
+				else
+					$q->whereHas('superiors', $card_filters);
 				//	->orWhereHas('inferiors', $card_filters);
 			});
 		}
@@ -153,7 +157,7 @@ class CardController extends Controller
 					$inferiors->push($card);
 
 				$inferiors = $this->convertToSelect2Data($inferiors, $card);
-				$superiors = $this->convertToSelect2Data($card->superiors);
+				//$superiors = $this->convertToSelect2Data($card->superiors);
 
 				// Remove self from reprints
 				$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {

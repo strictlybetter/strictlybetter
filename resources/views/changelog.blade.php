@@ -22,6 +22,9 @@
 	<h4>08/03/19</h4>
 	<ul>
 		<li>Support for split and flip cards</li>
+		<li>Existing superior card is no longer pre-selected when adding new suggestions</li>
+		<li>Quicksearch prioritizes exact card name match over cards with suggestions</li>
+		<li>New programmatically added suggestions will be shown on first Browse page just like suggestions added by users</li>
 	</ul>
 
 	<h4>07/06/19</h4>

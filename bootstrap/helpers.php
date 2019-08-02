@@ -163,7 +163,11 @@ function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_rep
 
 	$labels = create_labels($inferior, $superior);
 
-	$superior->inferiors()->syncWithoutDetaching([$inferior->id => ['labels' => $labels]]);
+	$changes = $superior->inferiors()->syncWithoutDetaching([$inferior->id => ['labels' => $labels]]);
+
+	// If new association was created, touch inferior to put it first in Browse page
+	if (in_array($inferior->id, $changes['attached'])) 
+		$inferior->touch();
 
 	// Handle reprints
 	if ($cascade_to_reprints) {
