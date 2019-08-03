@@ -15,6 +15,7 @@
 			<span class="spinner-border spinner-border-sm search-spinner" role="status"></span>
 			<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control']) }}</span>
 			<span>{{ Form::select('filters', $filterlist, isset($filters) ? $filters : null, ['id' => 'filters', 'multiple' => 'multiple', 'class' => 'form-control']) }}</span>
+			<span>{{ Form::select('order', $orderlist, isset($order) ? $order : 'null', ['id' => 'order', 'class' => 'form-control']) }}</span>
 		</div>
 		<br>
 	</div>
@@ -50,11 +51,13 @@
 		var search = $("#quicksearch").val();
 		var format = $('#format').find(":selected").val();
 		var filters = $('#filters').val();
+		var order = $('#order').val();
 
 		var params = {
 			'format': format,
 			'search': search,
 			'filters': filters,
+			'order': order,
 			'page': page
 		};
 
@@ -97,6 +100,7 @@
 				"format": format,
 				"search": search,
 				"filters": filters,
+				"order": order,
 				"page": page
 			},
 			success: function(response) {
@@ -216,6 +220,9 @@
 			}
 		});
 
+		$("#order").on('change', function(event) {
+			quicksearch(initial_page, true);
+		});
 
 		$("#cards").on('click', 'a.page-link', function(e) {
 			e.preventDefault();
@@ -268,6 +275,7 @@
 			$("#quicksearch").val(params.search);
 			$('#format').val(params.format);
 			$('#filters').val(params.filters);
+			$('#order').val(params.order);
 			initial_page = params.page ? params.page : 1;
 
 			$('#filters').multiselect('reload');

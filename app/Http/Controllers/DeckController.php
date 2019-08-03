@@ -50,6 +50,8 @@ class DeckController extends Controller
 			foreach ($un_color_identity as $un_color) {
 				$q->whereJsonDoesntContain('color_identity', $un_color);
 			}
+
+			$q->orderBy('upvotes', 'desc');
 		};
 
 		// Find replacements

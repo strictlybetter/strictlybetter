@@ -9,13 +9,21 @@ function escapeLike(string $value, string $char = '\\')
 	);
 }
 
+function make_select_options(array $arr, $lang = null)
+{
+	$options = [];
+	foreach ($arr as $option) {
+		$options[$option] = $lang ? Lang::get('card.' . $lang  . '.' . $option) : ucfirst(str_replace('_', ' ', $option));
+	}
+	return $options;
+}
+
 function make_format_list()
 {
 	// Make list of supported formats
 	$formatlist = ['' => 'Any Format'];
-	foreach (App\Card::$formats as $formatname) {
-		$formatlist[$formatname] = ucfirst($formatname);
-	}
+	$formatlist = array_merge($formatlist, make_select_options(App\Card::$formats));
+
 	return $formatlist;
 }
 

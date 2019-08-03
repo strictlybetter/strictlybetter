@@ -51,5 +51,10 @@ return [
 		'subtypes_differ' => 'Suggested card has different subtypes (Elf vs Elf Druid)',
 		'less_colors' => 'Suggested card has less colors (ie. Devoid spells do not have a color, but may otherwise be better than a colored counterpart)',
 		'downvoted' => 'Number of downvotes exceeds upvotes by 10 votes'
+    ],
+    'orders' => [
+    	'name' => 'Sort by name',
+    	'updated_at' => 'Sort by newest',
+    	'upvotes' => 'Sort by upvotes'
     ]
 ];

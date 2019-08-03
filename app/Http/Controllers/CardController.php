@@ -11,6 +11,11 @@ use mtgsdk\Card as CardApi;
 
 class CardController extends Controller
 {
+	protected $card_orders = [
+		'name' => ['card' => 'name', 'obsolete' => 'name', 'direction' => 'asc'], 
+		'updated_at' => ['card' => 'updated_at', 'obsolete' => 'obsoletes.created_at', 'direction' => 'desc'], 
+		'upvotes' => ['card' => 'updated_at', 'obsolete' => 'upvotes', 'direction' => 'desc']
+	];
 
 	/**
 	 * Display a listing of the resource.
@@ -40,13 +45,20 @@ class CardController extends Controller
 			$filterlist[$label] = \Lang::get('card.filters.' . $label);
 		}
 
+		$orderlist = make_select_options(array_keys($this->card_orders), 'orders');
+
+		$order = $request->input('order');
+		$order = isset($this->card_orders[$order]) ? $order : 'updated_at';
+
 	    return view('index')->with([
 	    	'search' => $term, 
 	    	'format' => $format, 
+	    	'order' => $order,
 	    	'page' => $page, 
 	    	'formatlist' => $formatlist, 
 	    	'filters' => $filters,
-	    	'filterlist' => $filterlist
+	    	'filterlist' => $filterlist,
+	    	'orderlist' => $orderlist
 	    ]);
 	}
 
@@ -61,18 +73,22 @@ class CardController extends Controller
 
 		$filters = $request->input('filters');
 
-		$cards = $this->browse($request, $format, $term, $filters);
+		$order = $request->input('order');
+		$order = isset($this->card_orders[$order]) ? $order : 'updated_at';
+
+		$cards = $this->browse($request, $format, $term, $filters, $order);
 
 		if (count($cards) == 0)
-			$cards = $this->browse($request, $format, $term, $filters, false);
+			$cards = $this->browse($request, $format, $term, $filters, $order, false);
 
-		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'format' => $format, 'filters' => $filters]);
+		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'format' => $format, 'filters' => $filters, 'order' => $order]);
 	}
 
-	protected function browse(Request $request, $format = '', $term = '', $filters = [], $has_obsoletes = true)
+	protected function browse(Request $request, $format = '', $term = '', $filters = [], $order_key = 'updated_at', $has_obsoletes = true)
 	{
+		$order = $this->card_orders[$order_key];
 
-		$card_filters = function($q) use ($format, $filters) {
+		$card_filters = function($q) use ($format, $filters, $order) {
 
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
@@ -84,6 +100,8 @@ class CardController extends Controller
 						$q->where('obsoletes.labels->' . $filter, false);
 				}
 			}
+
+			$q->orderBy($order['obsolete'], $order['direction']);
 		};
 
 		$cards = Card::with(['superiors' => $card_filters, 'inferiors' => $card_filters, 'functionalReprints' => function ($q) use ($format) {
@@ -95,7 +113,9 @@ class CardController extends Controller
 			$cards = $cards->where(function($q) use ($card_filters, $term) {
 
 				if ($term !== "")
-					$q->where('name', $term)->orWhereHas('superiors', $card_filters);
+					$q->where('name', $term)
+					->orWhereHas('superiors', $card_filters)
+					->orWhereHas('inferiors', $card_filters);
 				else
 					$q->whereHas('superiors', $card_filters);
 				//	->orWhereHas('inferiors', $card_filters);
@@ -106,11 +126,6 @@ class CardController extends Controller
 		if ($term !== "") {
 			$cards = $cards->where('name', 'like', escapeLike($term).'%');
 		}
-
-		// We might not need to filter the inferior cards through formats
-		/*if ($format !== "" && $term === "") {
-			$cards = $cards->where('legalities->' . $format, 'legal');
-		}*/
 
 		$orderBy = ($term == "") ? "updated_at" : "name";
 		$direction = ($term == "") ? "desc" : "asc";
@@ -126,7 +141,7 @@ class CardController extends Controller
 			}
 		}
 
-		$cards->setPath(route('index', ['search' => $term, 'format' => $format, 'filters' => $filters]));
+		$cards->setPath(route('index', ['search' => $term, 'format' => $format, 'filters' => $filters, 'order' => $order_key]));
 
 		return $cards;
 	}

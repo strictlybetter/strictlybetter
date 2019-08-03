@@ -21,10 +21,29 @@
 
 	<h4>08/03/19</h4>
 	<ul>
-		<li>Support for split and flip cards</li>
-		<li>Existing superior card is no longer pre-selected when adding new suggestions</li>
-		<li>Quicksearch prioritizes exact card name match over cards with suggestions</li>
-		<li>New programmatically added suggestions will be shown on first Browse page just like suggestions added by users</li>
+		<li>Update #2
+			<ul>
+				<li>Suggestions for cards can now be sorted by name, newness (default) or upvotes.
+					<ul>
+						<li>Note: The main cards are always sorted by newness, unless a search term is present in which case cards are sorted by name</li>
+					</ul>
+				</li>
+				<li>Upgrade Deck suggestions are always sorted by upvotes</li>
+				<li>Quick search now finds cards that only have inferiors without typing the exact card name
+					<ul>
+						<li>Typing "Lightning B" should now return Lightning Bolt as expected, even if it doesn't have any upgrade suggestions</li>
+					</ul>
+				</li>
+			</ul>
+		</li>
+		<li>Update #1
+			<ul>
+				<li>Support for split and flip cards</li>
+				<li>Existing superior card is no longer pre-selected when adding new suggestions</li>
+				<li>Quick search prioritizes exact card name match over cards with suggestions</li>
+				<li>New programmatically added suggestions will be shown on first Browse page just like suggestions added by users</li>
+			</ul>
+		</li>
 	</ul>
 
 	<h4>07/06/19</h4>
