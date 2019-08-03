@@ -335,6 +335,10 @@ Artisan::command('create-obsoletes', function () {
 
 			$betters = $betters->filter(function($better) use ($card) {
 
+				// Split card is better, even if everything else matches
+				if ($card->main_card_id === null && $better->main_card_id !== null)
+					return true;
+
 				if ($card->cmc > $better->cmc || $card->costsMoreColoredThan($better))
 					return true;
 
