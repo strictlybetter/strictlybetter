@@ -11,11 +11,11 @@
 		<h1>Browse</h1>
 
 		<div class="row">
-			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-5', 'placeholder' => 'Quick search']) }}
+			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-5', 'placeholder' => 'Quick search', 'aria-label' => 'Quick search']) }}
 			<span class="spinner-border spinner-border-sm search-spinner" role="status"></span>
-			<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control']) }}</span>
-			<span>{{ Form::select('filters', $filterlist, isset($filters) ? $filters : null, ['id' => 'filters', 'multiple' => 'multiple', 'class' => 'form-control']) }}</span>
-			<span>{{ Form::select('order', $orderlist, isset($order) ? $order : 'null', ['id' => 'order', 'class' => 'form-control']) }}</span>
+			<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control', 'aria-label' => 'Format']) }}</span>
+			<span>{{ Form::select('filters', $filterlist, isset($filters) ? $filters : null, ['id' => 'filters', 'multiple' => 'multiple', 'class' => 'form-control', 'aria-label' => 'Filters']) }}</span>
+			<span>{{ Form::select('order', $orderlist, isset($order) ? $order : 'null', ['id' => 'order', 'class' => 'form-control', 'aria-label' => 'Sort by']) }}</span>
 		</div>
 		<br>
 	</div>

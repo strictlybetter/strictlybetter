@@ -23,7 +23,7 @@
 						<span class="mtgcard-text">{{ $reprint_card->name }}</span>
 					</a>
 					<div class="row"></div>
-					<!--<a class="btn btn-light btn-gatherer" href="{{ $reprint_card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>-->
+					<!--<a class="btn btn-gatherer" href="{{ $reprint_card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>-->
 				</div>
 
 			@endforeach
@@ -39,8 +39,8 @@
 				<span class="mtgcard-text">{{ $card->name }}</span>
 			</a>
 			<div class="row"></div>
-			@if($card->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $card->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
-			@if($card->multiverse_id)<a class="btn btn-light btn-gatherer" href="{{ $card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
+			@if($card->scryfall_link)<a class="btn btn-gatherer" href="{{ $card->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
+			@if($card->multiverse_id)<a class="btn btn-gatherer" href="{{ $card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
 		</div>
 	</div>
 </div>
