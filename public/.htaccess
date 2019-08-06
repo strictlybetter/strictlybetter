@@ -19,3 +19,17 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+<ifModule mod_headers.c>
+	<filesMatch "\.(?i:css|js|ico|jpg|jpeg|png|gif|webp)$">
+
+		Header set Cache-Control "max-age=2592000,public"
+		FileETag MTime Size
+
+		# Work-around for Apache 2.4 mod_deflate bug, which causes ETags to never match
+		<IfModule mod_deflate.c>
+			RequestHeader edit If-None-Match "\"^(.*)-gzip\"" "\"$1\""
+			Header edit ETag "^\"(.*)-gzip\"$" "\"$1\""
+		</IfModule>
+
+	</filesMatch>
+</ifModule>
