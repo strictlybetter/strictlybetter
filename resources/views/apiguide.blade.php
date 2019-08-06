@@ -2,7 +2,7 @@
 
 @section('meta')
 	<meta name="Description" content="API information and usage instructions">
-	<title>StrictlyBetter - Api Guide</title>
+	<title>Strictly Better - Api Guide</title>
 @stop
 
 @section('head')

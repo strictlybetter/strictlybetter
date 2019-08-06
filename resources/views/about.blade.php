@@ -2,7 +2,7 @@
 
 @section('meta')
 	<meta name="Description" content="Help and how to contact developers">
-	<title>StrictlyBetter - About</title>
+	<title>Strictly Better - About</title>
 @stop
 
 @section('head')

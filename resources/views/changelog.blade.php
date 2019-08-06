@@ -2,7 +2,7 @@
 
 @section('meta')
 	<meta name="Description" content="Changes on the site">
-	<title>StrictlyBetter - Changelog</title>
+	<title>Strictly Better - Changelog</title>
 @stop
 
 @section('head')

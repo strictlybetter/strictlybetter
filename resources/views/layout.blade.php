@@ -1,59 +1,59 @@
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        @if(View::hasSection('meta'))
-        	@yield('meta')
-        @else
-        	<meta name="Description" content="Find strictly better MTG cards">
-			<title>StrictlyBetter</title>
-        @endif
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		@if(View::hasSection('meta'))
+			@yield('meta')
+		@else
+			<meta name="Description" content="Find all the strictly better MTG cards">
+			<title>Strictly Better</title>
+		@endif
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
-        <link href="{{ URL::to('css/select2.min.css') }}" rel="stylesheet">
-        <link href="{{ URL::to('css/jquery.multiselect.css') }}" rel="stylesheet">
-        <link href="{{ URL::to('css/main.css') }}" rel="stylesheet">
-        @yield('head')
-    </head>
-    <body>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+		<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+		<link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+		<link href="{{ URL::to('css/select2.min.css') }}" rel="stylesheet">
+		<link href="{{ URL::to('css/jquery.multiselect.css') }}" rel="stylesheet">
+		<link href="{{ URL::to('css/main.css') }}" rel="stylesheet">
+		@yield('head')
+	</head>
+	<body>
 		<div class="container-fluid" style="padding:0">
 			<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-			  <a class="navbar-brand" href="{{ route('index') }}">StrictlyBetter</a>
-			  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-			    <span class="navbar-toggler-icon"></span>
-			  </button>
+				<a class="navbar-brand" href="{{ route('index') }}">Strictly Better</a>
+				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+					<span class="navbar-toggler-icon"></span>
+				</button>
 
-			  <div class="collapse navbar-collapse" id="navbarSupportedContent">
-			    <ul class="navbar-nav mr-auto">
-			      <li class="nav-item {{ Request::is('/') ? 'active' : '' }}">
-			        <a class="nav-link" href="{{ route('index') }}">Browse</a>
-			      </li>
-			      <li class="nav-item {{ Request::is('deck') ? 'active' : '' }}">
-			        <a class="nav-link" href="{{ route('deck.index') }}">Upgrade Deck</a>
-			      </li>
-			      <li class="nav-item {{ Request::is('card', 'card/*') ? 'active' : '' }}">
-			        <a class="nav-link" href="{{ route('card.create') }}">Add Suggestion</a>
-			      </li>
-			      <li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">
-			        <a class="nav-link" href="{{ route('api.guide') }}">API Guide</a>
-			      </li>
-			      <li class="nav-item {{ Request::is('about') ? 'active' : '' }}">
-			        <a class="nav-link" href="{{ route('about') }}">About</a>
-			      </li>
-			      <li class="nav-item {{ Request::is('changelog') ? 'active' : '' }}">
-			        <a class="nav-link" href="{{ route('changelog') }}">Changelog</a>
-			      </li>
-			    </ul>
-			    {{ Form::open(['id' => 'card-search-form', 'route' => 'card.search', 'autocomplete' => 'off', 'class' => 'form-inline my-2 my-lg-0']) }}
-			      <div class="ui-widget">
-			        <input id="card-search" name="term" class="form-control mr-sm-2" type="search" placeholder="Search Card" required minlength=2 aria-label="Search">
-			      </div>
-			      <button class="btn btn-success my-2 my-sm-0" type="submit">Search</button>
-			    {{ Form::close() }}
-			  </div>
+				<div class="collapse navbar-collapse" id="navbarSupportedContent">
+					<ul class="navbar-nav mr-auto">
+						<li class="nav-item {{ Request::is('/') ? 'active' : '' }}">
+							<a class="nav-link" href="{{ route('index') }}">Browse</a>
+						</li>
+						<li class="nav-item {{ Request::is('deck') ? 'active' : '' }}">
+							<a class="nav-link" href="{{ route('deck.index') }}">Upgrade Deck</a>
+						</li>
+						<li class="nav-item {{ Request::is('card', 'card/*') ? 'active' : '' }}">
+							<a class="nav-link" href="{{ route('card.create') }}">Add Suggestion</a>
+						</li>
+						<li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">
+							<a class="nav-link" href="{{ route('api.guide') }}">API Guide</a>
+						</li>
+						<li class="nav-item {{ Request::is('about') ? 'active' : '' }}">
+							<a class="nav-link" href="{{ route('about') }}">About</a>
+						</li>
+						<li class="nav-item {{ Request::is('changelog') ? 'active' : '' }}">
+							<a class="nav-link" href="{{ route('changelog') }}">Changelog</a>
+						</li>
+					</ul>
+					{{ Form::open(['id' => 'card-search-form', 'route' => 'card.search', 'autocomplete' => 'off', 'class' => 'form-inline my-2 my-lg-0']) }}
+						<div class="ui-widget">
+							<input id="card-search" name="term" class="form-control mr-sm-2" type="search" placeholder="Search Card" required minlength=2 aria-label="Search">
+						</div>
+						<button class="btn btn-success my-2 my-sm-0" type="submit">Search</button>
+					{{ Form::close() }}
+				</div>
 			</nav>
 
 			<br>

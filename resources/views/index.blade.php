@@ -1,8 +1,8 @@
 @extends('layout')
 
 @section('meta')
-	<meta name="Description" content="Browse and find strictly better MTG cards">
-	<title>StrictlyBetter - Browse</title>
+	<meta name="Description" content="Find all the strictly better MTG cards">
+	<title>Strictly Better - Browse</title>
 @stop
 
 @section('content')

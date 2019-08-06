@@ -12,13 +12,14 @@ body {
 	/*width: 223px;*/
 	max-height: 311px;
 	border-radius: 11px;
-	filter: drop-shadow(8px 8px 10px gray);
+	filter: drop-shadow(4px 4px 5px gray);
+	margin-bottom: 0.75rem;
 }
 .mtgcard-wrapper a.card-link:hover {
 	z-index: 300;
 }
-a.card-link:hover,a.card-create-link:hover .mtgcard {
-	filter: drop-shadow(8px 8px 10px #3e95e1);
+a.card-link:hover .mtgcard,a.card-create-link:hover .mtgcard {
+	filter: drop-shadow(4px 4px 8px #3e95e1);
 }
 .mtgcard-wrapper:not(.newcard) .mtgcard:hover {
 	max-height: 311px;
@@ -68,15 +69,15 @@ a.card-link:hover,a.card-create-link:hover .mtgcard {
 	opacity: 0.5;
 }
 .vote {
-	padding: .2rem .55rem;
-	margin: .3rem .1rem 0 0;
+	padding: .35rem .55rem;
+	margin: 0 .5rem .5rem 0;
 	font-size: 14px;
 }
 .btn-gatherer {
 	background-color: #bfbfbf82;
 	color: #4693ea;
-	padding: .2rem .25rem;
-	margin: .3rem .1rem 0 0;
+	padding: .35rem .55rem;
+	margin: 0 .3rem 0 0;
 }
 .reprint-stack .btn-gatherer {
 	display: none;
@@ -212,25 +213,21 @@ ul.select2-results__options {
 	background-color: #f3f3f3;
 	padding: 10px;
 	position: relative;
-	min-height: 405px;
+	min-height: 420px;
 	transition: max-width 0.40s, visibility 0.10s;
-}
-.centered {
-	/*margin-left: auto;
-	margin-right: auto;*/
 }
 #cards {
 	transition: max-width 0.20s;
 }
 .cardpanel-superior {
 	/*background-color: #f3f3f3;*/
-	padding: 10px;
+	padding: 10px 5px 5px 15px;
 	border-left: 1px dotted black;
 	transition: max-width 0.40s, visibility 0.10s;
 }
 .cardpanel-inferior {
 	/*background-color: #f3f3f3;*/
-	padding: 10px;
+	padding: 10px 15px 5px 5px;
 	text-align: right;
 	border-right: 1px dotted black;
 	transition: max-width 0.40s, visibility 0.10s;
@@ -252,6 +249,10 @@ ul.select2-results__options {
 }
 .pagination {
 	margin-bottom: 0.5rem;
+}
+.pagination .page-link {
+	padding-left: .8rem;
+	padding-right: .8rem;
 }
 .filterlist {
 	margin-bottom: 10px;
@@ -334,6 +335,7 @@ ul.select2-results__options {
 	.card-label-container {
 		position: relative;
 		top: 0;
+		margin-bottom: 0.5rem;
 	}
 	.inferior-toggle,.superior-toggle  {
 		float: none;
@@ -361,9 +363,6 @@ ul.select2-results__options {
 	.plus-sign {
 		top: 90px;
 		right: 0px;
-	}
-	.vote-text {
-		display: none;
 	}
 	.cardpanel-superior .mtgcard-wrapper:not(.newcard) .mtgcard:hover {
 		left: -36px;
@@ -420,6 +419,9 @@ ul.select2-results__options {
 	}
 }
 @media (max-width: 450px) {
+	.vote-text {
+		display: none;
+	}
 	.cardrow {
 		min-height: inherit;
 	}
