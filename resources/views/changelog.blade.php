@@ -19,6 +19,12 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>09/07/19</h4>
+	<ul>
+		<li>API now allows CORS with any domain, so API may be used directly from browsers</li>
+		<li>API requests use short term (60s) client based caching to mitigate frequent requests from from browsers</li>
+	</ul>
+
 	<h4>08/03/19</h4>
 	<ul>
 		<li>Update #2
