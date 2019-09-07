@@ -41,7 +41,7 @@ class Kernel extends HttpKernel
             'throttle:100,1',
             'bindings',
             'cors',
-            'cache.headers:public;max_age=60;etag',
+            'cache.headers:private;max_age=60;etag',
             \App\Http\Middleware\VerifyCsrfToken::class
         ],
     ];
