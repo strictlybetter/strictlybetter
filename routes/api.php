@@ -13,6 +13,11 @@ use Illuminate\Http\Request;
 |
 */
 
+/*
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
-});
+});*/
+
+
+Route::match(['get', 'options'], '/obsoletes/{search?}', 'ApiController@obsoletes')->name('api.obsoletes');
+Route::match(['get', 'options'], '/functional_reprints/{id?}', 'ApiController@functional_reprints')->name('api.functional_reprints');

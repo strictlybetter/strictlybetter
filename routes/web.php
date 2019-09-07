@@ -42,7 +42,3 @@ Route::get('/changelog', function () { return view('changelog'); })->name('chang
 // API
 Route::get('/api-guide', 'ApiController@guide')->name('api.guide');
 
-Route::group(['middleware' => 'throttle:100,1'], function () {
-	Route::get('/api/obsoletes/{search?}', 'ApiController@obsoletes')->name('api.obsoletes');
-	Route::get('/api/functional_reprints', 'ApiController@functional_reprints')->name('api.functional_reprints');
-});
