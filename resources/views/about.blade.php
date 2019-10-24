@@ -18,7 +18,7 @@
 	<h1>About</h1>
 
 	<p>
-		StrictlyBetter offers information about Magic the Gathering cards that are functionally superior to other cards.
+		Strictly Better offers information about Magic: The Gathering cards that are functionally superior to other cards.
 	</p>
 
 	<p>
@@ -27,7 +27,7 @@
 	</p>
 
 	<p>
-		The site also has an <a href="{{ route('api.guide') }}">API</a>, so other developers may further use the suggestion data as they wish.
+		The site also has a public <a href="{{ route('api.guide') }}">API</a>, so other developers may further use the suggestion data as they wish.
 	</p>
 	<br>
 
@@ -84,8 +84,11 @@
 		<br>
 		Personally I prefer card suggestions that are better when considered <i>in a vacuum</i>. (Without knowledge of the deck it is played in or decks it's facing)<br>
 		This outlines a few base rules like: <b>opponents card to exile > graveyard, "each" > "target 3", double strike > first strike</b><br>
-		<br>
 	</p>
+	<br>
+
+	<h3>Legal</h3>
+	<p>Strictly Better is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.</p>
 	<br>
 
 	<h3>How to contact the developer</h3>
@@ -93,6 +96,7 @@
 		<address>
 			Site is run by Henri Aho. You may contact me at <a href="mailto:henrij.aho@gmail.com" rel="noreferrer noopener">henrij.aho@gmail.com</a>
 		</address>
+		If you want to see how this all works or help with development, you may see the <a href="https://github.com/Dankirk/strictlybetter">project on GitHub</a><br>
 		There is also a <a href="https://www.reddit.com/r/magicTCG/comments/bt7ocz/i_just_put_up_a_website_for_finding_strictly/" rel="noreferrer noopener">Reddit thread about the site</a>.
 	</p>
 
