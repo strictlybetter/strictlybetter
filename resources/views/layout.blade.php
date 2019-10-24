@@ -6,16 +6,28 @@
 		@if(View::hasSection('meta'))
 			@yield('meta')
 		@else
-			<meta name="Description" content="Find all the strictly better MTG cards">
+			<meta name="Description" content="Find strictly better Magic the Gathering cards">
 			<title>Strictly Better</title>
 		@endif
 
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-		<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-		<link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
-		<link href="{{ URL::to('css/select2.min.css') }}" rel="stylesheet">
-		<link href="{{ URL::to('css/jquery.multiselect.css') }}" rel="stylesheet">
-		<link href="{{ URL::to('css/main.css') }}" rel="stylesheet">
+		<meta name="apple-mobile-web-app-title" content="Strictly Better" />
+
+		<!-- Preconnect to sites providing card images -->
+		<link rel="preconnect" href="https://gatherer.wizards.com" />
+		<link rel="preconnect" href="https://img.scryfall.com" />
+
+		<link rel="icon" type="image/x-icon" href="{{ URL::to('favicon.ico') }}">
+		<link rel="apple-touch-icon" sizes="180x180" href="{{ URL::to('apple-touch-icon.png') }}">
+		<link rel="icon" type="image/png" sizes="32x32" href="{{ URL::to('favicon-32x32.png') }}">
+		<link rel="icon" type="image/png" sizes="16x16" href="{{ URL::to('favicon-16x16.png') }}">	
+		<link rel="manifest" href="{{ URL::to('site.webmanifest') }}">
+
+		<link media="all" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+		<link media="all" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+		<link media="all" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+		<link media="all" href="{{ URL::to('css/select2.min.css') }}" rel="stylesheet">
+		<link media="all" href="{{ URL::to('css/jquery.multiselect.css') }}" rel="stylesheet">
+		<link media="all" href="{{ URL::to('css/main.css') }}" rel="stylesheet">
 		@yield('head')
 	</head>
 	<body>
