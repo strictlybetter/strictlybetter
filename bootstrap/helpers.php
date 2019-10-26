@@ -38,7 +38,7 @@ function make_format_list()
 
 function create_card_from_scryfall($obj, array $supertypes, $parent = null)
 {
-	if (!preg_match('/^(.*?)(?: — (.*))?$/', $obj->type_line, $match))
+	if (!isset($obj->type_line) || !preg_match('/^(.*?)(?: — (.*))?$/', $obj->type_line, $match))
 		return false;
 
 	$card = App\Card::firstOrNew(['name' =>  $obj->name]);
