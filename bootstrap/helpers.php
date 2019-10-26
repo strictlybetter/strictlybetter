@@ -18,11 +18,20 @@ function make_select_options(array $arr, $lang = null)
 	return $options;
 }
 
+function get_formats()
+{
+	$samplecard = App\Card::whereNull('main_card_id')->first();
+	return $samplecard ? array_keys($samplecard->legalities) : [];
+}
+
 function make_format_list()
 {
 	// Make list of supported formats
+	$formats = get_formats();
+	asort($formats);
+
 	$formatlist = ['' => 'Any Format'];
-	$formatlist = array_merge($formatlist, make_select_options(App\Card::$formats));
+	$formatlist = array_merge($formatlist, make_select_options($formats));
 
 	return $formatlist;
 }

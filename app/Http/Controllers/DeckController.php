@@ -27,7 +27,7 @@ class DeckController extends Controller
 		}
 
 		$format = $request->input('format');
-		if (!in_array($format, Card::$formats))
+		if (!in_array($format, get_formats()))
 			$format = "";
 
 		$cards = Card::whereIn('name', array_keys($deck))->whereNull('main_card_id')->get();

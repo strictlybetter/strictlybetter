@@ -30,7 +30,7 @@ class CardController extends Controller
 		$formatlist = make_format_list();
 
 		$format = $request->input('format');
-		if (!in_array($format, Card::$formats))
+		if (!in_array($format, array_keys($formatlist)))
 			$format = "";
 
 		$page = $request->input('page', 1);
@@ -68,7 +68,7 @@ class CardController extends Controller
 		if ($term === null) $term = "";
 
 		$format = $request->input('format');
-		if (!in_array($format, Card::$formats))
+		if (!in_array($format, get_formats()))
 			$format = "";
 
 		$filters = $request->input('filters');

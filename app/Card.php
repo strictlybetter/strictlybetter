@@ -44,8 +44,6 @@ class Card extends Model
 
     protected $colorManaCount = false;
 
-    public static $formats = ['standard', 'modern', 'legacy', 'vintage', 'commander', 'pauper', 'penny', 'duel',  'future', 'frontier', 'oldschool'];
-
     protected $appends = ['imageUrl', 'gathererUrl'];
 
     public function inferiors() 
