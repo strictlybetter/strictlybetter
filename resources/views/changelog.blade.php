@@ -19,6 +19,13 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+
+	<h4>10/27/19</h4>
+	<ul>
+		<li>Fixed automatic updates</li>
+		<li>Selectable formats are now also updated daily to match Scryfall card data. This means pioneer and any future formats are now automatically available.</li>
+	</ul>
+
 	<h4>09/07/19</h4>
 	<ul>
 		<li>API now allows CORS with any domain, so API may be used directly from browsers</li>
