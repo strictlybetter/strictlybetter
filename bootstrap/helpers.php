@@ -36,12 +36,100 @@ function make_format_list()
 	return $formatlist;
 }
 
+function migrate_obsoletes(App\Card $from, App\Card $to)
+{
+	$from->load(['inferiors', 'superiors']);
+
+	$existing_inferiors = $to->inferiors->pluck('id')->toArray();
+	$existing_superiors = $to->superiors->pluck('id')->toArray();
+
+	// Migrate inferiors
+	foreach ($from->inferiors as $inferior) {
+		if (in_array($inferior->id, $existing_inferiors)) {
+
+			$to_obsolete = Obsolete::with(['suggestions'])->where('superior_card_id', $to->id)->where('inferior_card_id', $inferior->id)->first();
+			$from_obsolete = Obsolete::with(['suggestions'])->where('superior_card_id', $from->id)->where('inferior_card_id', $inferior->id)->first();
+			foreach ($from_obsolete->suggestions as $suggestion) {
+
+				// Same IP already exists, just delete the older vote
+				if (in_array($suggestion->ip, $to_obsolete->suggestions->pluck('ip')->toArray()))
+					$suggestion->delete();
+
+				// Redirect the vote to other obsolete relation
+				else {
+					$suggestion->obsolete_id = $to_obsolete->id;
+					if ($suggestion->upvote)
+						$to_obsolete->upvotes++;
+					else
+						$to_obsolete->downvotes++;
+					$suggestion->save();
+				}
+			}
+			$to_obsolete->save();
+			$from_obsolete->delete();
+		}
+
+		// Move inferior obsolete relation to other card
+		else {
+			Obsolete::where('superior_card_id', $from->id)->where('inferior_card_id', $inferior->id)->update(['superior_card_id' => $to->id]);
+		}
+	}
+
+	// Migrate superiors
+	foreach ($from->superiors as $superior) {
+		if (in_array($superior->id, $existing_superiors)) {
+
+			$to_obsolete = Obsolete::with(['suggestions'])->where('inferior_card_id', $to->id)->where('superior_card_id', $superior->id)->first();
+			$from_obsolete = Obsolete::with(['suggestions'])->where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->first();
+			foreach ($from_obsolete->suggestions as $suggestion) {
+
+				// Same IP already exists, just delete the older vote
+				if (in_array($suggestion->ip, $to_obsolete->suggestions->pluck('ip')->toArray()))
+					$suggestion->delete();
+
+				// Redirect the vote to other obsolete relation
+				else {
+					$suggestion->obsolete_id = $to_obsolete->id;
+					if ($suggestion->upvote)
+						$to_obsolete->upvotes++;
+					else 
+						$to_obsolete->downvotes++;
+
+					$suggestion->save();
+				}
+			}
+			$to_obsolete->save();
+			$from_obsolete->delete();
+		}
+
+		// Move superior obsolete relation to other card
+		else {
+			Obsolete::where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->update(['inferior_card_id' => $to->id]);
+		}
+	}
+}
+
 function create_card_from_scryfall($obj, $parent = null)
 {
 	if (!isset($obj->type_line) || !preg_match('/^(.*?)(?: — (.*))?$/', $obj->type_line, $match))
 		return false;
 
-	$card = App\Card::firstOrNew(['name' =>  $obj->name]);
+	// Find existing card with same name, or scryfall_api attribute (unless this is a card face with a parent card)
+	$q = null;
+	if ($parent) {
+		$q = App\Card::where('main_card_id', $parent->id)->where('name', $obj->name);
+	}
+	else if (isset($obj->uri)) {
+		$q = App\Card::whereNull('main_card_id')->where(function($q) use ($obj) {
+			$q = $q->where('name', $obj->name)->orWhere('scryfall_api', $obj->uri);
+		});
+	}
+	else
+		return false;
+
+	$card = $q->orderBy('created_at', 'desc')->first();
+	if (!$card)
+		$card = App\Card::newModelInstance();
 
 	// Keep newest multiverse id
 	if ($card->exists && $parent === null && $card->multiverse_id && (empty($obj->multiverse_ids) || $card->multiverse_id > $obj->multiverse_ids[0])) 
@@ -58,6 +146,7 @@ function create_card_from_scryfall($obj, $parent = null)
 	$subtypes = isset($match[2]) ? explode(" ", $match[2]) : [];
 
 	$card->fill([
+		'name' =>  $obj->name,
 		'multiverse_id' => empty($obj->multiverse_ids) ? null : $obj->multiverse_ids[0],
 		'legalities' => isset($obj->legalities) ? $obj->legalities : [],
 		'manacost' => isset($obj->mana_cost) ? $obj->mana_cost : "",
@@ -99,9 +188,15 @@ function create_card_from_scryfall($obj, $parent = null)
 	}
 
 	if ($multiface) {
+		$names = [];
 		foreach ($obj->card_faces as $card_face) {
-			create_card_from_scryfall($card_face, $card);
+			if (create_card_from_scryfall($card_face, $card))
+				$names[] = $card_face->name;
 		}
+
+		// Remove previous faces no longer present
+		if ($card->id)
+			App\Card::where('main_card_id', $card->id)->whereNotIn('name', $names)->delete();
 	}
 
 	return true;
