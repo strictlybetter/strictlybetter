@@ -36,7 +36,7 @@ function make_format_list()
 	return $formatlist;
 }
 
-function create_card_from_scryfall($obj, array $supertypes, $parent = null)
+function create_card_from_scryfall($obj, $parent = null)
 {
 	if (!isset($obj->type_line) || !preg_match('/^(.*?)(?: — (.*))?$/', $obj->type_line, $match))
 		return false;
@@ -62,8 +62,8 @@ function create_card_from_scryfall($obj, array $supertypes, $parent = null)
 		'legalities' => isset($obj->legalities) ? $obj->legalities : [],
 		'manacost' => isset($obj->mana_cost) ? $obj->mana_cost : "",
 		'cmc' => isset($obj->cmc) ? ceil($obj->cmc) : null,
-		'supertypes' => array_intersect($types, $supertypes),
-		'types' => array_diff($types, $supertypes),
+		'supertypes' => array_intersect($types, App\Card::$all_supertypes),
+		'types' => array_diff($types, App\Card::$all_supertypes),
 		'subtypes' => $subtypes,
 		'colors' => isset($obj->colors) ? $obj->colors : [],
 		'color_identity' => isset($obj->color_identity) ? $obj->color_identity : [],
@@ -100,7 +100,7 @@ function create_card_from_scryfall($obj, array $supertypes, $parent = null)
 
 	if ($multiface) {
 		foreach ($obj->card_faces as $card_face) {
-			create_card_from_scryfall($card_face, $supertypes, $card);
+			create_card_from_scryfall($card_face, $card);
 		}
 	}
 

@@ -18,8 +18,6 @@ use App\FunctionalReprint;
 Artisan::command('load-scryfall', function () {
 
 	$filename = 'scryfall-default-cards.json';
-	$supertypes = ["Basic", "Elite", "Host", "Legendary", "Ongoing", "Snow", "World"];
-	$ignore_layouts = ["planar", "scheme", "token", "double_faced_token", "emblem"];
 
 	if ($fh = fopen($filename, 'r')) {
 
@@ -35,10 +33,12 @@ Artisan::command('load-scryfall', function () {
 			$bar->advance();
 			
 			// Check validity of the card
-			if ($obj === null || in_array($obj->layout, $ignore_layouts))
+			if ($obj === null || 
+				!isset($obj->layout) || in_array($obj->layout, Card::$ignore_layouts) || 
+				!isset($obj->type_line) || in_array($obj->type_line, Card::$ignore_types))
 				continue;
 
-			if (create_card_from_scryfall($obj, $supertypes))
+			if (create_card_from_scryfall($obj))
 				$count++;
 		}
 		fclose($fh);
@@ -109,11 +109,24 @@ Artisan::command('populate-functional-reprints', function () {
 
 Artisan::command('remove-bad-cards', function () {
 
-	$count = Card::count();
-	$cards = Card::whereJsonContains('types', 'Token')->orWhereJsonContains('types', 'Plane')->orWhereJsonContains('types', 'Scheme')->delete();
-	$count = $count - Card::count();
+	// Delete cards with types that should be ignored
+	// Use 1 = 0 for safety, if $igore_types is empty
+	$card_count = Card::count();
 
-	$this->comment("Removed " . $count . " bad cards");
+	$q = Card::whereRaw('1 = 0')->orWhere(function($q) {
+		foreach (Card::$ignore_types as $type) {
+			$q->orWhereJsonContains('types', $type);
+		}
+	})->delete();
+
+	$card_count = $card_count - Card::count();
+
+	// Delete any orphaned functional reprints
+	$reprint_count = FunctionalReprint::count();
+	FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
+	$reprint_count = $reprint_count - FunctionalReprint::count();
+
+	$this->comment("Removed " . $card_count . " bad cards and " . $reprint_count . " functional reprint families");
 
 });
 

@@ -40,6 +40,10 @@ class Card extends Model
         'manacost_sorted' => 'array'
     ];
 
+    public static $all_supertypes = ["Basic", "Elite", "Host", "Legendary", "Ongoing", "Snow", "World"];
+    public static $ignore_layouts = ["planar", "scheme", "token", "double_faced_token", "emblem"];
+	public static $ignore_types = ['Card', 'Plane', 'Scheme', 'Token', 'Emblem'];
+
     protected $with = ['cardFaces'];
 
     protected $colorManaCount = false;
