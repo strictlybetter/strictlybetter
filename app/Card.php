@@ -102,9 +102,9 @@ class Card extends Model
     public function getSubstituteRulesAttribute() 
     {
     	$name = preg_quote($this->name, '/');
-    	$pattern = '/\b' . preg_replace('/\s+/u', '\s+', $name)  . '\b/u';
+    	$pattern = '/(\b|^|\W)' . preg_replace('/\s+/u', '\s+', $name)  . '(\b|$|\W)/u';
 
-    	$substitute_rules = preg_replace($pattern, '@@@', $this->rules);
+    	$substitute_rules = preg_replace($pattern, '\1@@@\2', $this->rules);
 
     	// Remove reminder text
     	return preg_replace('/^\(.*?\)\n/um', '', $substitute_rules);
