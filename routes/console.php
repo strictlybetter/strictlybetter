@@ -54,6 +54,45 @@ Artisan::command('load-scryfall', function () {
 
 })->describe('Load scryfall cards from json in to the local database');
 
+Artisan::command('remove-old-spoilers', function () {
+
+	// If some cards share scryfall_api, they are duplicates with different names (invented by Scryfall devs before the card name is revealed)
+	// The duplicates with invented names should be removed, which we can do by comparing auto incremented ids.
+	// The removable duplicates will have lower ids.
+
+	$this->comment("Looking for old spoilers to remove...");
+	$count = 0;
+
+	$duplicate_groups = Card::whereNull('main_card_id')->get()->groupBy('scryfall_api')->reject(function($group) {
+		return (count($group) < 2);
+	})->values();
+
+	if (count($duplicate_groups) > 0) {
+
+		foreach ($duplicate_groups as $duplicate_group) {
+			$duplicate_group = $duplicate_group->sortByDesc('id')->values();
+			$latest = $duplicate_group->first();
+
+			$duplicate_group = $duplicate_group->slice(1)->values();
+
+			// Move obsoletes from old spoilers to latest card
+			$latest->load(['inferiors', 'superiors']);
+			foreach ($duplicate_group as $duplicate) {
+				migrate_obsoletes($duplicate, $latest);
+			}
+
+			$count += count($duplicate_group);
+			$ids = $duplicate_group->pluck('id')->toArray();
+			Card::whereIn('id', $ids)->delete();
+		}
+
+		// Remove orphaned functional reprints
+		FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
+	}
+	$this->comment("Removed " . $count . " old spoilers");
+
+})->describe('Remove all old spoiler cards after new one exists');
+
 Artisan::command('remove-functional-reprints', function () {
 
 	$this->comment("Removing previous entries...");
