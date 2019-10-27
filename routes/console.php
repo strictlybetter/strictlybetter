@@ -221,6 +221,30 @@ Artisan::command('remove-bad-suggestions', function () {
 
 })->describe('Removes suggestions that no longer pass inferior-superior check');
 
+Artisan::command('recreate-substitute-rules', function () {
+
+	$this->comment("Updating cards...");
+	$count = 0;
+
+	$cards = Card::all();
+	$bar = $this->output->createProgressBar(count($cards));
+
+	foreach ($cards as $card) {
+
+		$bar->advance();
+		$new_rules = $card->substituteRules;
+
+		if ($new_rules !== $card->substituted_rules) {
+			$card->substituted_rules = $new_rules;
+
+			$card->save();
+			$count++;
+		}
+	}
+	$bar->finish();
+	$this->comment("Updated " . $count . " cards with new rule substitutions.");
+
+})->describe('Re-creates substitued rules for existing cards.');
 
 Artisan::command('create-obsoletes', function () {
 
