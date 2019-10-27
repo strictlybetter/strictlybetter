@@ -1,5 +1,5 @@
 # Strictly Better
-A community run webapp for finding strictly better Magic: The Gathering cards
+A community run webapp made with PHP 7 framework Laravel 5.8, for finding strictly better Magic: The Gathering cards
 
 https://www.strictlybetter.eu
 
@@ -31,30 +31,42 @@ https://www.strictlybetter.eu/about
 
 First you will need Apache/Nginx to run the server, PHP > 7.1, Composer (https://getcomposer.org/) and database such as MySql.
 - Clone the repository
-- Point Apache/Nginx webroot to repository's 'public' folder.
-- Generate app key:
-``` 
-php artisan key:generate
-```
-- Copy environment file template:
+- Copy environment file template in repository root:
 ``` 
 cp .env.template .env
 ```
 - Edit .env file to match your development environment
-- Install composer packages while in repository root:
+- Install composer packages (while in repository root):
 ``` 
 composer install 
 ```
-- Migrate database at repository root:
+- Generate app key (while in repository root):
+``` 
+php artisan key:generate
+```
+- Move the generated app key from config/app.php (a varible called 'key') to the .env file. Replace 'key' in app.php to read: 
+```
+'key' => env('APP_KEY'),
+```
+- Migrate database structure (while in repository root):
 ``` 
 php artisan migrate 
 ```
-- Fetch card data from Scryfall:
+- Fetch card data from Scryfall (while in repository root):
 ``` 
 php artisan full-update 
 ```
+- Point Apache/Nginx webroot to repository's 'public' folder.
 
+## Troubleshooting
+Laravel 5.8 documentation can help you further if anything goes wrong during setup.
 
+https://laravel.com/docs/5.8
+
+If parsing of scryfall-default-cards.json fails during full-update or load-scryfall artisan command, the format may have changed to an incompatible one.
+In such case an issue should be created here. You may also make a pull request, if you can fix it yourself. 
+
+See Scryfall API documentation (https://scryfall.com/docs/api) or investigate the downloaded scryfall-default-cards.json (in repository root) yourself.
 
 ## License
 MIT
