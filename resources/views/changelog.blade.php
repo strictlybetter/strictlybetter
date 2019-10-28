@@ -21,7 +21,7 @@
 
 	<h4>10/28/19</h4>
 	<ul>
-		<li>Spoiled cards are no handled correctly and renamed as soon as their real names are revealed. No more duplicates</li>
+		<li>Spoiled cards are now handled correctly and renamed as soon as their real names are revealed. No more duplicates</li>
 		<li>Removed non-playble cards, like 'Experience' where you put your experience counters on.</li>
 		<li>Fixed bug with cards starting with special characters not being treated equally when they used their name in rules text</li>
 	</ul>
@@ -35,7 +35,7 @@
 	<h4>09/07/19</h4>
 	<ul>
 		<li>API now allows CORS with any domain, so API may be used directly from browsers</li>
-		<li>API requests use short term (60s) client based caching to mitigate frequent requests from from browsers</li>
+		<li>API requests use short term (60s) client based caching to mitigate frequent requests from browsers</li>
 	</ul>
 
 	<h4>08/03/19</h4>
