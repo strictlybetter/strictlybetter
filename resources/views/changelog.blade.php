@@ -19,6 +19,12 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>10/28/19</h4>
+	<ul>
+		<li>Spoiled cards are no handled correctly and renamed as soon as their real names are revealed. No more duplicates</li>
+		<li>Removed non-playble cards, like 'Experience' where you put your experience counters on.</li>
+		<li>Fixed bug with cards starting with special characters not being treated equally when they used their name in rules text</li>
+	</ul>
 
 	<h4>10/27/19</h4>
 	<ul>
