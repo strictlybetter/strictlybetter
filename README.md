@@ -26,4 +26,4 @@ More information is available on live [About page](https://www.strictlybetter.eu
 Please see [CONTRIBUTING.md](https://github.com/Dankirk/strictlybetter/blob/master/CONTRIBUTING.md) for guide lines how to contribute and set up a development environment for yourself.
 
 ## License
-[MIT](https://github.com/Dankirk/strictlybetter/blob/master/LICENSE.md)
+[MIT](https://github.com/Dankirk/strictlybetter/blob/master/LICENSE)
