@@ -8,10 +8,11 @@ Using the the site a MTG player may search for better card alternatives for thei
 
 The site also has a [public API](https://www.strictlybetter.eu/api-guide), so other developers may further use the suggestion data as they wish. 
 
+[Changelog](https://www.strictlybetter.eu/changelog) lists the changes affecting usability.
+
 ## Where is the data coming from?
 
-The suggestions listed on the site are added via Add Suggestion page by anonymous Magic the Gathering players.
-Adding new suggestions and voting for them requires no login or account.
+The suggestions listed on the site are added via [Add Suggestion page](https://www.strictlybetter.eu/card) by anonymous Magic the Gathering players. Adding new suggestions and voting for them requires no login or account.
 
 Some suggestions are also generated programmatically. Due to complex rules of the cards, only cards with identical rules are considered when evaluating strict-betterness this way.
 
@@ -54,10 +55,9 @@ php artisan full-update
 ## Troubleshooting
 [Laravel 5.8 documentation](https://laravel.com/docs/5.8) can help you further if anything goes wrong during setup.
 
-If parsing of scryfall-default-cards.json fails during full-update or load-scryfall artisan command, the format may have changed to an incompatible one.
-In such case an issue should be created here. You may also make a pull request, if you can fix it yourself. 
+If parsing of bulk-data files (scryfall-default-cards.json) fails during full-update or load-scryfall artisan command, the format may have changed to an incompatible one. In such case an issue should be created here. 
 
-See [Scryfall API documentation](https://scryfall.com/docs/api) or investigate the downloaded scryfall-default-cards.json (in repository root) yourself.
+If you can fix it yourself, you may also make a pull request. Investigating [Scryfall API documentation](https://scryfall.com/docs/api) and the downloaded scryfall-default-cards.json (in repository root) can help you there.
 
 ## License
 MIT
