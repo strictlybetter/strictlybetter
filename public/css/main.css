@@ -92,23 +92,30 @@ a.card-link:hover .mtgcard,a.card-create-link:hover .mtgcard {
 	background-color: #46b0ec82;
 	color: #105eec;
 }
+select {
+	cursor: pointer;
+}
+.select2-results > .select2-results__options {
+    max-height: 370px !important;
+}
+.select2-results__option {
+	padding: 2px !important;
+}
 .select2-selection {
-	height: 186px !important;
-	background-color: whitesmoke !important;
+	height: 38px !important;
+	border: 1px solid #ced4da !important;
 }
-ul.select2-results__options {
-	max-height: 600px !important;
-	height: 50% !important;
+.select2-selection__arrow {
+	height: 38px !important;
 }
-.select2-results__option.loading-results,
-.select2-results__option.select2-results__option--load-more {
-	display: none;
-	/*
-	background-image: url('/images/loading.gif');
-	background-repeat: no-repeat;
-	padding-left: 35px;
-	background-position: 10px 50%;
-	*/
+.select2-selection--single > .select2-selection__rendered {
+	line-height: 34px !important;
+}
+.select2-selection--multiple > .select2-selection__rendered {
+	line-height: 1.5 !important;
+}
+.select2-selection__placeholder {
+	color: #495057 !important;
 }
 #upgrade_view {
 
@@ -281,6 +288,9 @@ ul.select2-results__options {
 	margin-top: auto;
 	margin-bottom: auto;
 	margin-right: 1rem;
+}
+.ui-menu {
+	z-index: 9001;
 }
 .ms-options-wrap {
 	display: block;

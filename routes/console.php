@@ -3,6 +3,7 @@
 use App\Card;
 use App\Obsolete;
 use App\FunctionalReprint;
+use App\Cardtype;
 
 /*
 |--------------------------------------------------------------------------
@@ -542,6 +543,49 @@ Artisan::command('download-scryfall', function () {
 
 })->describe('Downloads newest card database from Scryfall');
 
+Artisan::command('download-typedata', function () {
+
+	$downloadable_types = [
+		'land-types' => 'Land', 
+		'creature-types' => 'Creature',
+		'planeswalker-types' => 'Planeswalker',
+		'artifact-types' => 'Artifact',
+		'spell-types' => 'Spell',
+		'enchantment-types' => 'Enchantment'
+	];
+
+	$client = new \GuzzleHttp\Client();
+
+	foreach ($downloadable_types as $uri => $type) {
+
+		$this->comment("Downloading type data (". $uri .")...");
+
+		$request = $client->get('https://api.scryfall.com/catalog/' . $uri);
+
+		if ($request->getStatusCode() != 200) {
+			$this->comment("Download failed");
+			continue;
+		}
+
+		$response = json_decode($request->getBody(), true);	
+		if ($response === null || !isset($response["data"])) {
+			$this->comment("failed to parse json");
+			continue;
+		}
+
+		foreach ($response["data"] as $key) {
+			Cardtype::FirstOrCreate([
+				'section' => 'subtype',
+				'type' => $type,
+				'key' => $key
+			]);
+		}
+		$this->comment("Download complete");
+	}
+
+	$this->comment("Update completed");
+});
+
 Artisan::command('full-update', function () {
 
 	$this->comment(date('[Y-m-d H:i:s]') . " Full update started");
@@ -549,6 +593,7 @@ Artisan::command('full-update', function () {
 	if (Artisan::call('download-scryfall', [], $this->getOutput()) !== 0)
 		return;
 
+	Artisan::call('download-typedata', [], $this->getOutput());
 	Artisan::call('load-scryfall', [], $this->getOutput());
 	Artisan::call('populate-functional-reprints', [], $this->getOutput());
 	Artisan::call('create-functional-obsoletes', [], $this->getOutput());

@@ -18,19 +18,35 @@ function make_select_options(array $arr, $lang = null)
 	return $options;
 }
 
+function get_tribes()
+{
+	return App\Cardtype::pluck('key')->toArray();
+}
+
+function make_tribe_list($append_default = true)
+{
+	$tribes = get_tribes();
+	asort($tribes);
+
+	$tribelist = $append_default ? ['' => 'Any Tribe'] : [];
+	$tribelist = array_merge($tribelist, make_select_options($tribes));
+
+	return $tribelist;
+}
+
 function get_formats()
 {
 	$samplecard = App\Card::whereNull('main_card_id')->first();
 	return $samplecard ? array_keys($samplecard->legalities) : [];
 }
 
-function make_format_list()
+function make_format_list($append_default = true)
 {
 	// Make list of supported formats
 	$formats = get_formats();
 	asort($formats);
 
-	$formatlist = ['' => 'Any Format'];
+	$formatlist = $append_default ? ['' => 'Any Format'] : [];
 	$formatlist = array_merge($formatlist, make_select_options($formats));
 
 	return $formatlist;
