@@ -5,6 +5,41 @@
 	<title>StrictlyBetter - Add Suggestion</title>
 @stop
 
+@section('head')
+	<style>
+		.select2-selection {
+			height: 186px !important;
+			background-color: whitesmoke !important;
+		}
+		ul.select2-results__options {
+			max-height: 600px !important;
+			height: 50% !important;
+		}
+		.select2-selection__arrow {
+			height: 186px !important;
+		}
+		.select2-selection__arrow b {
+			border-width: 10px 10px 0 10px !important;
+			margin-left: -26px !important;
+			margin-top: -8px !important;
+		}
+		.select2-container--default.select2-container--open .select2-selection__arrow b {
+			border-width: 0 10px 10px 10px !important;
+		}
+
+		.select2-results__option.loading-results,
+		.select2-results__option.select2-results__option--load-more {
+			display: none;
+			/*
+			background-image: url('/images/loading.gif');
+			background-repeat: no-repeat;
+			padding-left: 35px;
+			background-position: 10px 50%;
+			*/
+		}
+	</style>
+@stop
+
 @section('content')
 	<div class="container">
 		<h1>Add Suggestion</h1>

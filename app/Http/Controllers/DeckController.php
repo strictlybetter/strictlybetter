@@ -14,7 +14,7 @@ class DeckController extends Controller
 	 */
 	public function index()
 	{
-		return view('deck.index')->with(['formatlist' => make_format_list(), 'deck' => session('deck'), 'deckupgrades' => session('deckupgrades')]);
+		return view('deck.index')->with(['tribelist' => make_tribe_list(false), 'formatlist' => make_format_list(), 'deck' => session('deck'), 'deckupgrades' => session('deckupgrades')]);
 	}
 
 	public function upgrade(Request $request)
@@ -25,6 +25,10 @@ class DeckController extends Controller
 		if (count($deck) === 0) {
 			return redirect()->route('upgradedDeck')->with(['deck' => $deck, 'deckupgrades' => []]);
 		}
+
+		// Only pick 10 first tribes
+		$tribes = array_slice($request->input('tribes', []), 0 , 10);
+		$tribes = array_intersect($tribes, get_tribes());
 
 		$format = $request->input('format');
 		if (!in_array($format, get_formats()))
@@ -56,6 +60,43 @@ class DeckController extends Controller
 
 		// Find replacements
 		$upgrades = Card::with(['superiors' => $card_restrictions])->whereIn('name', array_keys($deck))->whereNull('main_card_id')->whereHas('superiors', $card_restrictions)->get();
+
+		// Additional sorting if tribes are selected
+		if (count($tribes) > 0) {
+			foreach ($upgrades as $card) {
+
+				// See if upgradable card belongs to the specified tribe
+				// and if so, remove any suggestions for it that don't
+				if (!empty(array_intersect($tribes, $card->subtypes))) {
+					$card->superiors = $card->superiors->reject(function($superior) use ($tribes) {
+						return empty(array_intersect($superior->subtypes, $tribes));
+					})->values();
+				}
+
+				// In case upgradable card doesn't belong to the specified tribe,
+				// sort suggestions so cards of the specfied tribe come first (then by upvotes)
+				else {
+					$card->superiors = $card->superiors->sort(function($a, $b) use ($tribes) {
+
+						$a_tribe = count(array_intersect($a->subtypes, $tribes));
+						$b_tribe = count(array_intersect($b->subtypes, $tribes));
+
+						$value = -($a_tribe <=> $b_tribe);	
+
+						if ($value !== 0)
+							return $value;
+
+						return -($a->pivot->upvotes <=> $b->pivot->upvotes);
+
+					})->values();
+				}
+			}
+
+			// If no suggestions are left for a upgradable card, remove it from the list 
+			$upgrades = $upgrades->reject(function($card) {
+				return (count($card->superiors) == 0);
+			})->values();
+		}
 
 		return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => $upgrades])->withInput();
     }

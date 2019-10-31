@@ -5,6 +5,14 @@
 	<title>StrictlyBetter - Upgrade Deck</title>
 @stop
 
+@section('head')
+	<style>
+		#tribes {
+			width: 400px;
+		}
+	</style>
+@stop
+
 @section('content')
 
 	<div class="container">
@@ -17,6 +25,10 @@
 				<span class="form-group row" >
 					<span><label for="format" style="padding: 6px 6px 0px 0px">Suggestions from format</label></span>
 					<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control']) }}</span>
+				</span>
+				<span class="form-group row" style="margin-left: 20px">
+					<span><label for="tribes" style="padding: 6px 6px 0px 0px">Preferred tribes</label></span>
+					<span>{{ Form::select('tribes[]', $tribelist, isset($tribes) ? $tribes : [], ['id' => 'tribes', 'class' => 'form-control selectpicker', 'multiple' => true]) }}</span>
 				</span>
 				<span class="form-group" style="margin-left: 20px">{{ Form::submit('Upgrade', ['class' => 'btn btn-primary']) }}</span>
 			</div>
@@ -46,6 +58,15 @@
 
 @section('js')
 <script>
+	$("#tribes").select2({
+		allowClear: true, 
+		placeholder: "Any Tribe",
+		maximumSelectionLength: 10
+	});
+	$("#format").select2({
+		allowClear: true, 
+		placeholder: "Any Format",
+	});
 
 </script>
 @stop

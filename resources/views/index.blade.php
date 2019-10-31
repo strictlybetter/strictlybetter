@@ -11,8 +11,9 @@
 		<h1>Browse</h1>
 
 		<div class="row">
-			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-5', 'placeholder' => 'Quick search', 'aria-label' => 'Quick search']) }}
+			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-4', 'placeholder' => 'Quick search', 'aria-label' => 'Quick search']) }}
 			<span class="spinner-border spinner-border-sm search-spinner" role="status"></span>
+			<span>{{ Form::select('tribe', $tribelist, isset($tribe) ? $tribe : null, ['id' => 'tribe', 'class' => 'form-control']) }}</span>
 			<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control', 'aria-label' => 'Format']) }}</span>
 			<span>{{ Form::select('filters', $filterlist, isset($filters) ? $filters : null, ['id' => 'filters', 'multiple' => 'multiple', 'class' => 'form-control', 'aria-label' => 'Filters']) }}</span>
 			<span>{{ Form::select('order', $orderlist, isset($order) ? $order : 'null', ['id' => 'order', 'class' => 'form-control', 'aria-label' => 'Sort by']) }}</span>
@@ -49,11 +50,13 @@
 			initial_page = page;
 
 		var search = $("#quicksearch").val();
+		var tribe = $("#tribe").find(":selected").val();
 		var format = $('#format').find(":selected").val();
 		var filters = $('#filters').val();
 		var order = $('#order').val();
 
 		var params = {
+			'tribe': tribe,
 			'format': format,
 			'search': search,
 			'filters': filters,
@@ -97,6 +100,7 @@
 			url: "{{ route('card.quicksearch') }}",
 			dataType: "html",
 			data: {
+				"tribe": tribe,
 				"format": format,
 				"search": search,
 				"filters": filters,
@@ -195,10 +199,23 @@
 
 	$(document).ready(function() {
 
+		$("#format").select2({
+			allowClear: true, 
+			placeholder: "Any Format",
+		});
+		$("#tribe").select2({
+			allowClear: true, 
+			placeholder: "Any Tribe",
+		});
+
 		$("#quicksearch").on('input', function(event) {
 
 			clearTimeout(quicksearch_timer);
 			quicksearch_timer = setTimeout(function() { quicksearch(1); }, 200); 
+		});
+
+		$("#tribe").on('change', function(event) {
+			quicksearch(initial_page, true);
 		});
 
 		$("#format").on('change', function(event) {
@@ -273,6 +290,7 @@
 			var params = event.state;
 
 			$("#quicksearch").val(params.search);
+			$('#tribe').val(params.tribe);
 			$('#format').val(params.format);
 			$('#filters').val(params.filters);
 			$('#order').val(params.order);

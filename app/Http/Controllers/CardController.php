@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Card;
 use App\Obsolete;
 use App\Suggestion;
+use App\Cardtype;
 use Illuminate\Http\Request;
 
 use mtgsdk\Card as CardApi;
@@ -26,6 +27,11 @@ class CardController extends Controller
 	{
 		$term = $request->input('search', '');
 		if ($term === null) $term = "";
+
+		$tribelist = make_tribe_list();
+		$tribe = $request->input('tribe');
+		if (!in_array($tribe, array_keys($tribelist)))
+			$tribe = "";
 
 		$formatlist = make_format_list();
 
@@ -51,10 +57,12 @@ class CardController extends Controller
 		$order = isset($this->card_orders[$order]) ? $order : 'updated_at';
 
 	    return view('index')->with([
-	    	'search' => $term, 
+	    	'search' => $term,
+	    	'tribe' => $tribe, 
 	    	'format' => $format, 
 	    	'order' => $order,
-	    	'page' => $page, 
+	    	'page' => $page,
+	    	'tribelist' => $tribelist, 
 	    	'formatlist' => $formatlist, 
 	    	'filters' => $filters,
 	    	'filterlist' => $filterlist,
@@ -67,6 +75,10 @@ class CardController extends Controller
 		$term = $request->input('search', '');
 		if ($term === null) $term = "";
 
+		$tribe = $request->input('tribe');
+		if (!in_array($tribe, get_tribes()))
+			$tribe = "";
+
 		$format = $request->input('format');
 		if (!in_array($format, get_formats()))
 			$format = "";
@@ -76,22 +88,25 @@ class CardController extends Controller
 		$order = $request->input('order');
 		$order = isset($this->card_orders[$order]) ? $order : 'updated_at';
 
-		$cards = $this->browse($request, $format, $term, $filters, $order);
+		$cards = $this->browse($request, $tribe, $format, $term, $filters, $order);
 
 		if (count($cards) == 0)
-			$cards = $this->browse($request, $format, $term, $filters, $order, false);
+			$cards = $this->browse($request, $tribe, $format, $term, $filters, $order, false);
 
-		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'format' => $format, 'filters' => $filters, 'order' => $order]);
+		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'tribe' => $tribe, 'format' => $format, 'filters' => $filters, 'order' => $order]);
 	}
 
-	protected function browse(Request $request, $format = '', $term = '', $filters = [], $order_key = 'updated_at', $has_obsoletes = true)
+	protected function browse(Request $request, $tribe = '', $format = '', $term = '', $filters = [], $order_key = 'updated_at', $has_obsoletes = true)
 	{
 		$order = $this->card_orders[$order_key];
 
-		$card_filters = function($q) use ($format, $filters, $order) {
+		$card_filters = function($q) use ($format, $tribe, $filters, $order) {
 
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
+
+			if ($tribe !== "")
+				$q->whereJsonContains('subtypes', $tribe);
 
 			// Apply filters
 			if (is_array($filters)) {
@@ -141,7 +156,7 @@ class CardController extends Controller
 			}
 		}
 
-		$cards->setPath(route('index', ['search' => $term, 'format' => $format, 'filters' => $filters, 'order' => $order_key]));
+		$cards->setPath(route('index', ['search' => $term, 'tribe' => $tribe, 'format' => $format, 'filters' => $filters, 'order' => $order_key]));
 
 		return $cards;
 	}
