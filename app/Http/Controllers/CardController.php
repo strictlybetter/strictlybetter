@@ -90,15 +90,11 @@ class CardController extends Controller
 
 		$cards = $this->browse($request, $tribe, $format, $term, $filters, $order);
 
-		if ($inputs = $this->checkPaginationBounds($request, $cards)) 
-			return redirect()->route('card.quicksearch', $inputs);
-
-		if (count($cards) == 0) {
+		if ($cards->total() == 0)
 			$cards = $this->browse($request, $tribe, $format, $term, $filters, $order, false);
 
-			if ($inputs = $this->checkPaginationBounds($request, $cards)) 
-				return redirect()->route('card.quicksearch', $inputs);
-		}
+		if ($inputs = $this->checkPaginationBounds($request, $cards)) 
+			return redirect()->route('card.quicksearch', $inputs);
 
 		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'tribe' => $tribe, 'format' => $format, 'filters' => $filters, 'order' => $order]);
 	}
