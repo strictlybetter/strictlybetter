@@ -90,10 +90,28 @@ class CardController extends Controller
 
 		$cards = $this->browse($request, $tribe, $format, $term, $filters, $order);
 
-		if (count($cards) == 0)
+		if ($inputs = $this->checkPaginationBounds($request, $cards)) 
+			return redirect()->route('card.quicksearch', $inputs);
+
+		if (count($cards) == 0) {
 			$cards = $this->browse($request, $tribe, $format, $term, $filters, $order, false);
 
+			if ($inputs = $this->checkPaginationBounds($request, $cards)) 
+				return redirect()->route('card.quicksearch', $inputs);
+		}
+
 		return view('card.partials.browse')->with(['cards' => $cards, 'search' => $term, 'tribe' => $tribe, 'format' => $format, 'filters' => $filters, 'order' => $order]);
+	}
+
+	protected function checkPaginationBounds($request, $cards)
+	{
+		if ($cards->lastPage() > 0 && $cards->lastPage() < $request->input('page', 1)) {
+
+			$inputs = $request->input();
+			$inputs['page'] = $cards->lastPage();
+			return $inputs;
+		}
+		return null;
 	}
 
 	protected function browse(Request $request, $tribe = '', $format = '', $term = '', $filters = [], $order_key = 'updated_at', $has_obsoletes = true)
