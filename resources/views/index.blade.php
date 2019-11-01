@@ -290,8 +290,8 @@
 			var params = event.state;
 
 			$("#quicksearch").val(params.search);
-			$('#tribe').val(params.tribe);
-			$('#format').val(params.format);
+			$('#tribe').val(params.tribe).trigger('change.select2');
+			$('#format').val(params.format).trigger('change.select2');
 			$('#filters').val(params.filters);
 			$('#order').val(params.order);
 			initial_page = params.page ? params.page : 1;
