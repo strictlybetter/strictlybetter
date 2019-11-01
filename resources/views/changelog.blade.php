@@ -19,6 +19,14 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>11/01/19</h4>
+	<ul>
+		<li>Added subtype/tribe filters. On browse page, this limits suggestions to the selected tribe.
+		On Deck Upgrade page cards that are not from the tribe also get non-tribe suggestions, but suggestions from the tribe are sorted first. Tribes are updated daily to match Scryfall data.</li>
+		<li>Format selectbox is now searchable.</li>
+		<li>Fixed search results when trying to access non-existant page number on Browse page. You will see the last available page instead.</li>
+	</ul>
+
 	<h4>10/28/19</h4>
 	<ul>
 		<li>Spoiled cards are now handled correctly and renamed as soon as their real names are revealed. No more duplicates</li>
