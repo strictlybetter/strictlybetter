@@ -25,6 +25,11 @@ class CardController extends Controller
 	 */
 	public function index(Request $request)
 	{
+		$request->validate([
+			'search' => 'max:100',
+			'page' => 'integer|min:1',
+		]);
+
 		$term = $request->input('search', '');
 		if ($term === null) $term = "";
 
@@ -72,6 +77,11 @@ class CardController extends Controller
 
 	public function quicksearch(Request $request)
 	{
+		$request->validate([
+			'search' => 'max:100',
+			'page' => 'integer|min:1',
+		]);
+
 		$term = $request->input('search', '');
 		if ($term === null) $term = "";
 

@@ -11,7 +11,7 @@
 		<h1>Browse</h1>
 
 		<div class="row">
-			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-4', 'placeholder' => 'Quick search', 'aria-label' => 'Quick search']) }}
+			{{ Form::search('quicksearch', isset($search) ? $search : null, ['id' => 'quicksearch', 'class' => 'form-control col-sm-4', 'placeholder' => 'Quick search', 'aria-label' => 'Quick search', 'maxlength' => 100]) }}
 			<span class="spinner-border spinner-border-sm search-spinner" role="status"></span>
 			<span>{{ Form::select('tribe', $tribelist, isset($tribe) ? $tribe : null, ['id' => 'tribe', 'class' => 'form-control']) }}</span>
 			<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control', 'aria-label' => 'Format']) }}</span>
@@ -63,6 +63,12 @@
 			'order': order,
 			'page': page
 		};
+
+		// Omit empty params
+		for (var prop in params) {
+			if (params.hasOwnProperty(prop) && params[prop] == '')
+				delete params[prop];
+		}
 
 		var search_params = new URLSearchParams(params);
 

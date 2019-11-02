@@ -19,11 +19,15 @@ class DeckController extends Controller
 
 	public function upgrade(Request $request)
 	{
+		$request->validate([
+			'tribes' => 'array'
+		]);
+
 		$deck = $this->parseDeck($request->input('deck'));
 
 		// Verify we parsed something
 		if (count($deck) === 0) {
-			return redirect()->route('upgradedDeck')->with(['deck' => $deck, 'deckupgrades' => []]);
+			return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => []])->withInput();
 		}
 
 		// Only pick 10 first tribes
@@ -116,6 +120,8 @@ class DeckController extends Controller
 		// 1x Llanowar Elves (CTD) *CMC:20* *EN*
 		$pattern = '/^(?:(\d+)x? )?([^\/]+?)(?: \(\w*\)(?: \d+)?)?(?: \*.*\*)?$/';
 		$deck = [];
+		$count = 0;
+		$card_limit = 10000;
 
 		$separator = "\r\n";
 		$line = strtok($rawdeck, $separator);
@@ -133,6 +139,11 @@ class DeckController extends Controller
 						$deck[$match[2]] = $itemcount;
 				}
 			}
+
+			$count++;
+			if ($count > $card_limit)
+				break;
+
 			$line = strtok($separator);
 		}
 
