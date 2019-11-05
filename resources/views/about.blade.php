@@ -97,6 +97,7 @@
 			Site is run by Henri Aho. You may contact me at <a href="mailto:henrij.aho@gmail.com" rel="noreferrer noopener">henrij.aho@gmail.com</a>
 		</address>
 		If you want to see how this all works or help with development, you may see the <a href="https://github.com/Dankirk/strictlybetter">project on GitHub</a><br>
+		You can also <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=P32N439KJFJR4&item_name=Strictly+Better,+development+and+maintenance&currency_code=EUR&source=url" target="_blank" rel="noopener noreferrer">donate</a> to support the site' development and maintenance.<br><br>
 		There is also a <a href="https://www.reddit.com/r/magicTCG/comments/bt7ocz/i_just_put_up_a_website_for_finding_strictly/" rel="noreferrer noopener">Reddit thread about the site</a>.
 	</p>
 

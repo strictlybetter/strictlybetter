@@ -19,6 +19,11 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>11/05/19</h4>
+	<ul>
+		<li>Added donation button for development and maintenance</li>
+	</ul>
+
 	<h4>11/01/19</h4>
 	<ul>
 		<li>Added subtype/tribe filters. On browse page, this limits suggestions to the selected tribe.
