@@ -19,6 +19,11 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>01/03/20</h4>
+	<ul>
+		<li>Support for new split cards that use existing split card face names, like Start//Finish and Start//Fire</li>
+	</ul>
+
 	<h4>11/05/19</h4>
 	<ul>
 		<li>Added donation button for development and maintenance</li>
