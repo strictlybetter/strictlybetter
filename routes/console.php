@@ -493,7 +493,15 @@ Artisan::command('download-scryfall', function () {
 	$this->comment("Requesting bulkfile metadata...");
 
 	$client = new \GuzzleHttp\Client();
-	$request = $client->get('https://api.scryfall.com/bulk-data');
+	$request = null;
+	try {
+		$request = $client->get('https://api.scryfall.com/bulk-data');
+	} 
+	catch (\GuzzleHttp\Exception\RequestException $e) {
+		report($e);
+		$this->comment("Download failed");
+		return 1;
+	}
 
 	if ($request->getStatusCode() != 200) {
 		$this->comment("Download failed");
@@ -531,7 +539,14 @@ Artisan::command('download-scryfall', function () {
 
 		$this->comment("Downloading " . $filename . "...");
 
-		$client->get($bulkfile["permalink_uri"], ['sink' => $localfile]);
+		try {
+			$client->get($bulkfile["permalink_uri"], ['sink' => $localfile]);
+		}
+		catch (\GuzzleHttp\Exception\RequestException $e) {
+			report($e);
+			$this->comment("Download failed");
+			return 1;
+		}
 
 		$this->comment("Download complete");
 
@@ -560,7 +575,15 @@ Artisan::command('download-typedata', function () {
 
 		$this->comment("Downloading type data (". $uri .")...");
 
-		$request = $client->get('https://api.scryfall.com/catalog/' . $uri);
+		$request = null;
+		try {
+			$request = $client->get('https://api.scryfall.com/catalog/' . $uri);
+		}
+		catch (\GuzzleHttp\Exception\RequestException $e) {
+			report($e);
+			$this->comment("Download failed");
+			continue;
+		}
 
 		if ($request->getStatusCode() != 200) {
 			$this->comment("Download failed");
