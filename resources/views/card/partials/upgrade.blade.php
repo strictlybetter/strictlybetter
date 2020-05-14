@@ -19,7 +19,7 @@
 					@else
 						<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $reprint_card->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $reprint_card->name }}">
 					@endif
-						{{ Html::image($reprint_card->imageUrl, $reprint_card->name, ['class' => 'mtgcard']) }}
+						{{ Html::image(asset('image/card-back.jpg'), $reprint_card->name, ['data-src' => $reprint_card->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $reprint_card->scryfall_img]) }}
 						<span class="mtgcard-text">{{ $reprint_card->name }}</span>
 					</a>
 					<div class="row"></div>
@@ -35,7 +35,7 @@
 			@else
 				<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $card->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $card->name }}">
 			@endif
-				{{ Html::image($card->imageUrl, $card->name, ['class' => 'mtgcard']) }}
+				{{ Html::image(asset('image/card-back.jpg'), $card->name, ['data-src' => $card->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $card->scryfall_img]) }}
 				<span class="mtgcard-text">{{ $card->name }}</span>
 			</a>
 			<div class="row"></div>

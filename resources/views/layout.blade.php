@@ -155,6 +155,34 @@
 				});
 			}
 
+			function register_card_image_handlers(selector = '') {
+
+				selector = (selector == '') ? '' : (selector + ' ');
+
+				// Try alternative image urls if one is set
+				$(selector + "img.mtgcard").on("error", function() {
+					var src_alt = this.getAttribute('src-alt');
+					if (src_alt && src_alt !== this.src) {
+
+						// Replace 'data-src' first, so lazy loader doesn't switch the url back 
+						this.setAttribute('data-src', src_alt);	
+						this.src = src_alt;
+					}
+				});
+
+				// Once placeholder image is loaded, switch to actual card image
+				$(selector + "img.mtgcard").on("load", function() {
+					var new_src = this.getAttribute('data-src');
+					if (new_src && this.src !== new_src) {
+						//this.setAttribute('loading', 'lazy');
+						this.src = new_src;
+					}
+					else {
+						// TODO: hide temporary info box
+					}
+				});
+			}
+
 			$(document).ready(function() { 
 
 				// Card search
@@ -181,6 +209,8 @@
 						}
 					});
 				});
+
+				register_card_image_handlers();
 			});
 
 		</script>

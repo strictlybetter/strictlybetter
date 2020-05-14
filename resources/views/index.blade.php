@@ -138,10 +138,12 @@
 				// Scroll to where we were, or back to top if history is not relevant
 				if (scrollTop !== undefined)
 					$(window).scrollTop(scrollTop);
-/*
+				/*
 				else if (!isScrolledIntoView('.pagination'))
 					$(window).scrollTop(0);
 				*/
+
+				register_card_image_handlers('#cards');
 			}
 		});
 	}
