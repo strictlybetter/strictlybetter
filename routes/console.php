@@ -16,9 +16,12 @@ use App\Cardtype;
 |
 */
 
-Artisan::command('load-scryfall', function () {
+Artisan::command('load-scryfall {callbacks?}', function ($callbacks = []) {
 
 	$filename = 'scryfall-default-cards.json';
+
+	if (!is_array($callbacks))
+		$callbacks = [];
 
 	if ($fh = fopen($filename, 'r')) {
 
@@ -34,12 +37,12 @@ Artisan::command('load-scryfall', function () {
 			$bar->advance();
 			
 			// Check validity of the card
-			if ($obj === null || 
+			if ($obj === null || !isset($obj->oracle_id) ||
 				!isset($obj->layout) || in_array($obj->layout, Card::$ignore_layouts) || 
 				!isset($obj->type_line) || in_array($obj->type_line, Card::$ignore_types))
 				continue;
 
-			if (create_card_from_scryfall($obj))
+			if (create_card_from_scryfall($obj, null, $callbacks))
 				$count++;
 		}
 		fclose($fh);
@@ -48,7 +51,7 @@ Artisan::command('load-scryfall', function () {
 
 		$this->comment($count . " cards loaded.");
 	}
-	else {	
+	else {
 		$this->comment("Could not read file: " . $filename);
 	}
 	
@@ -57,39 +60,42 @@ Artisan::command('load-scryfall', function () {
 
 Artisan::command('remove-old-spoilers', function () {
 
-	// If some cards share scryfall_api, they are duplicates with different names (invented by Scryfall devs before the card name is revealed)
+	// If some older cards share oracle_id, they are duplicates with different names (invented by Scryfall devs before the card name is revealed)
 	// The duplicates with invented names should be removed, which we can do by comparing auto incremented ids.
 	// The removable duplicates will have lower ids.
 
 	$this->comment("Looking for old spoilers to remove...");
-	$count = 0;
+	
+	$earlier_count = Card::count();
 
-	$duplicate_groups = Card::whereNull('main_card_id')->get()->groupBy('scryfall_api')->reject(function($group) {
+	// Delete any cards without oracle_id (with main_card_id)
+	Card::whereNull('main_card_id')->whereNull('oracle_id')->delete();
+	$count = $earlier_count - Card::count();
+
+	$duplicate_groups = Card::whereNull('main_card_id')->get()->groupBy('oracle_id')->reject(function($group) {
 		return (count($group) < 2);
 	})->values();
 
-	if (count($duplicate_groups) > 0) {
+	foreach ($duplicate_groups as $duplicate_group) {
+		$duplicate_group = $duplicate_group->sortByDesc('id')->values();
+		$latest = $duplicate_group->first();
 
-		foreach ($duplicate_groups as $duplicate_group) {
-			$duplicate_group = $duplicate_group->sortByDesc('id')->values();
-			$latest = $duplicate_group->first();
+		$duplicate_group = $duplicate_group->slice(1)->values();
 
-			$duplicate_group = $duplicate_group->slice(1)->values();
-
-			// Move obsoletes from old spoilers to latest card
-			$latest->load(['inferiors', 'superiors']);
-			foreach ($duplicate_group as $duplicate) {
-				migrate_obsoletes($duplicate, $latest);
-			}
-
-			$count += count($duplicate_group);
-			$ids = $duplicate_group->pluck('id')->toArray();
-			Card::whereIn('id', $ids)->delete();
+		// Move obsoletes from old spoilers to latest card
+		$latest->load(['inferiors', 'superiors']);
+		foreach ($duplicate_group as $duplicate) {
+			migrate_obsoletes($duplicate, $latest);
 		}
 
-		// Remove orphaned functional reprints
-		FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
+		$count += count($duplicate_group);
+		$ids = $duplicate_group->pluck('id')->toArray();
+		Card::whereIn('id', $ids)->delete();
 	}
+
+	// Remove orphaned functional reprints
+	FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
+
 	$this->comment("Removed " . $count . " old spoilers");
 
 })->describe('Remove all old spoiler cards after new one exists');

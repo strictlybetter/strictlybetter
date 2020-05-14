@@ -63,8 +63,8 @@ function migrate_obsoletes(App\Card $from, App\Card $to)
 	foreach ($from->inferiors as $inferior) {
 		if (in_array($inferior->id, $existing_inferiors)) {
 
-			$to_obsolete = Obsolete::with(['suggestions'])->where('superior_card_id', $to->id)->where('inferior_card_id', $inferior->id)->first();
-			$from_obsolete = Obsolete::with(['suggestions'])->where('superior_card_id', $from->id)->where('inferior_card_id', $inferior->id)->first();
+			$to_obsolete = App\Obsolete::with(['suggestions'])->where('superior_card_id', $to->id)->where('inferior_card_id', $inferior->id)->first();
+			$from_obsolete = App\Obsolete::with(['suggestions'])->where('superior_card_id', $from->id)->where('inferior_card_id', $inferior->id)->first();
 			foreach ($from_obsolete->suggestions as $suggestion) {
 
 				// Same IP already exists, just delete the older vote
@@ -87,7 +87,7 @@ function migrate_obsoletes(App\Card $from, App\Card $to)
 
 		// Move inferior obsolete relation to other card
 		else {
-			Obsolete::where('superior_card_id', $from->id)->where('inferior_card_id', $inferior->id)->update(['superior_card_id' => $to->id]);
+			App\Obsolete::where('superior_card_id', $from->id)->where('inferior_card_id', $inferior->id)->update(['superior_card_id' => $to->id]);
 		}
 	}
 
@@ -95,8 +95,8 @@ function migrate_obsoletes(App\Card $from, App\Card $to)
 	foreach ($from->superiors as $superior) {
 		if (in_array($superior->id, $existing_superiors)) {
 
-			$to_obsolete = Obsolete::with(['suggestions'])->where('inferior_card_id', $to->id)->where('superior_card_id', $superior->id)->first();
-			$from_obsolete = Obsolete::with(['suggestions'])->where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->first();
+			$to_obsolete = App\Obsolete::with(['suggestions'])->where('inferior_card_id', $to->id)->where('superior_card_id', $superior->id)->first();
+			$from_obsolete = App\Obsolete::with(['suggestions'])->where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->first();
 			foreach ($from_obsolete->suggestions as $suggestion) {
 
 				// Same IP already exists, just delete the older vote
@@ -120,30 +120,37 @@ function migrate_obsoletes(App\Card $from, App\Card $to)
 
 		// Move superior obsolete relation to other card
 		else {
-			Obsolete::where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->update(['inferior_card_id' => $to->id]);
+			App\Obsolete::where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->update(['inferior_card_id' => $to->id]);
 		}
 	}
 }
 
-function create_card_from_scryfall($obj, $parent = null)
+function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 {
 	if (!isset($obj->type_line) || !preg_match('/^(.*?)(?: — (.*))?$/', $obj->type_line, $match))
 		return false;
 
-	// Find existing card with same name, or scryfall_api attribute (unless this is a card face with a parent card)
-	$q = null;
-	if ($parent) {
-		$q = App\Card::where('main_card_id', $parent->id)->where('name', $obj->name);
-	}
-	else if (isset($obj->uri)) {
-		$q = App\Card::whereNull('main_card_id')->where(function($q) use ($obj) {
-			$q = $q->where('name', $obj->name)->orWhere('scryfall_api', $obj->uri);
-		});
-	}
-	else
-		return false;
+	$card = null;
 
-	$card = $q->orderBy('created_at', 'desc')->first();
+	// Either use a callback to find the card from database ...
+	if (isset($callbacks['query'])) {
+		$card = $callbacks['query']($obj, $parent);
+	}
+
+	// ... Or use oracle_id. Unless it's a split card, in which case find using card name and parent_id
+	else {
+		$q = App\Card::query();
+
+		if ($parent)
+			$q = $q->where('main_card_id', $parent->id)->where('name', $obj->name);
+		else
+			$q = $q->whereNull('main_card_id')->where(function($q) use ($obj) { 
+				$q->where('oracle_id', $obj->oracle_id)->orWhere('name', $obj->name);
+			});
+
+		$card = $q->orderBy('created_at', 'desc')->first();
+	}
+	
 	if (!$card)
 		$card = App\Card::newModelInstance();
 
@@ -163,6 +170,7 @@ function create_card_from_scryfall($obj, $parent = null)
 
 	$card->fill([
 		'name' =>  $obj->name,
+		'oracle_id' => isset($obj->oracle_id) ? $obj->oracle_id : null,
 		'multiverse_id' => empty($obj->multiverse_ids) ? null : $obj->multiverse_ids[0],
 		'legalities' => isset($obj->legalities) ? $obj->legalities : [],
 		'manacost' => isset($obj->mana_cost) ? $obj->mana_cost : "",
@@ -206,7 +214,7 @@ function create_card_from_scryfall($obj, $parent = null)
 	if ($multiface) {
 		$names = [];
 		foreach ($obj->card_faces as $card_face) {
-			if (create_card_from_scryfall($card_face, $card))
+			if (create_card_from_scryfall($card_face, $card, $callbacks))
 				$names[] = $card_face->name;
 		}
 

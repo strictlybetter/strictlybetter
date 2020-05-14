@@ -8,7 +8,8 @@ use App\FunctionalReprint;
 class Card extends Model
 {
 	protected $fillable = [
-		'name', 
+		'name',
+		'oracle_id', 
 		'multiverse_id', 
 		'legalities', 
 		'price', 
