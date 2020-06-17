@@ -546,7 +546,7 @@ Artisan::command('download-scryfall', function () {
 		$this->comment("Downloading " . $filename . "...");
 
 		try {
-			$client->get($bulkfile["permalink_uri"], ['sink' => $localfile]);
+			$client->get($bulkfile["download_uri"], ['sink' => $localfile]);
 		}
 		catch (\GuzzleHttp\Exception\RequestException $e) {
 			report($e);
