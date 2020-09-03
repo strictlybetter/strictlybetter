@@ -198,9 +198,16 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		$card->colors = isset($obj->colors) ? $card->colors : $parent->colors;
 		$card->color_identity = isset($obj->color_identity) ? $card->color_identity : $parent->color_identity;
 		$card->flip = $parent->flip;
-		$card->scryfall_img = $parent->scryfall_img;
 		$card->scryfall_api = $parent->scryfall_api;
 		$card->scryfall_link = $parent->scryfall_link;
+
+		$card->scryfall_img = $card->scryfall_img ?: $parent->scryfall_img;
+
+		// If parent doesn't have a image, use the first face
+		if (!$parent->scryfall_img) {
+			$parent->scryfall_img = $card->scryfall_img;
+			$parent->save();
+		}
 	}
 
 	// Create a few helper columns using existing data
