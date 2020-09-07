@@ -83,7 +83,18 @@ class Card extends Model
 
     public function getImageUrlAttribute()
     {
-    	return $this->multiverse_id ? ('https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=' . $this->multiverse_id . '&type=card') : $this->scryfall_img;
+        if ($this->scryfall_img)
+            return $this->scryfall_img;
+
+        if ($this->multiverse_id)
+    	   return 'https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=' . $this->multiverse_id . '&type=card';
+    
+        return 'image/card-back.jpg';
+    }
+
+    public function getGathererImgAttribute()
+    {
+        return $this->multiverse_id ? ('https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=' . $this->multiverse_id . '&type=card') : null;
     }
 
     public function getGathererUrlAttribute()

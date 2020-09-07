@@ -15,6 +15,9 @@ body {
 	filter: drop-shadow(4px 4px 5px gray);
 	margin-bottom: 0.75rem;
 }
+a.card-link {
+	position: relative;
+}
 .mtgcard-wrapper a.card-link:hover {
 	z-index: 300;
 }
@@ -32,6 +35,13 @@ a.card-link:hover .mtgcard,a.card-create-link:hover .mtgcard {
 }
 .mtgcard-text {
 	display: none;
+}
+.mtgcard-loadspinner {
+	position: absolute;
+	top: -45px;
+	right: 80px;
+	width: 60px;
+	height: 60px;
 }
 .mtgcard-thumb {
 	width: 131px;
@@ -375,6 +385,9 @@ select {
 		min-width: 187px;
 		min-height: 260px;
 		margin-right: 10px;
+	}
+	.mtgcard-loadspinner {
+		right: 60px;
 	}
 	.plus-sign {
 		top: 90px;

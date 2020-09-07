@@ -19,8 +19,9 @@
 					@else
 						<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $reprint_card->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $reprint_card->name }}">
 					@endif
-						{{ Html::image(asset('image/card-back.jpg'), $reprint_card->name, ['data-src' => $reprint_card->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $reprint_card->scryfall_img]) }}
+						{{ Html::image(asset('image/card-back.jpg'), $reprint_card->name, ['data-src' => $reprint_card->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $reprint_card->gathererImg]) }}
 						<span class="mtgcard-text">{{ $reprint_card->name }}</span>
+						<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
 					</a>
 					<div class="row"></div>
 					<!--<a class="btn btn-gatherer" href="{{ $reprint_card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>-->
@@ -35,8 +36,9 @@
 			@else
 				<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $card->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $card->name }}">
 			@endif
-				{{ Html::image(asset('image/card-back.jpg'), $card->name, ['data-src' => $card->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $card->scryfall_img]) }}
+				{{ Html::image(asset('image/card-back.jpg'), $card->name, ['data-src' => $card->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $card->gathererImg]) }}
 				<span class="mtgcard-text">{{ $card->name }}</span>
+				<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
 			</a>
 			<div class="row"></div>
 			@if($card->scryfall_link)<a class="btn btn-gatherer" href="{{ $card->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif

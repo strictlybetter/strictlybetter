@@ -4,8 +4,9 @@
 	@else
 		<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $related->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $related->name }}">
 	@endif
-		{{ Html::image($related->imageUrl, $related->name, ['class' => 'mtgcard']) }}
+		{{ Html::image(asset('image/card-back.jpg'), $related->name, ['data-src' => $related->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $related->gathererImg]) }}
 		<span class="mtgcard-text">{{ $related->name }}</span>
+		<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
 	</a>
 	<div class="card-label-container">
 		@if(is_array($related->pivot->labels))

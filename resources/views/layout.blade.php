@@ -168,6 +168,8 @@
 						this.setAttribute('data-src', src_alt);	
 						this.src = src_alt;
 					}
+					else
+						$(this).siblings('.mtgcard-loadspinner').hide();
 				});
 
 				// Once placeholder image is loaded, switch to actual card image
@@ -177,9 +179,8 @@
 						//this.setAttribute('loading', 'lazy');
 						this.src = new_src;
 					}
-					else {
-						// TODO: hide temporary info box
-					}
+					else
+						$(this).siblings('.mtgcard-loadspinner').hide();
 				});
 			}
 
