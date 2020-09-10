@@ -19,6 +19,13 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>11/09/20</h4>
+	<ul>
+		<li>Use Scryfall's new card image CDN rather than Gatherer for performance</li>
+		<li>Load card images only when in viewport to save client bandwith</li>
+		<li>Show a placeholder image and animation while loading real card image</li>
+	</ul>
+
 	<h4>01/03/20</h4>
 	<ul>
 		<li>Support for new split cards that use existing split card face names, like Start//Finish and Start//Fire</li>
