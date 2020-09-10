@@ -13,16 +13,18 @@ body {
 	max-height: 311px;
 	border-radius: 11px;
 	filter: drop-shadow(4px 4px 5px gray);
-	margin-bottom: 0.75rem;
 }
 a.card-link {
-	position: relative;
+	/*position: relative;*/
 }
 .mtgcard-wrapper a.card-link:hover {
 	z-index: 300;
 }
 a.card-link:hover .mtgcard,a.card-create-link:hover .mtgcard {
 	filter: drop-shadow(4px 4px 8px #3e95e1);
+}
+.mtgcard-wrapper:not(.newcard) .flipper:hover {
+	z-index: 201;
 }
 .mtgcard-wrapper:not(.newcard) .mtgcard:hover {
 	max-height: 311px;
@@ -38,10 +40,16 @@ a.card-link:hover .mtgcard,a.card-create-link:hover .mtgcard {
 }
 .mtgcard-loadspinner {
 	position: absolute;
-	top: -45px;
-	right: 80px;
+	z-index: 350;
+	left: 0;
+	right: 0;
+	top: 125px;
 	width: 60px;
 	height: 60px;
+	margin: auto;
+}
+.load-ready .mtgcard-loadspinner {
+	display: none;
 }
 .mtgcard-thumb {
 	width: 131px;
@@ -54,7 +62,7 @@ a.card-link:hover .mtgcard,a.card-create-link:hover .mtgcard {
 	max-width: 63%;
 }
 .mtgcard-wrapper {
-	min-width: 233px;
+	/*min-width: 233px;*/
 	min-height: 311px;
 	padding: 0;
 	margin-bottom: 10px;
@@ -62,12 +70,51 @@ a.card-link:hover .mtgcard,a.card-create-link:hover .mtgcard {
 	text-align: left;
 	position: relative;
 }
+
+.flipper {
+	/*
+	transition: 0.2s;
+	transform-style: preserve-3d;*/
+	perspective: 1000px;
+	position: relative;
+
+	width: 224px;
+	min-height: 311px;
+	margin-bottom: 0.75rem;
+/*
+	width: 100%;
+	height: 100%;
+*/
+}
+.front, .back {
+	backface-visibility: hidden;
+	position: absolute;
+	top: 0;
+	left: 0;
+
+	transition: 0.15s;
+	transform-style: preserve-3d;
+}
+.front {
+	transform: rotateY(180deg);
+}
+.back {
+	transform: rotateY(0deg);
+}
+.flipper.load-ready .front {
+	transform: rotateY(0deg);
+
+}
+.flipper.load-ready .back {
+	transform: rotateY(180deg);
+}
+
 .plus-sign {
 	position: absolute;
 	margin: auto;
 	top: 115px;
 	left: 0;
-	right: 9px;
+	right: 0;
 	text-align: center;
 	font-size: 54px;
 	color: black;
@@ -162,10 +209,13 @@ select {
 	margin-left:auto;
 	margin-right:auto;
 }
-.reprint-stack img {
+.reprint-stack img.mtgcard {
 	transition: transform 0.20s;
 }
-.reprint-stack img:hover {
+.reprint-stack .flipper:hover {
+	z-index: 201;
+}
+.reprint-stack img.mtgcard:hover {
 	z-index: 201;
 	transform-style: flat;
 	-webkit-transform-style: flat;
@@ -235,7 +285,7 @@ select {
 .cardpanel-current {
 	background-color: #f3f3f3;
 	padding: 10px;
-	position: relative;
+	/*position: relative;*/
 	min-height: 420px;
 	transition: max-width 0.40s, visibility 0.10s;
 }
@@ -376,22 +426,30 @@ select {
 		text-align: center;
 	}
 }
+@media (min-width: 1620px) {
+	.cardpanel-current .mtgcard-wrapper {
+		width: 234px;
+	}
+}
 @media (max-width: 1620px) {
 	.mtgcard {
 		max-height: 260px;
 		border-radius: 7px;
 	}
 	.mtgcard-wrapper {
-		min-width: 187px;
+		width: 187px;
 		min-height: 260px;
 		margin-right: 10px;
 	}
-	.mtgcard-loadspinner {
-		right: 60px;
+	.cardpanel-current .mtgcard-wrapper {
+		margin: auto;
+	}
+	.flipper {
+		min-height: 260px;
+		width: 187px;
 	}
 	.plus-sign {
 		top: 90px;
-		right: 0px;
 	}
 	.cardpanel-superior .mtgcard-wrapper:not(.newcard) .mtgcard:hover {
 		left: -36px;
@@ -457,7 +515,7 @@ select {
 	.mtgcard-wrapper {
 		min-height: inherit;
 		padding: 5px;
-		min-width: 80px;
+		width: 80px;
 		border: 1px solid #BBBBBB;
 		background-color: #DDDDDD;
 		border-radius: 6px;
@@ -493,7 +551,7 @@ select {
 		position: absolute;
 		left: -230px;
 		top: -50px;
-		max-height: 311px;
+		max-height: 311px
 		border-radius: 11px;
 	}
 	.cardpanel-inferior .mtgcard-wrapper a.card-link:hover .mtgcard {

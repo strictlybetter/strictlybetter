@@ -161,6 +161,7 @@ $(document).ready(function() {
 			dataType: "html",
 			success: function(response) {
 				$("#upgrade_view").html(response);
+				register_card_image_handlers('#upgrade_view');
 			}
 		});
 	});

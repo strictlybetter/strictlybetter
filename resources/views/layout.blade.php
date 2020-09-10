@@ -27,7 +27,7 @@
 		<link media="all" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
 		<link media="all" href="{{ URL::to('css/select2.min.css') }}" rel="stylesheet">
 		<link media="all" href="{{ URL::to('css/jquery.multiselect.css') }}" rel="stylesheet">
-		<link media="all" href="{{ URL::to('css/main.css') }}" rel="stylesheet">
+		<link media="all" href="{{ URL::to('css/main.css') . '?q=' . filemtime(public_path() . '/css/main.css') }}" rel="stylesheet">
 		@yield('head')
 	</head>
 	<body>
@@ -159,9 +159,9 @@
 
 				selector = (selector == '') ? '' : (selector + ' ');
 
-				// Try alternative image urls if one is set
+				// Try alternative image urls if loading fails
 				$(selector + "img.mtgcard").on("error", function() {
-					var src_alt = this.getAttribute('src-alt');
+					var src_alt = this.getAttribute('alt-src');
 					if (src_alt && src_alt !== this.src) {
 
 						// Replace 'data-src' first, so lazy loader doesn't switch the url back 
@@ -172,15 +172,27 @@
 						$(this).siblings('.mtgcard-loadspinner').hide();
 				});
 
-				// Once placeholder image is loaded, switch to actual card image
+				// Once actual image is loaded, flip the card
 				$(selector + "img.mtgcard").on("load", function() {
-					var new_src = this.getAttribute('data-src');
-					if (new_src && this.src !== new_src) {
-						//this.setAttribute('loading', 'lazy');
-						this.src = new_src;
+					
+					if ($(this).closest('.front').length) {
+						$(this).closest('.flipper').addClass('load-ready');
 					}
-					else
-						$(this).siblings('.mtgcard-loadspinner').hide();
+					if (!$(this).closest('.front').length && !$(this).closest('.back').length) {
+						
+						// If this wasn't the real url, switch to it and lazy load	
+						var new_src = this.getAttribute('data-src');	
+						if (new_src && this.src !== new_src) {
+							this.setAttribute('loading', 'lazy');
+							this.src = new_src;	
+						}
+					}
+
+				}).each(function() {
+
+					// If event registration was slower than image load, flip the card now
+					if(this.complete) 
+						$(this).trigger('load');
 				});
 			}
 

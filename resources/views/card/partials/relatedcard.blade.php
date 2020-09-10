@@ -4,9 +4,12 @@
 	@else
 		<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $related->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $related->name }}">
 	@endif
-		{{ Html::image(asset('image/card-back.jpg'), $related->name, ['data-src' => $related->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $related->gathererImg]) }}
+		<div class="flipper">
+			{{ Html::image(asset('image/card-back.jpg'), $related->name, ['class' => 'mtgcard back', 'loading' => 'eager']) }}
+			{{ Html::image($related->imageUrl, $related->name, ['class' => 'mtgcard front', 'loading' => 'lazy', 'alt-src' => $related->gathererImg]) }}
+			<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
+		</div>
 		<span class="mtgcard-text">{{ $related->name }}</span>
-		<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
 	</a>
 	<div class="card-label-container">
 		@if(is_array($related->pivot->labels))
@@ -21,7 +24,7 @@
 		@endif
 	</div>
 
-	<div class="row">
+	<div class="row card-votes">
 
 		{{ Form::open(['route' => ['upvote', $related->pivot->id], 'class' => 'form-inline vote-form']) }}
 			<button type="submit" class="btn vote" style="color:green;">
@@ -40,6 +43,8 @@
 		{{ Form::close() }}
 
 	</div>
-	@if($related->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $related->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
-	@if($related->multiverse_id)<a class="btn btn-light btn-gatherer" href="{{ $related->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
+	<div class="row card-external-links">
+		@if($related->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $related->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
+		@if($related->multiverse_id)<a class="btn btn-light btn-gatherer" href="{{ $related->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
+	</div>
 </div>

@@ -19,9 +19,12 @@
 					@else
 						<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $reprint_card->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $reprint_card->name }}">
 					@endif
-						{{ Html::image(asset('image/card-back.jpg'), $reprint_card->name, ['data-src' => $reprint_card->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $reprint_card->gathererImg]) }}
-						<span class="mtgcard-text">{{ $reprint_card->name }}</span>
-						<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
+						<div class="flipper">
+							{{ Html::image(asset('image/card-back.jpg'), $reprint_card->name, ['class' => 'mtgcard back', 'loading' => 'eager']) }}
+							{{ Html::image($reprint_card->imageUrl, $reprint_card->name, ['class' => 'mtgcard front', 'loading' => 'lazy', 'alt-src' => $reprint_card->gathererImg]) }}
+							<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
+						</div>
+						<span class="mtgcard-text">{{ $reprint_card->name }}</span>	
 					</a>
 					<div class="row"></div>
 					<!--<a class="btn btn-gatherer" href="{{ $reprint_card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>-->
@@ -36,13 +39,18 @@
 			@else
 				<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $card->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $card->name }}">
 			@endif
-				{{ Html::image(asset('image/card-back.jpg'), $card->name, ['data-src' => $card->imageUrl, 'class' => 'mtgcard', 'loading' => 'eager', 'alt-src' => $card->gathererImg]) }}
+				<div class="flipper">
+					{{ Html::image(asset('image/card-back.jpg'), $card->name, ['class' => 'mtgcard back', 'loading' => 'eager']) }}
+					{{ Html::image($card->imageUrl, $card->name, ['class' => 'mtgcard front', 'loading' => 'lazy', 'alt-src' => $card->gathererImg]) }}
+					<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
+				</div>
 				<span class="mtgcard-text">{{ $card->name }}</span>
-				<span class="spinner-border spinner-border-xl mtgcard-loadspinner" role="status"></span>
 			</a>
-			<div class="row"></div>
-			@if($card->scryfall_link)<a class="btn btn-gatherer" href="{{ $card->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
-			@if($card->multiverse_id)<a class="btn btn-gatherer" href="{{ $card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
+			
+			<div class="card-external-links">
+				@if($card->scryfall_link)<a class="btn btn-gatherer" href="{{ $card->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
+				@if($card->multiverse_id)<a class="btn btn-gatherer" href="{{ $card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
+			</div>
 		</div>
 	</div>
 </div>
