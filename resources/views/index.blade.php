@@ -34,6 +34,7 @@
 	var quicksearch_timer = null;
 	var quicksearch_ajax = null;
 	var initial_page = "{{ isset($page) ? $page : 1 }}";
+	var last_search_term = $("#quicksearch").val();
 
 	var collapsed_panel = "";
 	var only_one_panel = ($(window).width() <= 1070);
@@ -54,6 +55,8 @@
 		var format = $('#format').find(":selected").val();
 		var filters = $('#filters').val();
 		var order = $('#order').val();
+
+		last_search_term = search;
 
 		var params = {
 			'tribe': tribe,
@@ -273,7 +276,7 @@
 
 		card_autocomplete("#quicksearch", 5, function(event, ui) {
 
-			if ($("#quicksearch").val() != ui.item.value) {
+			if (last_search_term != ui.item.value) {
 				$("#quicksearch").val(ui.item.value);
 				quicksearch(1, false);
 			}
