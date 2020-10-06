@@ -13,34 +13,86 @@ If setting up your pull requires more than merging the code, such as migrating d
 
 ## Setting up development environment
 
-First you will need Apache/Nginx to run the server, PHP > 7.1, [Composer](https://getcomposer.org/) and database such as MySql.
-- Clone the repository
-- Copy environment file template in repository root:
-``` 
-cp .env.template .env
+
+### Core Requirements
+ - HTTP Server (Apache, IIS, Nginx, etc)
+ - PHP 7.x
+ - MySQL or MariaDB
+ - Composer 1.9.x
+
+
+### Dependencies
+ - Scryfall Bulk Data Files - Default Cards
+ - Laravel 5.8.x
+ - Bootstrap 4.3.x
+ - jquery 3.4.x
+
+
+### Setup and Installation
+
+Create your development environment by downloading, installing, and setting the aplications defined in the **Core Requirements** section above.
+
+Create an empty MySQL database container and user(s) with basic Table Privilages
+
+Place a copy the latest 'Default Cards' JSON file from [Scryfall Bulk Data Files](https://scryfall.com/docs/api/bulk-data) to the root directory  
+and rename to 
 ```
-- Edit .env file to match your development environment
-- Install Laravel framework and 3rd party Composer packages (while in repository root):
-``` 
+scryfall-default-cards.json
+```
+
+Fork the Dankirk/strictlybetter repository to your own GitHub account and clone to your local development environment
+ - [GitHub Docs: Fork a repository](https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo)
+ - [GitHub Docs: Cloning a repository](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/cloning-a-repository)
+
+
+Copy the following file in root directory
+```
+.env.example
+```
+and rename to
+```
+.env
+```
+
+Edit the `.env` file and change the following values to match your MySQL Database environment:
+```
+DB_DATABASE=example_database
+DB_USERNAME=example_username
+DB_PASSWORD=example_password
+```
+
+Install Laravel framework and 3rd party Composer packages (while in repository root):
+```
 composer install 
 ```
-- Generate app key (while in repository root):
-``` 
+
+Generate app key (while in repository root):
+```
 php artisan key:generate
 ```
-- Move the generated app key from config/app.php (a varible called 'key') to the .env file. Replace 'key' in app.php to read: 
+
+Install Laravel framework and 3rd party Composer packages (while in repository root):
 ```
-'key' => env('APP_KEY'),
+composer install
 ```
-- Migrate database structure (while in repository root):
-``` 
+    
+Generate app key (while in repository root):
+```
+php artisan key:generate
+```
+
+Migrate database structure (while in repository root):
+```
 php artisan migrate 
 ```
-- Fetch card data from Scryfall (while in repository root):
-``` 
-php artisan full-update 
+
+Fetch card data from Scryfall (while in repository root):
 ```
-- Point Apache/Nginx webroot to repository's 'public' folder.
+php artisan full-update
+```
+
+Point Apache/Nginx webroot to repository's 'public' folder.
+
 
 ## Troubleshooting
 [Laravel 5.8 documentation](https://laravel.com/docs/5.8) can help you further if anything goes wrong during setup.
