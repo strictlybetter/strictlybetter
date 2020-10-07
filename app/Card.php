@@ -233,7 +233,7 @@ class Card extends Model
 		return false;
     }
 
-    public function isNotWorseThan(Card $other)
+    public function isEqualOrBetterThan(Card $other)
     {
     	// Must not be a duplicate
     	if ($this->id === $other->id || ($other->functional_reprints_id && $this->functional_reprints_id === $other->functional_reprints_id))
@@ -244,10 +244,10 @@ class Card extends Model
     	if (count($this->cardFaces) > 0) {
 
     		if ($this->flip)
-    			return $this->cardFaces->first()->isNotWorseThan($other) ? $this->cardFaces->first() : false;
+    			return $this->cardFaces->first()->isEqualOrBetterThan($other) ? $this->cardFaces->first() : false;
 
     		foreach ($this->cardFaces as $face) {
-    			if ($face->isNotWorseThan($other))
+    			if ($face->isEqualOrBetterThan($other))
     				return $face;
     		}
     		return false;
@@ -257,7 +257,7 @@ class Card extends Model
     	if (count($other->cardFaces) > 0) {
 
     		foreach ($other->cardFaces as $other_face) {
-    			if (!$this->isNotWorseThan($other_face))
+    			if (!$this->isEqualOrBetterThan($other_face))
     				return false;
     		}
     		return true;

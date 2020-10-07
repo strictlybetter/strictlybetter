@@ -255,7 +255,7 @@ Artisan::command('remove-bad-suggestions', function () {
 
 	$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
 	foreach ($obsoletes as $obsolete) {
-		if (!$obsolete->superior->isNotWorseThan($obsolete->inferior)) {
+		if (!$obsolete->superior->isEqualOrBetterThan($obsolete->inferior)) {
 
 			$this->comment("Removing suggestion: " . $obsolete->inferior->name . " -> " . $obsolete->superior->name);
 

@@ -256,7 +256,7 @@ function create_labels(App\Card $inferior, App\Card $superior, App\Obsolete $obs
 		$labels = [];
 
 		foreach ($inferior->cardFaces as $face) {
-			if ($superior->isNotWorseThan($face))
+			if ($superior->isEqualOrBetterThan($face))
 				$labels = sum_labels(create_labels($face, $superior, $obsolete), $labels);
 		}
 		return $labels;
@@ -267,7 +267,7 @@ function create_labels(App\Card $inferior, App\Card $superior, App\Obsolete $obs
 		$labels = [];
 
 		foreach ($superior->cardFaces as $face) {
-			if ($face->isNotWorseThan($inferior))
+			if ($face->isEqualOrBetterThan($inferior))
 				$labels = sum_labels(create_labels($inferior, $face, $obsolete), $labels);
 
 			// Better flip card must only have better first face, so break here

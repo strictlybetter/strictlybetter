@@ -276,7 +276,7 @@ class CardController extends Controller
 		if ($inferior->name == $superior->name)
 			return redirect()->route('card.create', $inferior->id)->withErrors(['The cards must be different'])->withInput();
 
-		if (!$superior->isNotWorseThan($inferior))
+		if (!$superior->isEqualOrBetterThan($inferior))
 			return redirect()->route('card.create', $inferior->id)->withErrors(['The strictly better card does not seem to fill the requirements of the term'])->withInput();
 
 		create_obsolete($inferior, $superior, true);
