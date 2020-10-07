@@ -11,11 +11,11 @@ If setting up your pull requires more than merging the code, such as migrating d
 
 
 
-## Setting up development environment
+## Setting up the development environment
 
 
 ### Core Requirements
- - HTTP Server (Apache, IIS, Nginx, etc)
+ - HTTP Server (Apache or Nginx)
  - PHP 7.x
  - MySQL or MariaDB
  - Composer 1.9.x
@@ -26,33 +26,21 @@ If setting up your pull requires more than merging the code, such as migrating d
  - Laravel 5.8.x
  - Bootstrap 4.3.x
  - jquery 3.4.x
+ - Font Awesome 7.7.x
 
 
 ### Setup and Installation
 
-Create your development environment by downloading, installing, and setting the aplications defined in the **Core Requirements** section above.
+Create your development environment by downloading, installing, and setting up the applications defined in the **Core Requirements** section above.
 
-Create an empty MySQL database container and user(s) with basic Table Privilages
-
-Place a copy the latest 'Default Cards' JSON file from [Scryfall Bulk Data Files](https://scryfall.com/docs/api/bulk-data) to the root directory  
-and rename to 
-```
-scryfall-default-cards.json
-```
+Create an empty MySQL database container and provide user(s) with basic Table Privilages
 
 Fork the Dankirk/strictlybetter repository to your own GitHub account and clone to your local development environment
  - [GitHub Docs: Fork a repository](https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo)
  - [GitHub Docs: Cloning a repository](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/cloning-a-repository)
 
 
-Copy the following file in root directory
-```
-.env.example
-```
-and rename to
-```
-.env
-```
+Copy the `.env.example` file in root directory and rename to `.env`
 
 Edit the `.env` file and change the following values to match your MySQL Database environment:
 ```
@@ -70,17 +58,7 @@ Generate app key (while in repository root):
 ```
 php artisan key:generate
 ```
-
-Install Laravel framework and 3rd party Composer packages (while in repository root):
-```
-composer install
-```
-    
-Generate app key (while in repository root):
-```
-php artisan key:generate
-```
-
+   
 Migrate database structure (while in repository root):
 ```
 php artisan migrate 
