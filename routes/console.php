@@ -23,6 +23,11 @@ Artisan::command('load-scryfall {callbacks?}', function ($callbacks = []) {
 	if (!is_array($callbacks))
 		$callbacks = [];
 
+	if (!is_file($filename)) {
+		$this->comment("Scryfall bulk-data file: " . $filename . " doesn't exist. Full update is recommended: php artisan full-update");
+		return 1;
+	}
+
 	if ($fh = fopen($filename, 'r')) {
 
 		$this->comment("Loading cards...");
@@ -52,9 +57,10 @@ Artisan::command('load-scryfall {callbacks?}', function ($callbacks = []) {
 		$this->comment($count . " cards loaded.");
 	}
 	else {
-		$this->comment("Could not read file: " . $filename);
+		$this->comment("Could not read file: " . $filename . ". Check file permissions.");
+		return 1;
 	}
-	
+	return 0;
 
 })->describe('Load scryfall cards from json in to the local database');
 
