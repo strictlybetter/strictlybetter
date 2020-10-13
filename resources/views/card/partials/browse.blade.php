@@ -53,26 +53,28 @@
 		<div class="col-sm-4 cardpanel-inferior">
 			<h4>Inferiors</h4>
 			<div class="row">
-
-					
-					
-					@foreach($card->inferiors as $i => $inferior)
-						@include('card.partials.relatedcard', ['related' => $inferior, 'type' => 'inferior'])
-					@endforeach
-
-					@if(Request::is('quicksearch'))
-					<div class="mtgcard-wrapper newcard">
-						<a class="card-create-link" href="{{ route('card.create', [$card->id, 'inferior' => 1]) }}" title="New inferior card for {{ $card->name }}">
-							{{ Html::image(asset('image/card-back.jpg'), 'New inferior card', ['class' => 'mtgcard']) }}
-							<span class="mtgcard-text">New inferior card</span>
-							<span class="plus-sign"><b>+</b></span>
-						</a>
-					</div>
-					@endif
+			
+				@foreach($card->inferiors as $i => $inferior)
+					@include('card.partials.relatedcard', ['related' => $inferior, 'type' => 'inferior'])
+				@endforeach
 				
-					@if(count($card->inferiors) == 0)
-						<p style="margin-right: 25px;">No budget options found.</p>
-					@endif
+				@if(Request::is('quicksearch'))
+				<div class="mtgcard-wrapper newcard">
+					<div class="mtgcard-header">
+						New Inferior Card
+					</div>
+					<div class="mtgcard-body">
+						<a class="card-create-link" href="{{ route('card.create', [$card->id]) }}" title="New supeior card for {{ $card->name }}">
+							{{ Html::image(asset('image/card-back.jpg'), 'New inferior card', ['class' => 'mtgcard']) }}
+							<i class="fa fa-plus fw plus-sign"></i>
+						</a>
+					</div>						
+				</div>
+				@endif
+			
+				@if(count($card->inferiors) == 0)
+					<p style="margin-right: 25px;">No budget options found.</p>
+				@endif
 			</div>
 		</div>
 		@endif
