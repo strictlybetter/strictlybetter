@@ -401,7 +401,7 @@ Artisan::command('create-obsoletes', function () {
 				});*/
 		
 
-		if ($card->manacost_sorted !== false) {
+		if (!empty($card->manacost_sorted)) {
 			foreach ($card->manacost_sorted as $symbol => $amount) {
 				$betters = $betters->where(function($q) use ($symbol, $amount){
 					$q->whereNull('manacost_sorted->' . $symbol)
@@ -410,7 +410,7 @@ Artisan::command('create-obsoletes', function () {
 			}
 		}
 		else
-			$betters = $betters->whereJsonContains('manacost_sorted', false);
+			$betters = $betters->whereJsonLength('manacost_sorted', 0);
 
 
 		$betters = $betters->orderBy('id', 'asc')->get();

@@ -32,7 +32,7 @@ class DeckController extends Controller
 
 		// Only pick 10 first tribes
 		$tribes = array_slice($request->input('tribes', []), 0 , 10);
-		$tribes = array_intersect($tribes, get_tribes());
+		$tribes = array_values(array_intersect($tribes, get_tribes()));
 
 		$format = $request->input('format');
 		if (!in_array($format, get_formats()))
@@ -45,7 +45,7 @@ class DeckController extends Controller
 		if ($format === 'commander') {
 
 			$deck_colors = $this->getDeckColors($cards);
-			$un_color_identity = array_diff(["W","B","U","R","G"], $deck_colors);
+			$un_color_identity = array_values(array_diff(["W","B","U","R","G"], $deck_colors));
 		}
 
 		$card_restrictions = function($q) use ($format, $un_color_identity, $cards) {
@@ -109,7 +109,7 @@ class DeckController extends Controller
 	{
 		$deck_colors = [];
 		foreach ($cards as $card) {
-			$deck_colors = array_merge($deck_colors, array_diff($card->color_identity, $deck_colors)); 
+			$deck_colors = array_merge($deck_colors, array_values(array_diff($card->color_identity, $deck_colors))); 
 		}
 		return $deck_colors;
 	}

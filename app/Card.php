@@ -145,16 +145,16 @@ class Card extends Model
     	if ($this->colorManaCount)
     		return $this->colorManaCount;
 
-    	if (!preg_match_all('/({[^\d]+?})/u', $this->manacost, $symbols))
-			return false;
+        $costs = [];
 
-		$costs = [];
-		foreach ($symbols[1] as $symbol) {
-			if (!isset($costs[$symbol]))
-				$costs[$symbol] = 1;
-			else
-				$costs[$symbol]++;
-		}
+    	if (preg_match_all('/({[^\d]+?})/u', $this->manacost, $symbols)) {
+    		foreach ($symbols[1] as $symbol) {
+    			if (!isset($costs[$symbol]))
+    				$costs[$symbol] = 1;
+    			else
+    				$costs[$symbol]++;
+    		}
+        }
 
 		$this->colorManaCount = $costs;
 
@@ -164,11 +164,11 @@ class Card extends Model
     public function costsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
     {
     	// If this costs nothing colored, it can't cost more
-    	if ($this->manacost_sorted === false)
+    	if (empty($this->manacost_sorted))
     		return false;
 
     	// If the other costs nothing colored, then this must cost more
-    	if ($other->manacost_sorted === false)
+    	if (empty($other->manacost_sorted))
     		return true;
 
     	$mana_left = $other->manacost_sorted;
@@ -319,7 +319,7 @@ class Card extends Model
 
     	$mana_counts = $this->colorManaCounts;
 
-    	if ($mana_counts === false)
+    	if (empty($mana_counts))
     		return $cmc;
 
     	if ($cmc === null)
