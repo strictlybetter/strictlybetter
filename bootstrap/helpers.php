@@ -191,6 +191,10 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		'flip' => (isset($obj->layout) && in_array($obj->layout, ['flip', 'transform']))
 	]);
 
+	// Create a few helper columns using existing data
+	$card->substituted_rules = $card->substituteRules();
+	$card->manacost_sorted = $card->calculateColoredManaCosts();
+
 	if ($parent) {
 		$card->multiverse_id = $parent->multiverse_id;
 		$card->legalities = $parent->legalities;
@@ -209,10 +213,6 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 			$parent->save();
 		}
 	}
-
-	// Create a few helper columns using existing data
-	$card->substituted_rules = $card->substituteRules;
-	$card->manacost_sorted = $card->colorManaCounts;
 
 	if ($card->isDirty()) {
 		$card->save();
