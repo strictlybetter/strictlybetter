@@ -42,8 +42,8 @@ class Card extends Model
 	];
 
 	public static $all_supertypes = ["Basic", "Elite", "Host", "Legendary", "Ongoing", "Snow", "World"];
-	public static $ignore_layouts = ["planar", "scheme", "token", "double_faced_token", "emblem"];
-	public static $ignore_types = ['Card', 'Plane', 'Scheme', 'Token', 'Emblem'];
+	public static $ignore_layouts = ["planar", "scheme", "token", "double_faced_token", "emblem", "art_series"];
+	public static $ignore_types = ['Card // Card', 'Card', 'Plane', 'Scheme', 'Token', 'Emblem'];
 
 	protected $with = ['cardFaces'];
 
