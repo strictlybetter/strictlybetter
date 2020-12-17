@@ -18,7 +18,7 @@ use App\Cardtype;
 
 Artisan::command('load-scryfall {callbacks?}', function ($callbacks = []) {
 
-	$filename = 'scryfall-default-cards.json';
+	$filename = 'scryfall-oracle-cards.json';
 
 	if (!is_array($callbacks))
 		$callbacks = [];
@@ -525,7 +525,7 @@ Artisan::command('create-obsoletes', function () {
 
 Artisan::command('download-scryfall', function () {
 
-	$filename = 'scryfall-default-cards.json';
+	$filename = 'scryfall-oracle-cards.json';
 
 	$this->comment("Requesting bulkfile metadata...");
 
@@ -558,7 +558,7 @@ Artisan::command('download-scryfall', function () {
 
 	foreach ($response["data"] as $bulkfile) {
 
-		if ($bulkfile["type"] != "default_cards")
+		if ($bulkfile["type"] !== "oracle_cards")
 			continue;
 
 		$updated_at = new DateTime($bulkfile["updated_at"]);

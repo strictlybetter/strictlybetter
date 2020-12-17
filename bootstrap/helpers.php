@@ -150,26 +150,30 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 
 		$card = $q->orderBy('created_at', 'desc')->first();
 	}
-
-	$image_uri = (isset($obj->image_uris) && $obj->image_uris->normal) ? $obj->image_uris->normal : null;
 	
 	if (!$card)
 		$card = App\Card::newModelInstance();
 
 	else {
 
+		/*
+			These checks are recommended if 'scryfall-default-cards.json' is being loaded.
+			They are not needed with 'scryfall-oracle-cards.json'
+		*/
+		/*
 		// Keep newest multiverse id
 		if ($parent === null && $card->multiverse_id && (empty($obj->multiverse_ids) || $card->multiverse_id > $obj->multiverse_ids[0])) 
 			return false;
-
+		*/
+		/*
 		// Preserve latest available image
 		if ($image_uri === null || parse_url($image_uri, PHP_URL_PATH) === "/file/scryfall-errors/soon.jpg")
 			$image_uri = $card->scryfall_img;
+		*/
 
 		// Don't update updated_at field
 		$card->timestamps = false;
 	}
-		
 
 	// Split cards have multiple faces
 	$multiface = (isset($obj->card_faces) && count($obj->card_faces) >= 2);
@@ -193,7 +197,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		'power' => isset($obj->power) ? $obj->power : null,
 		'toughness' => isset($obj->toughness) ? $obj->toughness : null,
 		'loyalty' => isset($obj->loyalty) ? $obj->loyalty : null,
-		'scryfall_img' => $image_uri,
+		'scryfall_img' => (isset($obj->image_uris) && $obj->image_uris->normal) ? $obj->image_uris->normal : null,
 		'scryfall_api' => isset($obj->uri) ? $obj->uri : null,
 		'scryfall_link' => isset($obj->scryfall_uri) ? $obj->scryfall_uri : null,
 		'main_card_id' => $parent ? $parent->id : null,

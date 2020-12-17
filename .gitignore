@@ -10,3 +10,4 @@ Homestead.yaml
 npm-debug.log
 yarn-error.log
 scryfall-default-cards.json
+scryfall-oracle-cards.json
