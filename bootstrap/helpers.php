@@ -127,8 +127,18 @@ function migrate_obsoletes(App\Card $from, App\Card $to)
 
 function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 {
-	if (!isset($obj->type_line) || !preg_match('/^(.*?)(?: — (.*))?$/', $obj->type_line, $match))
+	
+	if (!isset($obj->type_line))
 		return false;
+
+	$match_count = preg_match_all('/((?:\b[^\x{2014}\/]+\b)+)(?: \x{2014} ((?:\b[^\/]+\b)+))?(:? \/\/ )?/u', $obj->type_line, $match);
+	if (!$match_count)
+		return false;
+
+	/*
+		Pattern v1: '/^(.*?)(?: — (.*))?$/'
+		Pattern v2: '/^(.+?)(?: — (.+?))?(?: \/\/ (.+?)(?: — (.+))?)?$/'
+	*/
 
 	$card = null;
 
@@ -178,8 +188,8 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 	// Split cards have multiple faces
 	$multiface = (isset($obj->card_faces) && count($obj->card_faces) >= 2);
 
-	$types = explode(" ", $match[1]);
-	$subtypes = isset($match[2]) ? explode(" ", $match[2]) : [];
+	$types = array_values(array_filter(explode(" ", implode(" // ", $match[1]))));
+	$subtypes = array_values(array_filter(explode(" ", implode(" // ", $match[2]))));
 
 	$card->fill([
 		'name' =>  $obj->name,
@@ -188,7 +198,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		'legalities' => isset($obj->legalities) ? $obj->legalities : [],
 		'manacost' => isset($obj->mana_cost) ? $obj->mana_cost : "",
 		'cmc' => isset($obj->cmc) ? ceil($obj->cmc) : null,
-		'supertypes' => array_values(array_intersect($types, App\Card::$all_supertypes)),
+		'supertypes' => array_values(array_intersect($types, array_merge(App\Card::$all_supertypes, ['//']))),
 		'types' => array_values(array_diff($types, App\Card::$all_supertypes)),
 		'subtypes' => $subtypes,
 		'colors' => isset($obj->colors) ? $obj->colors : [],
