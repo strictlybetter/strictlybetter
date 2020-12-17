@@ -35,21 +35,25 @@ Artisan::command('load-scryfall {callbacks?}', function ($callbacks = []) {
 
 		$bar = $this->output->createProgressBar(get_line_count($filename));
 
-		while (!feof($fh)) {
-			$line = rtrim(trim(fgets($fh)), ',');
-			$obj = json_decode($line);
+		DB::transaction(function () use ($fh, $bar, &$count, $callbacks) {
 
-			$bar->advance();
-			
-			// Check validity of the card
-			if ($obj === null || !isset($obj->oracle_id) ||
-				!isset($obj->layout) || in_array($obj->layout, Card::$ignore_layouts) || 
-				!isset($obj->type_line) || in_array($obj->type_line, Card::$ignore_types))
-				continue;
+			while (!feof($fh)) {
+				$line = rtrim(trim(fgets($fh)), ',');
+				$obj = json_decode($line);
 
-			if (create_card_from_scryfall($obj, null, $callbacks))
-				$count++;
-		}
+				$bar->advance();
+				
+				// Check validity of the card
+				if ($obj === null || !isset($obj->oracle_id) ||
+					!isset($obj->layout) || in_array($obj->layout, Card::$ignore_layouts) || 
+					!isset($obj->type_line) || in_array($obj->type_line, Card::$ignore_types))
+					continue;
+
+				if (create_card_from_scryfall($obj, null, $callbacks))
+					$count++;
+			}
+
+		});
 		fclose($fh);
 
 		$bar->finish();
@@ -78,29 +82,32 @@ Artisan::command('remove-old-spoilers', function () {
 	Card::whereNull('main_card_id')->whereNull('oracle_id')->delete();
 	$count = $earlier_count - Card::count();
 
-	$duplicate_groups = Card::whereNull('main_card_id')->get()->groupBy('oracle_id')->reject(function($group) {
-		return (count($group) < 2);
-	})->values();
+	DB::transaction(function () use (&$count) {
 
-	foreach ($duplicate_groups as $duplicate_group) {
-		$duplicate_group = $duplicate_group->sortByDesc('id')->values();
-		$latest = $duplicate_group->first();
+		$duplicate_groups = Card::whereNull('main_card_id')->get()->groupBy('oracle_id')->reject(function($group) {
+			return (count($group) < 2);
+		})->values();
 
-		$duplicate_group = $duplicate_group->slice(1)->values();
+		foreach ($duplicate_groups as $duplicate_group) {
+			$duplicate_group = $duplicate_group->sortByDesc('id')->values();
+			$latest = $duplicate_group->first();
 
-		// Move obsoletes from old spoilers to latest card
-		$latest->load(['inferiors', 'superiors']);
-		foreach ($duplicate_group as $duplicate) {
-			migrate_obsoletes($duplicate, $latest);
+			$duplicate_group = $duplicate_group->slice(1)->values();
+
+			// Move obsoletes from old spoilers to latest card
+			$latest->load(['inferiors', 'superiors']);
+			foreach ($duplicate_group as $duplicate) {
+				migrate_obsoletes($duplicate, $latest);
+			}
+
+			$count += count($duplicate_group);
+			$ids = $duplicate_group->pluck('id')->toArray();
+			Card::whereIn('id', $ids)->delete();
 		}
 
-		$count += count($duplicate_group);
-		$ids = $duplicate_group->pluck('id')->toArray();
-		Card::whereIn('id', $ids)->delete();
-	}
-
-	// Remove orphaned functional reprints
-	FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
+		// Remove orphaned functional reprints
+		FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
+	});
 
 	$this->comment("Removed " . $count . " old spoilers");
 
@@ -131,28 +138,30 @@ Artisan::command('populate-functional-reprints', function () {
 	$count = FunctionalReprint::count();
 	$card_count = 0;
 
-	foreach ($results as $reprint_group) {
+	DB::transaction(function () use ($results, &$card_count) {
+		foreach ($results as $reprint_group) {
 
-		$sample = $reprint_group[0];
+			$sample = $reprint_group[0];
 
-		$group = FunctionalReprint::FirstOrCreate([
-			'typeline' => $sample->typeLine,
-			'manacost' => $sample->manacost, 
-			'power' => $sample->power, 
-			'toughness' => $sample->toughness, 
-			'loyalty' => $sample->loyalty, 
-			'rules' => $sample->substituted_rules,
-		]);
+			$group = FunctionalReprint::FirstOrCreate([
+				'typeline' => $sample->typeLine,
+				'manacost' => $sample->manacost, 
+				'power' => $sample->power, 
+				'toughness' => $sample->toughness, 
+				'loyalty' => $sample->loyalty, 
+				'rules' => $sample->substituted_rules,
+			]);
 
-		//$group->cards()->associate($reprint_group->pluck('id'));
-		foreach ($reprint_group as $card) {
-			if ($card->functional_reprints_id != $group->id) {
-				$card->functional_reprints_id = $group->id;
-				$card->save();
-				$card_count++;
+			//$group->cards()->associate($reprint_group->pluck('id'));
+			foreach ($reprint_group as $card) {
+				if ($card->functional_reprints_id != $group->id) {
+					$card->functional_reprints_id = $group->id;
+					$card->save();
+					$card_count++;
+				}
 			}
 		}
-	}
+	});
 
 	$results = FunctionalReprint::count() - $count;
 	$this->comment($results . " new families created and " . $card_count . " cards added");
@@ -164,18 +173,21 @@ Artisan::command('remove-bad-cards', function () {
 	// Delete cards with types that should be ignored
 	// Use 1 = 0 for safety, if $igore_types is empty
 	$card_count = Card::count();
+	$reprint_count = FunctionalReprint::count();
 
-	$q = Card::whereRaw('1 = 0')->orWhere(function($q) {
-		foreach (Card::$ignore_types as $type) {
-			$q->orWhereJsonContains('types', $type);
-		}
-	})->delete();
+	DB::transaction(function () {
+
+		$q = Card::whereRaw('1 = 0')->orWhere(function($q) {
+			foreach (Card::$ignore_types as $type) {
+				$q->orWhereJsonContains('types', $type);
+			}
+		})->delete();
+
+		// Delete any orphaned functional reprints
+		FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
+	});
 
 	$card_count = $card_count - Card::count();
-
-	// Delete any orphaned functional reprints
-	$reprint_count = FunctionalReprint::count();
-	FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
 	$reprint_count = $reprint_count - FunctionalReprint::count();
 
 	$this->comment("Removed " . $card_count . " bad cards and " . $reprint_count . " functional reprint families");
@@ -190,55 +202,57 @@ Artisan::command('create-functional-obsoletes', function () {
 	$results = FunctionalReprint::with(['cards.inferiors', 'cards.superiors'])->get();
 	$old_obsolete_count = Obsolete::count();
 
-	foreach ($results as $reprint_group) {
+	DB::transaction(function () use ($results) {
+		foreach ($results as $reprint_group) {
 
-		if (count($reprint_group->cards) < 2)
-			continue;
+			if (count($reprint_group->cards) < 2)
+				continue;
 
-		// Find all relations for all cards in the reprint group (+ their relation labels)
-		$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
-		$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
+			// Find all relations for all cards in the reprint group (+ their relation labels)
+			$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
+			$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
 
-		// Replace 'downvoted' label with false, since are only going to create new relations
-		// Other labels should be equal, since the cards are reprints of each other
-		foreach ($inferior_ids as $id => $labels) {
-			$labels['downvoted'] = false;
-			$inferior_ids[$id] = ["labels" => $labels];
-		}
-		foreach ($superior_ids as $id => $labels) {
-			$labels['downvoted'] = false;
-			$superior_ids[$id] = ["labels" => $labels];
-		}
-
-		// Sync all relations of each card in the group with each other card in the group
-		foreach ($reprint_group->cards as $card) {
-
-			// Filter attachable ids here, so we can rely on downvoted = false label
-			$inferiors_to_add = array_diff_key($inferior_ids, $card->inferiors->pluck('', 'id')->toArray());
-			$superiors_to_add = array_diff_key($superior_ids, $card->superiors->pluck('', 'id')->toArray());
-
-			if (count($inferiors_to_add) > 0) {
-				$changes = $card->inferiors()->syncWithoutDetaching($inferiors_to_add);
-
-				// Touch attached inferiors, so they are listed first on Browse page
-				if (!empty($changes['attached'])) {
-					$inferiors = $card->inferiors()->whereIn('cards.id', $changes['attached'])->get();
-
-					foreach ($inferiors as $inferior) {
-						$inferior->touch();
-					}
-				}	
+			// Replace 'downvoted' label with false, since are only going to create new relations
+			// Other labels should be equal, since the cards are reprints of each other
+			foreach ($inferior_ids as $id => $labels) {
+				$labels['downvoted'] = false;
+				$inferior_ids[$id] = ["labels" => $labels];
+			}
+			foreach ($superior_ids as $id => $labels) {
+				$labels['downvoted'] = false;
+				$superior_ids[$id] = ["labels" => $labels];
 			}
 
-			if (count($superiors_to_add) > 0) {
-				$changes = $card->superiors()->syncWithoutDetaching($superiors_to_add);
+			// Sync all relations of each card in the group with each other card in the group
+			foreach ($reprint_group->cards as $card) {
 
-				// Touch this card if any new superiors were added, so this card is listed first on Browse page
-				if (!empty($changes['attached']))
-					$card->touch();
+				// Filter attachable ids here, so we can rely on downvoted = false label
+				$inferiors_to_add = array_diff_key($inferior_ids, $card->inferiors->pluck('', 'id')->toArray());
+				$superiors_to_add = array_diff_key($superior_ids, $card->superiors->pluck('', 'id')->toArray());
+
+				if (count($inferiors_to_add) > 0) {
+					$changes = $card->inferiors()->syncWithoutDetaching($inferiors_to_add);
+
+					// Touch attached inferiors, so they are listed first on Browse page
+					if (!empty($changes['attached'])) {
+						$inferiors = $card->inferiors()->whereIn('cards.id', $changes['attached'])->get();
+
+						foreach ($inferiors as $inferior) {
+							$inferior->touch();
+						}
+					}	
+				}
+
+				if (count($superiors_to_add) > 0) {
+					$changes = $card->superiors()->syncWithoutDetaching($superiors_to_add);
+
+					// Touch this card if any new superiors were added, so this card is listed first on Browse page
+					if (!empty($changes['attached']))
+						$card->touch();
+				}
 			}
 		}
-	}
+	});
 	$new_obsoletes = Obsolete::count() - $old_obsolete_count;
 
 	$this->comment($new_obsoletes . " new suggestions created.");
@@ -246,12 +260,14 @@ Artisan::command('create-functional-obsoletes', function () {
 })->describe('Creates suggestions based on functional reprints and their existing suggestions');
 
 Artisan::command('create-labels', function () {
-	$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
+	DB::transaction(function () {
+		$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
 
-	foreach ($obsoletes as $obsolete) {
-		$obsolete->labels = create_labels($obsolete->inferior, $obsolete->superior, $obsolete);
-		$obsolete->save(['touch' => false]);
-	}
+		foreach ($obsoletes as $obsolete) {
+			$obsolete->labels = create_labels($obsolete->inferior, $obsolete->superior, $obsolete);
+			$obsolete->save(['touch' => false]);
+		}
+	});
 })->describe('Re-creates labels for obsolete cards');
 
 Artisan::command('remove-bad-suggestions', function () {
@@ -259,16 +275,20 @@ Artisan::command('remove-bad-suggestions', function () {
 	$this->comment("Removing bad suggestions...");
 	$count = 0;
 
-	$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
-	foreach ($obsoletes as $obsolete) {
-		if (!$obsolete->superior->isEqualOrBetterThan($obsolete->inferior)) {
+	DB::transaction(function () use (&$count) {
 
-			$this->comment("Removing suggestion: " . $obsolete->inferior->name . " -> " . $obsolete->superior->name);
+		$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
+	
+		foreach ($obsoletes as $obsolete) {
+			if (!$obsolete->superior->isEqualOrBetterThan($obsolete->inferior)) {
 
-			$obsolete->delete();
-			$count++;
+				$this->comment("Removing suggestion: " . $obsolete->inferior->name . " -> " . $obsolete->superior->name);
+
+				$obsolete->delete();
+				$count++;
+			}
 		}
-	}
+	});
 	$this->comment("Removed " . $count . " bad suggestions.");
 
 })->describe('Removes suggestions that no longer pass inferior-superior check');
@@ -281,18 +301,20 @@ Artisan::command('recreate-substitute-rules', function () {
 	$cards = Card::all();
 	$bar = $this->output->createProgressBar(count($cards));
 
-	foreach ($cards as $card) {
+	DB::transaction(function () use ($cards, $bar, &$count) {
+		foreach ($cards as $card) {
 
-		$bar->advance();
-		$new_rules = $card->substituteRules;
+			$bar->advance();
+			$new_rules = $card->substituteRules();
 
-		if ($new_rules !== $card->substituted_rules) {
-			$card->substituted_rules = $new_rules;
+			if ($new_rules !== $card->substituted_rules) {
+				$card->substituted_rules = $new_rules;
 
-			$card->save();
-			$count++;
+				$card->save();
+				$count++;
+			}
 		}
-	}
+	});
 	$bar->finish();
 	$this->comment("Updated " . $count . " cards with new rule substitutions.");
 
@@ -314,6 +336,8 @@ Artisan::command('create-obsoletes', function () {
 	$bar->start();
 	$count = 0;
 	$old_obsolete_count = Obsolete::count();
+
+	DB::transaction(function () use ($cards, $bar, &$count) {
 
 	foreach ($cards as $card) {
 
@@ -492,6 +516,7 @@ Artisan::command('create-obsoletes', function () {
 		
 		$bar->advance();
 	}
+	});
 	$bar->finish();
 	$this->comment($count . " better cards found. " . (Obsolete::count() - $old_obsolete_count) . "  new records created for database. ");
 
@@ -608,13 +633,16 @@ Artisan::command('download-typedata', function () {
 			continue;
 		}
 
-		foreach ($response["data"] as $key) {
-			Cardtype::FirstOrCreate([
-				'section' => 'subtype',
-				'type' => $type,
-				'key' => $key
-			]);
-		}
+		DB::transaction(function () use ($response, $type) {
+
+			foreach ($response["data"] as $key) {
+				Cardtype::FirstOrCreate([
+					'section' => 'subtype',
+					'type' => $type,
+					'key' => $key
+				]);
+			}
+		});
 		$this->comment("Download complete");
 	}
 
