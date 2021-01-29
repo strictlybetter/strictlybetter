@@ -3,7 +3,7 @@
 namespace App;
 
 use App\Card;
-use App\Suggestion;
+use App\Vote;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
@@ -30,9 +30,9 @@ class Obsolete extends Pivot
 		return $this->belongsTo(Card::class, 'inferior_card_id');
 	}
 
-	public function suggestions() 
+	public function votes() 
 	{
-		return $this->hasMany(Suggestion::class, 'obsolete_id');
+		return $this->hasMany(Vote::class, 'obsolete_id');
 	}
 
 	public function getVotesumAttribute()

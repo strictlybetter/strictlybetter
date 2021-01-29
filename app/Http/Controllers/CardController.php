@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Card;
 use App\Obsolete;
-use App\Suggestion;
+use App\Vote;
 use App\Cardtype;
 use Illuminate\Http\Request;
 
@@ -371,7 +371,7 @@ class CardController extends Controller
 	protected function addVote(Obsolete $obsolete, $upvote) 
 	{
 		$ip = $this->request->ip();
-		$previous_vote = Suggestion::where('obsolete_id', $obsolete->id)->where('ip', $ip)->first();
+		$previous_vote = Vote::where('obsolete_id', $obsolete->id)->where('ip', $ip)->first();
 
 		if ($previous_vote) {
 			if ($previous_vote->upvote == $upvote)
@@ -388,7 +388,7 @@ class CardController extends Controller
 		}
 		else {
 
-			$obsolete->suggestions()->create([
+			$obsolete->votes()->create([
 				'obsolete_id' => $obsolete->id,
 				'ip' => $ip,
 				'upvote' => $upvote

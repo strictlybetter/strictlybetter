@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Card;
 use App\Obsolete;
-use App\Suggestion;
 use App\FunctionalReprint;
 use Illuminate\Http\Request;
 

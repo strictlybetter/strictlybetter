@@ -6,9 +6,9 @@ use App\Obsolete;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Suggestion extends Model
+class Vote extends Model
 {
-	protected $table = 'community_suggestions';
+	protected $table = 'votes';
 	protected $fillable = ['ip', 'obsolete_id', 'upvote'];
 
 	public $timestamps = false;
