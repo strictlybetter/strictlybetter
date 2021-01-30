@@ -95,23 +95,23 @@ function migrate_obsoletes(App\Card $from, App\Card $to)
 	foreach ($from->superiors as $superior) {
 		if (in_array($superior->id, $existing_superiors)) {
 
-			$to_obsolete = App\Obsolete::with(['suggestions'])->where('inferior_card_id', $to->id)->where('superior_card_id', $superior->id)->first();
-			$from_obsolete = App\Obsolete::with(['suggestions'])->where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->first();
-			foreach ($from_obsolete->suggestions as $suggestion) {
+			$to_obsolete = App\Obsolete::with(['votes'])->where('inferior_card_id', $to->id)->where('superior_card_id', $superior->id)->first();
+			$from_obsolete = App\Obsolete::with(['votes'])->where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->first();
+			foreach ($from_obsolete->suggestions as $vote) {
 
 				// Same IP already exists, just delete the older vote
-				if (in_array($suggestion->ip, $to_obsolete->suggestions->pluck('ip')->toArray()))
-					$suggestion->delete();
+				if (in_array($vote->ip, $to_obsolete->votes->pluck('ip')->toArray()))
+					$vote->delete();
 
 				// Redirect the vote to other obsolete relation
 				else {
-					$suggestion->obsolete_id = $to_obsolete->id;
-					if ($suggestion->upvote)
+					$vote->obsolete_id = $to_obsolete->id;
+					if ($vote->upvote)
 						$to_obsolete->upvotes++;
 					else 
 						$to_obsolete->downvotes++;
 
-					$suggestion->save();
+					$vote->save();
 				}
 			}
 			$to_obsolete->save();
