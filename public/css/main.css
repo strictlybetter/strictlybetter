@@ -61,6 +61,17 @@ a.card-link:hover .mtgcard,a.card-create-link:hover .mtgcard {
 	margin: auto 0 auto 10px;
 	max-width: 63%;
 }
+.trophy {
+	position: absolute;
+	top: 25%;
+	left: 2.35rem;
+}
+.inferior-select .trophy {
+	color: silver;
+}
+.superior-select .trophy {
+	color: gold;
+}
 .mtgcard-wrapper {
 	/*min-width: 233px;*/
 	min-height: 311px;
@@ -182,6 +193,9 @@ select {
 		padding: 0;
 		max-width: 100% !important;
 		width: 100%;
+	}
+	#upgrade_sign_wrapper {
+		display: none;
 	}
 }
 
@@ -561,6 +575,9 @@ select {
 	.collapse-inferior .cardpanel-current .mtgcard-wrapper a.card-link:hover .mtgcard {
 		margin-left: 0;
 		left: 100px;
+	}
+	.mtgcard-select-text {
+		display: none;
 	}
 }
 

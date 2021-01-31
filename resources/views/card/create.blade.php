@@ -46,8 +46,8 @@
 		{{ Form::open(['route' => 'card.store']) }}
 
 			<div class="row" style="min-height:220px"> 
-				<div class="form-group col-lg-5">
-					<label for="inferior" style="font-size:larger;">Current Card</label>
+				<div class="form-group col-lg-5 inferior-select">
+					<label for="inferior" style="font-size:x-large;">Inferior Card</label>
 					{{ Form::select('inferior', [], null, ['id' => 'inferior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
 				</div>
 
@@ -55,8 +55,8 @@
 					<i class="fa fa-arrow-right" style="font-size:30px;"></i>
 				</div>
 
-				<div class="form-group col-lg-5">
-					<label for="superior" style="font-size:larger;">Strictly Better Card</label>
+				<div class="form-group col-lg-5 superior-select">
+					<label for="superior" style="font-size:x-large;">Superior Card</label>
 					{{ Form::select('superior', [], null, ['id' => 'superior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
 				</div>
 			
@@ -91,7 +91,7 @@ var window_width = $(window).width();
 
 $(document).ready(function() { 
 
-	function select2_template(data) {
+	function select2_template(data, append_trophy) {
 
 		var template = $('<span class="row">');
 		var text = $('<span class="mtgcard-select-text">');
@@ -107,7 +107,11 @@ $(document).ready(function() {
 		var img = $('<img class="mtgcard-thumb">');
 		img.attr('src', (data.imageUrl ? data.imageUrl : "{{ asset('image/card-back.jpg') }}"));
 
+		var trophy = $('<i class="fa fa-trophy fa-5x trophy" aria-hidden="true">');
+
 		template.append(img);
+		if (append_trophy)
+			template.append(trophy);
 		template.append(text);
 
 		return template[0].outerHTML;
@@ -115,7 +119,7 @@ $(document).ready(function() {
 
 	var select2_options = {
 		allowClear: true, 
-		placeholder: "Select card",
+		placeholder: "",
 		minimumInputLength: 2,
 		data: [],
 		ajax: {
@@ -145,14 +149,15 @@ $(document).ready(function() {
 			return markup;
 		},
 		templateResult: function(data) {
-			return select2_template(data);
+			return select2_template(data, false);
 		},
 		templateSelection: function(data) {
-			return select2_template(data);
+			return select2_template(data, true);
 		}
 	};
 
 	select2_options.data = inferiors;
+	select2_options.placeholder = "Select inferior card";
 	$("#inferior").select2(select2_options).on('select2:select', function (e) {
 
 		$.ajax({
@@ -167,7 +172,7 @@ $(document).ready(function() {
 	});
 	
 	select2_options.data = superiors;
-	select2_options.placeholder = "Select strictly better card";
+	select2_options.placeholder = "Select superior card";
 	$("#superior").select2(select2_options);
 
 	// Rebuild on resize for responsive design
@@ -180,12 +185,12 @@ $(document).ready(function() {
 		window_width = $(window).width();
 
 		select2_options.data = inferiors;
-		select2_options.placeholder = "Select card";
+		select2_options.placeholder = "Select inferior card";
 
 		$("#inferior").select2(select2_options);
 
 		select2_options.data = superiors;
-		select2_options.placeholder = "Select strictly better card";
+		select2_options.placeholder = "Select superior card";
 
 		$("#superior").select2(select2_options);
 	});
