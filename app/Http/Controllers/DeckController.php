@@ -38,7 +38,7 @@ class DeckController extends Controller
 		if (!in_array($format, get_formats()))
 			$format = "";
 
-		$cards = Card::whereIn('name', array_keys($deck))->whereNull('main_card_id')->get();
+		$cards = Card::select(['id', 'name', 'color_identity'])->whereIn('name', array_keys($deck))->whereNull('main_card_id')->get();
 
 		// Find colors the deck musn't contain (useful for Commander)
 		$un_color_identity = [];
@@ -50,6 +50,7 @@ class DeckController extends Controller
 
 		$card_restrictions = function($q) use ($format, $un_color_identity, $cards) {
 
+			$q->guiOnly();
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
 
@@ -63,7 +64,7 @@ class DeckController extends Controller
 		};
 
 		// Find replacements
-		$upgrades = Card::with(['superiors' => $card_restrictions])->whereIn('name', array_keys($deck))->whereNull('main_card_id')->whereHas('superiors', $card_restrictions)->get();
+		$upgrades = Card::guiOnly()->with(['superiors' => $card_restrictions])->whereIn('name', $cards->pluck('name'))->whereNull('main_card_id')->whereHas('superiors', $card_restrictions)->get();
 
 		// Additional sorting if tribes are selected
 		if (count($tribes) > 0) {

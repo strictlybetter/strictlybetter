@@ -324,7 +324,26 @@ Artisan::command('create-obsoletes', function () {
 
 	$this->comment("Looking for better cards...");
 
-	$cards = Card::with(['superiors'])
+	$obsoletion_attributes = [
+		'id',
+		'supertypes',
+		'types',
+		'subtypes',
+		'colors',
+		'color_identity',
+		'manacost_sorted',
+		'cmc',
+		'main_card_id',
+		'flip',
+		'substituted_rules',
+		'manacost',
+		'power',
+		'toughness',
+		'loyalty',
+		'functional_reprints_id'
+	];
+
+	$cards = Card::select($obsoletion_attributes)
 		->whereNull('main_card_id')
 		->whereDoesntHave('cardFaces')
 		->orderBy('id', 'asc')->get();
@@ -341,7 +360,8 @@ Artisan::command('create-obsoletes', function () {
 
 	foreach ($cards as $card) {
 
-		$betters = Card::where('substituted_rules', $card->substituted_rules)
+		$betters = Card::select($obsoletion_attributes)
+			->where('substituted_rules', $card->substituted_rules)
 			->whereJsonContains('supertypes', $card->supertypes)
 			->whereJsonLength('supertypes', count($card->supertypes))
 			->where('id', "!=", $card->id)

@@ -126,6 +126,8 @@ class CardController extends Controller
 
 		$card_filters = function($q) use ($format, $tribe, $filters, $order) {
 
+			$q->guiOnly();
+
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
 
@@ -143,7 +145,7 @@ class CardController extends Controller
 			$q->orderBy($order['obsolete'], $order['direction']);
 		};
 
-		$cards = Card::with(['superiors' => $card_filters, 'inferiors' => $card_filters, 'functionalReprints' => function ($q) use ($format) {
+		$cards = Card::guiOnly()->with(['superiors' => $card_filters, 'inferiors' => $card_filters, 'functionalReprints' => function ($q) use ($format) {
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
 		}]);
@@ -320,7 +322,7 @@ class CardController extends Controller
 
 		$limit = $request->input('limit') ? $request->input('limit') : 25;
 		$term = escapeLike($request->input('term'));
-		$cards = Card::where('name', 'like', $term.'%')->whereNull('main_card_id')->orderBy('name')->paginate($limit);
+		$cards = Card::guiOnly()->where('name', 'like', $term.'%')->whereNull('main_card_id')->orderBy('name')->paginate($limit);
 
 		$list = [];
 
@@ -340,7 +342,7 @@ class CardController extends Controller
 		]);
 
 		$term = escapeLike($request->input('term'));
-		$card = Card::where('name', 'like', $term.'%')->whereNull('main_card_id')->first();
+		$card = Card::select(['name'])->where('name', 'like', $term.'%')->whereNull('main_card_id')->first();
 
 		if (!$card)
 			return back()->withErrors(['No results for card: '. $request->input('term')])->withInput();

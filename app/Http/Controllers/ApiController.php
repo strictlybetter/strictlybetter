@@ -39,16 +39,8 @@ class ApiController extends Controller
 				'downvotes' => $obsolete->downvotes,
 				'created_at' => $obsolete->created_at->toDateTimeString(),
 				'updated_at' => $obsolete->updated_at->toDateTimeString(),
-				'inferior' => [
-					'name' => $obsolete->inferior->name,
-					'multiverseid' => $obsolete->inferior->multiverse_id,
-					'functional_reprints_id' => $obsolete->inferior->functional_reprints_id
-				],
-				'superior' => [
-					'name' => $obsolete->superior->name,
-					'multiverseid' => $obsolete->superior->multiverse_id,
-					'functional_reprints_id' => $obsolete->superior->functional_reprints_id
-				],
+				'inferior' => $obsolete->inferior->only(['name', 'multiverse_id', 'functional_reprints_id']),
+				'superior' => $obsolete->superior->only(['name', 'multiverse_id', 'functional_reprints_id']),
 				'labels' => $obsolete->labels
 
 			];

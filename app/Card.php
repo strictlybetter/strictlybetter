@@ -7,29 +7,7 @@ use App\FunctionalReprint;
 
 class Card extends Model
 {
-	protected $fillable = [
-		'name',
-		'oracle_id', 
-		'multiverse_id', 
-		'legalities', 
-		'price', 
-		'manacost', 
-		'cmc', 
-		'supertypes', 
-		'types', 
-		'subtypes',
-		'colors',
-		'color_identity',
-		'rules',
-		'power',
-		'toughness',
-		'loyalty',
-		'scryfall_img',
-		'scryfall_api',
-		'scryfall_link',
-		'flip',
-		'main_card_id'
-	];
+	protected $guarded = ['id'];
 
 	protected $casts = [
 		'legalities' => 'array',
@@ -44,6 +22,28 @@ class Card extends Model
 	public static $all_supertypes = ["Basic", "Elite", "Host", "Legendary", "Ongoing", "Snow", "World"];
 	public static $ignore_layouts = ["planar", "scheme", "token", "double_faced_token", "emblem", "art_series"];
 	public static $ignore_types = ['Card // Card', 'Card', 'Plane', 'Scheme', 'Token', 'Emblem'];
+
+	public static $functionality_attributes = [
+		'typeline',
+		'manacost',
+		'power',
+		'toughness',
+		'loyalty',
+		'substituted_rules'
+	];
+
+	public static $gui_attributes = [
+		'cards.id',
+		'name',
+		'multiverse_id',
+		'scryfall_img',
+		'scryfall_link',
+		'supertypes',
+		'types',
+		'subtypes',
+		'functional_reprints_id',
+		'main_card_id'
+	];
 
 	protected $with = ['cardFaces'];
 
@@ -79,6 +79,11 @@ class Card extends Model
 		return $this->hasMany(Card::class, 'main_card_id', 'id');
 	}
 
+	public function scopeGuiOnly($query, array $additional = [])
+	{
+		return $query->select(array_merge(Card::$gui_attributes, $additional));
+	}
+
 	public function getImageUrlAttribute()
 	{
 		if ($this->scryfall_img)
@@ -107,13 +112,12 @@ class Card extends Model
 
 	public function getFunctionalReprintLineAttribute()
 	{
-		if (count($this->cardFaces) == 0)
-			return $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->substituted_rules;
-
-		$line = $this->typeline .'|'. $this->manacost .'|'. $this->power .'|'. $this->toughness .'|'. $this->loyalty .'|'. $this->substituted_rules;
+		$values = array_values($this->only(Card::$functionality_attributes));
+		$line = implode("|", $values);
 
 		foreach ($this->cardFaces as $face) {
-			$line = $line . '|' . $face->typeline .'|'. $face->manacost .'|'. $face->power .'|'. $face->toughness .'|'. $face->loyalty .'|'. $face->substituted_rules;
+			$values = array_values($face->only(Card::$functionality_attributes));
+			$line = $line . '|' . implode("|", $values);
 		}
 
 		return $line;
