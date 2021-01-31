@@ -97,7 +97,7 @@ function migrate_obsoletes(App\Card $from, App\Card $to)
 
 			$to_obsolete = App\Obsolete::with(['votes'])->where('inferior_card_id', $to->id)->where('superior_card_id', $superior->id)->first();
 			$from_obsolete = App\Obsolete::with(['votes'])->where('inferior_card_id', $from->id)->where('superior_card_id', $superior->id)->first();
-			foreach ($from_obsolete->suggestions as $vote) {
+			foreach ($from_obsolete->votes as $vote) {
 
 				// Same IP already exists, just delete the older vote
 				if (in_array($vote->ip, $to_obsolete->votes->pluck('ip')->toArray()))
