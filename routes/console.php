@@ -356,7 +356,7 @@ Artisan::command('create-obsoletes', function () {
 	$count = 0;
 	$old_obsolete_count = Obsolete::count();
 
-	DB::transaction(function () use ($cards, $bar, &$count) {
+	DB::transaction(function () use ($cards, $bar, $obsoletion_attributes, &$count) {
 
 	foreach ($cards as $card) {
 
