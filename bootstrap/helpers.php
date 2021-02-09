@@ -201,6 +201,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		'supertypes' => array_values(array_intersect($types, array_merge(App\Card::$all_supertypes, ['//']))),
 		'types' => array_values(array_diff($types, App\Card::$all_supertypes)),
 		'subtypes' => $subtypes,
+		'typeline' => $obj->type_line,
 		'colors' => isset($obj->colors) ? $obj->colors : [],
 		'color_identity' => isset($obj->color_identity) ? $obj->color_identity : [],
 		'rules' => isset($obj->oracle_text) ? $obj->oracle_text : "",

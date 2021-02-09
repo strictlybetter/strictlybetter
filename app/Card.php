@@ -38,9 +38,7 @@ class Card extends Model
 		'multiverse_id',
 		'scryfall_img',
 		'scryfall_link',
-		'supertypes',
-		'types',
-		'subtypes',
+		'typeline',
 		'functional_reprints_id',
 		'main_card_id'
 	];
@@ -103,11 +101,6 @@ class Card extends Model
 	public function getGathererUrlAttribute()
 	{
 		return $this->multiverse_id ? ('https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=' . $this->multiverse_id) : null;
-	}
-
-	public function getTypeLineAttribute()
-	{
-		return trim(implode(" ", $this->supertypes) . " " . implode(" ", $this->types) . " - " . implode(" ", $this->subtypes), " -");
 	}
 
 	public function getFunctionalReprintLineAttribute()

@@ -144,7 +144,7 @@ Artisan::command('populate-functional-reprints', function () {
 			$sample = $reprint_group[0];
 
 			$group = FunctionalReprint::FirstOrCreate([
-				'typeline' => $sample->typeLine,
+				'typeline' => $sample->typeline,
 				'manacost' => $sample->manacost, 
 				'power' => $sample->power, 
 				'toughness' => $sample->toughness, 

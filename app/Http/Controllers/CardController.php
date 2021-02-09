@@ -245,7 +245,7 @@ class CardController extends Controller
 				'text' => $card->name,
 				'id' => $card->id,
 				'imageUrl' => $card->imageUrl,
-				'typeline' => $card->typeLine
+				'typeline' => $card->typeline
 			];
 
 			if ($selected_card && $card->id == $selected_card->id)
