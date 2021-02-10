@@ -21,7 +21,6 @@ class AddTypelineToCards extends Migration
 
             // Load typeline
             Artisan::call('load-scryfall', []);
-            DB::statement('ALTER TABLE cards ALTER COLUMN typeline DROP DEFAULT');
 
             // Reprints use wrong hyphen, upadte it
             $reprints = App\FunctionalReprint::with(['cards'])->get();
@@ -30,6 +29,7 @@ class AddTypelineToCards extends Migration
                 $reprint->save();
             }
         }
+        DB::statement('ALTER TABLE cards ALTER COLUMN typeline DROP DEFAULT');
     }
 
     /**
