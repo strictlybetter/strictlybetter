@@ -113,11 +113,20 @@
 		</script>
 		<script>
 
-			$.ajaxSetup({
-				headers: {
-					'X-CSRF-TOKEN': "{{ csrf_token() }}"
+			$.ajaxSetup({ headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" } });
+			@if(config('session.lifetime') > 0)
+				setInterval(refreshCsrf, {{ (config('session.lifetime') * 60 - 30) * 1000 }});
+
+				function refreshCsrf() {
+					$.ajax({
+						url: '/refresh-csrf',
+						method: 'post'
+					}).then(function (response) {
+						$('input[name="_token"]').val(response.token);
+						$.ajaxSetup({ headers: { 'X-CSRF-TOKEN': response.token } });
+					});
 				}
-			});
+			@endif
 
 			var card_cache = {};
 			function card_autocomplete(selector, max_results, select_callback) {

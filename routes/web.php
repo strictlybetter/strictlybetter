@@ -19,6 +19,9 @@ Route::bind('card', function ($id) {
 	return App\Card::where('id', $id)->whereNull('main_card_id')->first() ?? abort(404);
 });
 
+// CSRF refresh route (still requires valid csrf token)
+Route::post('/refresh-csrf', function() { return response()->json(['token' => csrf_token()]); });
+
 Route::get('/', 'CardController@index')->name('index');
 
 Route::get('/deck', 'DeckController@index')->name('deck.index');
