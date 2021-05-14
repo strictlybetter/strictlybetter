@@ -58,7 +58,7 @@ class AddTypelineToCards extends Migration
     public function down()
     {
         Schema::table('cards', function (Blueprint $table) {
-            $table->dropCOlumn('typeline');
+            $table->dropColumn('typeline');
         });
 
         if (App\Card::count() > 0) {
