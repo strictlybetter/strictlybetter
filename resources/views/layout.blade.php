@@ -13,8 +13,9 @@
 		<meta name="apple-mobile-web-app-title" content="Strictly Better" />
 
 		<!-- Preconnect to sites providing card images -->
-		<link rel="preconnect" href="https://gatherer.wizards.com" />
-		<link rel="preconnect" href="https://img.scryfall.com" />
+		@foreach(config('externals.preconnect') as $precon_uri)
+			<link rel="preconnect" href="{{ $precon_uri }}" />
+		@endforeach
 
 		<link rel="icon" type="image/x-icon" href="{{ URL::to('favicon.ico') }}">
 		<link rel="apple-touch-icon" sizes="180x180" href="{{ URL::to('apple-touch-icon.png') }}">

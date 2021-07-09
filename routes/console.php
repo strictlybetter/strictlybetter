@@ -552,7 +552,7 @@ Artisan::command('download-scryfall', function () {
 	$client = new \GuzzleHttp\Client();
 	$request = null;
 	try {
-		$request = $client->get('https://api.scryfall.com/bulk-data');
+		$request = $client->get(config('externals.scryfall.bulk-data'));
 	} 
 	catch (\GuzzleHttp\Exception\RequestException $e) {
 		report($e);
@@ -634,7 +634,7 @@ Artisan::command('download-typedata', function () {
 
 		$request = null;
 		try {
-			$request = $client->get('https://api.scryfall.com/catalog/' . $uri);
+			$request = $client->get(config('externals.scryfall.catalog') . '/'. $uri);
 		}
 		catch (\GuzzleHttp\Exception\RequestException $e) {
 			report($e);
