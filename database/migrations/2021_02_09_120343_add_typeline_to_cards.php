@@ -43,8 +43,13 @@ class AddTypelineToCards extends Migration
             // Reprints use wrong hyphen, upadte it
             $reprints = App\FunctionalReprint::with(['cards'])->get();
             foreach ($reprints as $reprint) {
-                $reprint->typeline = $reprint->cards->first()->typeline;
-                $reprint->save();
+                $sample = $reprint->cards->first();
+                if ($sample) {
+                    $reprint->typeline = $sample->typeline;
+                    $reprint->save();
+                }
+                else
+                    $reprint->delete();
             }
         }
         DB::statement('ALTER TABLE cards ALTER COLUMN typeline DROP DEFAULT');
@@ -67,8 +72,13 @@ class AddTypelineToCards extends Migration
             $reprints = App\FunctionalReprint::with(['cards'])->get();
             foreach ($reprints as $reprint) {
 
-                $reprint->typeline = $this->oldTypeLine($reprint->cards->first());
-                $reprint->save();
+                $sample = $reprint->cards->first();
+                if ($sample) {
+                    $reprint->typeline = $this->oldTypeLine($sample);
+                    $reprint->save();
+                }
+                else
+                    $reprint->delete();
             }
         }
     }
