@@ -303,7 +303,7 @@ function create_labels(App\Card $inferior, App\Card $superior, App\Obsolete $obs
 
 	$labels = [
 		'more_colors' => (count($superior->colors) > count($inferior->colors)),
-		'more_colored_mana' => $superior->costsMoreColoredThan($inferior),
+		'more_colored_mana' => $superior->costsMoreColoredThan($inferior) && $superior->alternativeCostsMoreColoredThan($inferior),
 		'supertypes_differ' => (count($superior->supertypes) != count($inferior->supertypes) || array_diff($superior->supertypes, $inferior->supertypes)),
 		'types_differ' => (count($superior->types) != count($inferior->types) || array_diff($superior->types, $inferior->types)),
 		'subtypes_differ' => (count($superior->subtypes) != count($inferior->subtypes) || array_diff($superior->subtypes, $inferior->subtypes)),

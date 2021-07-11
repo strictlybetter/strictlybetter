@@ -19,6 +19,12 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>11/07/21</h4>
+	<ul>
+		<li>Added support for alternative manacost: Overload.
+		Ie. "Damn" is now better than "Wrath of God".</li>
+	</ul>
+
 	<h4>11/09/20</h4>
 	<ul>
 		<li>Use Scryfall's new card image CDN rather than Gatherer for performance</li>

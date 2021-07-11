@@ -247,6 +247,19 @@ class Card extends Model
 		return false;
 	}
 
+	/**
+	 * Loosely determines if card is or can be equal or better than another card. 
+	 * Does not compare rules text, power/toughness (as it can be modified by rules)
+	 *
+	 * This should not be used to find superior cards automatically, only to validate user suggestions.
+	 *
+	 * Currently compares:
+	 * Matching supertypes, types (with few exceptions), subtypes (must have one in common).
+	 * Manacost must be same or lower, some alternative costs are also considered when determining manacost
+	 * 
+	 * @param  Card - other card to compare to
+	 * @return boolean - Costs more than the compared card
+	 */
 	public function isEqualOrBetterThan(Card $other)
 	{
 		// Must not be a duplicate
@@ -309,8 +322,9 @@ class Card extends Model
 				return false;
 		}
 
-		if ($this->costsMoreColoredThan($other, true))
+		if ($this->costsMoreColoredThan($other, true) && $this->alternativeCostsMoreColoredThan($other, true))
 			return false;
+
 		return true;
 	}
 
@@ -322,5 +336,103 @@ class Card extends Model
 	public function hasLoyalty() 
 	{
 		return ($this->loyalty !== null);
+	}
+
+	/**
+	 * Compares alternative costs for cards.
+	 * 
+	 * @param  Card - to compare to
+	 * @param  boolean - can the original card cost more of same color. {W}{W} vs {1}{W} and still be better?
+	 * @return boolean - Costs more than the compared card
+	 */
+	public function alternativeCostsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
+	{
+		$alt = $this->getSortedAlternativeCosts();
+		$alt2 = $other->getSortedAlternativeCosts();
+
+		foreach ($alt as $keyword => $cost) {
+
+			$dummy = new Card(); 
+			$dummy->substituteAlternativeCost($cost);
+
+			$compare_to = $other;
+
+			if (isset($alt2[$keyword])) {
+				$compare_to = new Card(); 
+				$compare_to->substituteAlternativeCost($alt2[$keyword]);
+			}
+
+			if (($other->cmc === null || $dummy->cmc <= $compare_to->cmc) && !$dummy->costsMoreColoredThan($compare_to, $may_cost_more_of_same))
+				return false;
+		}
+		return true;
+
+	}
+
+	/**
+	 * Calculates new manacost for a card based on manacost in string format. 
+	 * Quite heavy for batch processsing. If batch processing is needed, consider saving result to database during initial load (load-scryfall).
+	 * 
+	 * @param  String - Manacost in string format
+	 * @return Card -  Altered card
+	 */
+	private function substituteAlternativeCost($manacost) 
+	{
+		$this->manacost = $manacost;
+		$this->manacost_sorted = $this->calculateColoredManaCosts();
+		$this->cmc = $this->calculateCmcFromCost();
+
+		return $this;
+	}
+
+	/**
+	 * Finds alternative manacost from card rules.
+	 * Quite heavy for batch processsing. If batch processing is needed, consider saving result to database during initial load (load-scryfall).
+	 * 
+	 * @return Associateve array of alternative manacost keyword -> manacost
+	 */
+	public function getSortedAlternativeCosts() 
+	{
+
+		$alt_keywords = [
+			// Keywords that change the circumstances of a spell's casting if an alternate cost is paid: 
+		/*
+			"Flashback", // — allows casting from the graveyard
+			"Madness", // — allows casting as the spell is being discarded
+			"Miracle", // — allows casting as the spell is being drawn
+		*/
+			// Keywords that make it easier to pay for the spell:
+		/*
+			"Assist", // — other players cay help pay for the normal mana cost
+			"Convoke", // — tapping creatures can help pay for the normal mana cost
+			"Emerge", // — allows the sacrifice of another creature to help pay for an alternate cost
+			"Prowl", // — damage dealt by certain creatures enables an alternate cost
+			"Spectacle", // — opponent's life loss enables an alternate cost
+			"Surge", // — spells cast earlier in a turn enable an alternate cost
+			"Suspend", // — an alternate cost is paid, but the spell resolves several turns later
+		*/
+			// Keywords that change or add to the spells effects when an alternate cost is paid:
+
+		//	"Awaken", // — turns land in play into a creature
+		//	"Bestow", // — a creature is cast as an enchantment
+		//	"Dash", // — grants a creature haste, but returns it to hand at end of turn
+		//	"Evoke", // — a creature is cast and immediately sacrificed, creating a sorcery-like effect
+		//	"Morph", // — a creature is cast face down, but can be turned face up later
+		//	"Megamorph", // — a creature is cast face down, but can be turned face up later
+			"Overload", // — a spell affects all possible targets instead of just one
+		];
+
+		$words = implode("|", $alt_keywords);
+		$pattern = '/\b('.$words.') ((?:{[^}]+})+)/u';
+
+		preg_match_all($pattern, $this->substituted_rules, $matches, PREG_SET_ORDER);
+
+		$costs = [];
+
+		foreach ($matches as $val) {
+			$costs[$val[0]] = $val[1];
+		}
+		return $costs;
+
 	}
 }
