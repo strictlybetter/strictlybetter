@@ -49,11 +49,13 @@ class DeckController extends Controller
 		}
 
 		$card_restrictions = function($q) use ($format, $un_color_identity, $cards) {
+			
+			$q->guiOnly(['subtypes']);
 
-			$q->guiOnly();
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
 
+			// Don't suggest cards that are already in the deck
 			$q->whereNotIn('name', $cards->pluck('name'));
 
 			foreach ($un_color_identity as $un_color) {
@@ -64,7 +66,11 @@ class DeckController extends Controller
 		};
 
 		// Find replacements
-		$upgrades = Card::guiOnly()->with(['superiors' => $card_restrictions])->whereIn('name', $cards->pluck('name'))->whereNull('main_card_id')->whereHas('superiors', $card_restrictions)->get();
+		$upgrades = Card::guiOnly(['subtypes'])->with(['superiors' => $card_restrictions])
+			->whereIn('name', $cards->pluck('name'))
+			->whereNull('main_card_id')
+			->whereHas('superiors', $card_restrictions)
+			->get();
 
 		// Additional sorting if tribes are selected
 		if (count($tribes) > 0) {
