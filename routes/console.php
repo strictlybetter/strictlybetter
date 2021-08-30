@@ -4,6 +4,7 @@ use App\Card;
 use App\Obsolete;
 use App\FunctionalReprint;
 use App\Cardtype;
+use App\Labeling;
 
 /*
 |--------------------------------------------------------------------------
@@ -197,14 +198,14 @@ Artisan::command('remove-bad-cards', function () {
 Artisan::command('create-labels', function () {
 	DB::transaction(function () {
 		$labelings = Labeling::with([
-			'inferiors' => function($q) { $q->first(); }, 
-			'superiors' => function($q) { $q->first(); }, 
+			'inferiors', 
+			'superiors', 
 			'obsolete'
 		])->get();
 
 		foreach ($labelings as $labeling) {
 			$labeling->timestamps = false;
-			$labeling->labels = create_labels($labeling->inferiors->first(), $labeling->superior->first(), $labeling->obsolete);
+			$labeling->labels = create_labels($labeling->inferiors->first(), $labeling->superiors->first(), $labeling->obsolete);
 			$labeling->save(['touch' => false]);
 		}
 	});

@@ -189,20 +189,34 @@ class Card extends Model
 
 	public function linkToFunctionality()
 	{
-		$card = Card::select('id', 'functionality_id')
+		$migrate_from_orphan_functionality = null;
+		$new_functionality = null;
+
+		// If this card already has a functionality (that we are re-establishing) 
+		// and this card is the only card in this functionality, migrate assets from the functionality to new one
+		if ($this->functionality_id) {
+			$this->loadCount('functionalReprints');
+			$this->load('functionality');
+			if ($this->functional_reprints_count <= 1)
+				$migrate_from_orphan_functionality = $this->functionality;
+		}
+
+		// Try finding a card with identical characteristics and a set functionality_id
+		$card = Card::with(['functionality'])//->select(['cards.id', 'functionality_id'])
 			->where($this->only(Card::$functionality_attributes))
 			->whereNotNull('functionality_id')
 			->whereNull('main_card_id')
 			->first();
-
+		
 		if ($card)
-			$this->functionality_id = $card->functionality_id;
+			$new_functionality = $card->functionality;
 
 		else {
 
 			$group_id = null;
 
-			$q = Card::with(['functionality'])->select('cards.id', 'functionality_id')
+			// Try finding a card with similar characteristics and a set functionality_id (for group_id)
+			$q = Card::with(['functionality'])//->select(['cards.id', 'functionality_id'])
 				->where($this->only(Card::$functionality_group_attributes))
 				->whereNotNull('functionality_id')
 				->whereNull('main_card_id');
@@ -224,8 +238,45 @@ class Card extends Model
 				$group_id = $group->id;
 			}
 
-			$functionality = Functionality::create(['group_id' => $group_id]);
-			$this->functionality_id = $functionality->id;
+			$new_functionality = Functionality::create(['group_id' => $group_id]);
+		}
+
+		$this->functionality()->associate($new_functionality);
+		$this->save();
+
+		// Move better-worse relations and voting data to new functionality if leaving orhpans
+		if ($migrate_from_orphan_functionality && $migrate_from_orphan_functionality->id != $new_functionality->id) {
+
+			$inferiors = Labeling::with(['obsolete'])->where('inferior_functionality_id', $migrate_from_orphan_functionality->id)->get();
+			$superiors = Labeling::with(['obsolete'])->where('superior_functionality_id', $migrate_from_orphan_functionality->id)->get();
+
+			foreach ($inferiors as $labeling) {
+				if ($labeling->obsolete && $migrate_from_orphan_functionality->group_id !== $new_functionality->group_id) {
+					$labeling->obsolete->inferior_functionality_group_id = $new_functionality->group_id;
+					$labeling->obsolete->save();
+				}
+
+				$labeling->inferior_functionality_id = $new_functionality->id;
+				$labeling->save();
+			}
+
+			foreach ($superiors as $labeling) {
+				if ($labeling->obsolete && $migrate_from_orphan_functionality->group_id !== $new_functionality->group_id) {
+					$labeling->obsolete->superior_functionality_group_id = $new_functionality->group_id;
+					$labeling->obsolete->save();
+				}
+
+				$labeling->superior_functionality_id = $new_functionality->id;
+				$labeling->save();
+			}
+
+			if ($migrate_from_orphan_functionality->group_id && $migrate_from_orphan_functionality->group_id !== $new_functionality->group_id) {
+
+				if (count($migrate_from_orphan_functionality->similiars) <= 1) {
+					FunctionalityGroup::where('id', $migrate_from_orphan_functionality->group_id)->delete();
+				}
+			}
+			$migrate_from_orphan_functionality->delete();
 		}
 
 		return $this->functionality_id;

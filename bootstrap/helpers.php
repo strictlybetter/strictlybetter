@@ -155,7 +155,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 			$q = $q->where('main_card_id', $parent->id)->where('name', $obj->name);
 		else
 			$q = $q->whereNull('main_card_id')->where(function($q) use ($obj) { 
-				$q->where('oracle_id', $obj->oracle_id)->orWhere('name', $obj->name);
+				$q->where('oracle_id', $obj->oracle_id);//->orWhere('name', $obj->name);
 			});
 
 		$card = $q->orderBy('created_at', 'desc')->first();
@@ -217,7 +217,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 
 	// Create a few helper columns using existing data
 	$new_rules = $card->substituteRules();
-	$regroup = !$card->functionality_id || $new_rules !== $card->substituted_rules;
+	$regroup = !$card->functionality_id || ($new_rules !== $card->substituted_rules);
 	$card->substituted_rules = $new_rules;
 	$card->manacost_sorted = $card->calculateColoredManaCosts();
 
@@ -240,8 +240,9 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		}
 	}
 
-	if ($regroup)
+	else if ($regroup) {
 		$card->linkToFunctionality();
+	}
 
 	if ($card->isDirty()) {
 		$card->save();
