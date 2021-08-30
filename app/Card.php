@@ -47,6 +47,13 @@ class Card extends Model
 		'substituted_rules'
 	];
 
+	public static $functionality_group_exclusive_types = [
+		'Land',
+		'Creature',
+		'Instant',
+		'Sorcery'
+	];
+
 	public static $gui_attributes = [
 		'cards.id',
 		'name',
