@@ -216,7 +216,9 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 	]);
 
 	// Create a few helper columns using existing data
-	$card->substituted_rules = $card->substituteRules();
+	$new_rules = $card->substituteRules();
+	$regroup = !$card->functionality_id || $new_rules !== $card->substituted_rules;
+	$card->substituted_rules = $new_rules;
 	$card->manacost_sorted = $card->calculateColoredManaCosts();
 
 	if ($parent) {
@@ -238,7 +240,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		}
 	}
 
-	if (!$card->functionality_id)
+	if ($regroup)
 		$card->linkToFunctionality();
 
 	if ($card->isDirty()) {
@@ -359,8 +361,8 @@ function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_gro
 		// Add labels for other functionalities in the group
 		if ($cascade_to_groups) {
 
-			$inferior_list = $inferior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id')->first(); }])->get();
-			$superior_list = $superior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id')->first(); }])->get();
+			$inferior_list = $inferior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
+			$superior_list = $superior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
 
 			// Add all inferior duplicates to all superiors
 			foreach ($superior_list as $superior_item) {

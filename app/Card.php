@@ -243,7 +243,9 @@ class Card extends Model
 		$substitute_rules = preg_replace($pattern, '\1@@@\2', $this->rules);
 
 		// Remove reminder text
-		return preg_replace('/^\(.*?\)\n/um', '', $substitute_rules);
+		// $substitute_rules = preg_replace('/^\(.*?\)\n/um', '', $substitute_rules);
+
+		return $substitute_rules;
 	}
 
 	/*
