@@ -19,7 +19,35 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
-	<h4>11/07/21</h4>
+	<h4>08/30/21</h4>
+	<ul>
+		<li>Identical cards (excluding subtypes) share better-worse relations and voting data.<br>
+			Ie. voting for <i>Llanowar Elves</i> also votes for <i>Elvish Mystic</i>.</li>
+		<li>Suggestions have less restrictions now. Tribe and label filters should be used to achieve previous functionality.
+			<ul>
+				<li>Removed various card type checks: Supertype, type and subtype.</li>
+				<li>Added "speed" check: Checks the better card can be casted at same or faster "speed" than the worse card.</li>
+				<li>Added check for immediate effects: Various permanents may be better than Instants/Sorceries if they have ETB or self sacrifice abilities.<br>
+					Ie. <i>Sakura-Tribe Elder</i> vs <i>Rampant Growth</i>.</li>
+				<li>Added functionality group check: Similar cards now belong to same functionality groups and cannot be added as worse or better than a card from the same group.
+					<ul>
+						<li>Ie. No more cards with different subtypes only can be added like <i>Suntail Hawk</i> vs <i>Aven Skirmisher</i>.<br>
+							Instead such cards will be viewable in another way in the future.</li>
+					</ul>
+				</li>
+			</ul>
+		</li>
+		<li>API change: /obsoletes endpoint has changed.
+			<ul>
+				<li>'inferior' and 'superior' keys replaced with 'inferiors' and 'superiors' keys.<br>
+					Both keys now contain an array of card representations instead of single card representation.<br>
+					The arrays contain all functional reprints of the inferior/superior cards.
+				</li>
+			</ul>
+		</li>
+	</ul>
+
+	<h4>07/11/21</h4>
 	<ul>
 		<li>Added support for alternative manacost: Overload.
 		Ie. "Damn" is now better than "Wrath of God".</li>
