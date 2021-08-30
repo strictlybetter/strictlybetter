@@ -19,7 +19,7 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
-	<h4>08/30/21</h4>
+	<h4>08/31/21</h4>
 	<ul>
 		<li>Identical cards (excluding subtypes) share better-worse relations and voting data.<br>
 			Ie. voting for <i>Llanowar Elves</i> also votes for <i>Elvish Mystic</i>.</li>
@@ -45,6 +45,7 @@
 				</li>
 			</ul>
 		</li>
+		<li>Fixed Unhinged cards with duplicate names not being listed.</li>
 	</ul>
 
 	<h4>07/11/21</h4>
