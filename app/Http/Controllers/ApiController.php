@@ -38,26 +38,21 @@ class ApiController extends Controller
 
 		$labelings = $labelings->orderBy('created_at', 'desc')->paginate(50);
 
-		$collection = collect([]);
-		foreach ($labelings as $labeling) {
-			foreach ($labeling->superiors as $superior) {
-				foreach ($labeling->inferiors as $inferior) {
-					$collection->push([
-						'id' => $labeling->id,
-						'upvotes' => $labeling->obsolete->upvotes,
-						'downvotes' => $labeling->obsolete->downvotes,
-						'created_at' => $labeling->created_at->toDateTimeString(),
-						'updated_at' => $labeling->updated_at->toDateTimeString(),
-						'inferior' => $inferior->only($select),
-						'superior' => $superior->only($select),
-						'labels' => $labeling->labels
+		$labelings->getCollection()->transform(function ($labeling) use ($select) {
+		
+			return [
+				'id' => $labeling->id,
+				'upvotes' => $labeling->obsolete->upvotes,
+				'downvotes' => $labeling->obsolete->downvotes,
+				'created_at' => $labeling->created_at->toDateTimeString(),
+				'updated_at' => $labeling->updated_at->toDateTimeString(),
+				'inferiors' => $labeling->inferiors->map(function($i) use ($select) { return $i->only($select); }),
+				'superiors' => $labeling->superiors->map(function($i) use ($select) { return $i->only($select); }),
+				'labels' => $labeling->labels
+			];
+		});
 
-					]);
-				}
-			}
-		}
-
-	    return response()->json($collection);
+	    return response()->json($labelings);
 	}
 
 	public function functional_reprints(Request $request)

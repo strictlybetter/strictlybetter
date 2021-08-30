@@ -414,7 +414,7 @@ class Card extends Model
 				return false;
 		}
 
-		// This must cost more than the other
+		// This must not cost more than the other
 		if ($other->cmc !== null && $this->cmc > $other->cmc) {
 
 			// Check for a special case, where mana cost is less based on target
