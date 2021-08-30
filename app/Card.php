@@ -3,10 +3,17 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use \Staudenmeir\EloquentHasManyDeep\HasRelationships;
+
 use App\FunctionalReprint;
+use App\Functionality;
+use App\FunctionalityGroup;
+use App\Labeling;
 
 class Card extends Model
 {
+	use HasRelationships;
+
 	protected $guarded = ['id'];
 
 	protected $casts = [
@@ -32,6 +39,14 @@ class Card extends Model
 		'substituted_rules'
 	];
 
+	public static $functionality_group_attributes = [
+		'manacost',
+		'power',
+		'toughness',
+		'loyalty',
+		'substituted_rules'
+	];
+
 	public static $gui_attributes = [
 		'cards.id',
 		'name',
@@ -40,7 +55,8 @@ class Card extends Model
 		'scryfall_link',
 		'typeline',
 		'functional_reprints_id',
-		'main_card_id'
+		'main_card_id',
+		'functionality_id'
 	];
 
 	protected $with = ['cardFaces'];
@@ -49,22 +65,44 @@ class Card extends Model
 
 	public function inferiors() 
 	{
-		return $this->belongsToMany(Card::class, 'obsoletes', 'superior_card_id', 'inferior_card_id')->using('App\Obsolete')->withPivot(['upvotes', 'downvotes', 'id', 'labels'])->withTimestamps();
+		return $this->belongsToMany(Card::class, 'labelings', 'superior_functionality_id', 'inferior_functionality_id', 'functionality_id', 'functionality_id')
+			->using(Labeling::class)->withPivot(['labels', 'id', 'obsolete_id'])->withTimestamps();
 	}
 
 	public function superiors()
 	{
-		return $this->belongsToMany(Card::class, 'obsoletes', 'inferior_card_id', 'superior_card_id')->using('App\Obsolete')->withPivot(['upvotes', 'downvotes', 'id', 'labels'])->withTimestamps();
+		return $this->belongsToMany(Card::class, 'labelings', 'inferior_functionality_id', 'superior_functionality_id', 'functionality_id', 'functionality_id')
+			->using(Labeling::class)->withPivot(['labels', 'id', 'obsolete_id'])->withTimestamps();
 	}
 
-	public function functionalReprintGroup()
+	public function functionality()
 	{
-		return $this->belongsTo(FunctionalReprint::class, 'functional_reprints_id');
+		return $this->belongsTo(Functionality::class);
 	}
+/*
+	public function similiars()
+	{
+		return $this->hasManyDeepFromRelations(
+			$this->functionality(),
+            (new Functionality)->similiarcards()
+		);
+	}*/
+
+	/*	
+	public function inferiorLabeling()
+	{
+		return $this->hasOne(Labeling::class, 'inferior_functionality_id', 'functionality_id');
+	}
+
+	public function superiorLabeling()
+	{
+		return $this->hasOne(Labeling::class, 'superior_functionality_id', 'functionality_id');
+	}	
+	*/
 
 	public function functionalReprints()
 	{
-		return $this->hasMany(Card::class, 'functional_reprints_id', 'functional_reprints_id');
+		return $this->hasMany(Card::class, 'functionality_id', 'functionality_id');
 	}
 
 	public function mainCard()
@@ -80,6 +118,12 @@ class Card extends Model
 	public function scopeGuiOnly($query, array $additional = [])
 	{
 		return $query->select(array_merge(Card::$gui_attributes, $additional));
+	}
+
+	public function scopeRelatedGuiOnly($query, array $additional = [])
+	{
+		return $query->guiOnly(array_merge(['obsolete_id', 'upvotes', 'downvotes'], $additional))
+				->leftJoin((new Obsolete)->getTable(), 'labelings.obsolete_id', '=', 'obsoletes.id');
 	}
 
 	public function getImageUrlAttribute()
@@ -103,17 +147,81 @@ class Card extends Model
 		return $this->multiverse_id ? ('https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=' . $this->multiverse_id) : null;
 	}
 
-	public function getFunctionalReprintLineAttribute()
+	public function getFunctionalityLineAttribute()
 	{
 		$values = array_values($this->only(Card::$functionality_attributes));
 		$line = implode("|", $values);
 
 		foreach ($this->cardFaces as $face) {
-			$values = array_values($face->only(Card::$functionality_attributes));
-			$line = $line . '|' . implode("|", $values);
+			$line = $line . '|' . $face->functionality_line;
 		}
 
 		return $line;
+	}
+
+	public function getFunctionalityGroupLineAttribute()
+	{
+		$values = array_values($this->only(Card::$functionality_group_attributes));
+
+		foreach ($this->types as $type) {
+				$values[] = $type;
+		}
+
+		foreach ($this->supertypes as $supertype) {
+				$values[] = $supertype;
+		}
+
+		$line = implode("|", $values);
+
+		foreach ($this->cardFaces as $face) {
+			$line = $line . '|' . $face->functionality_group_line;
+		}
+
+		return $line;
+	}
+
+	public function linkToFunctionality()
+	{
+		$card = Card::select('id', 'functionality_id')
+			->where($this->only(Card::$functionality_attributes))
+			->whereNotNull('functionality_id')
+			->whereNull('main_card_id')
+			->first();
+
+		if ($card)
+			$this->functionality_id = $card->functionality_id;
+
+		else {
+
+			$group_id = null;
+
+			$q = Card::with(['functionality'])->select('cards.id', 'functionality_id')
+				->where($this->only(Card::$functionality_group_attributes))
+				->whereNotNull('functionality_id')
+				->whereNull('main_card_id');
+
+			foreach (Card::$functionality_group_exclusive_types as $type) {
+				if (in_array($type, $this->types))
+					$q = $q->whereJsonContains('types', $type);
+				else
+					$q = $q->whereJsonDoesntContain('types', $type);
+			}
+
+			$similiar = $q->first();
+
+			if ($similiar) {
+				$group_id  = $similiar->functionality->group_id;
+			}
+			else {
+				$group = FunctionalityGroup::create([]);
+				$group_id = $group->id;
+			}
+
+			$functionality = Functionality::create(['group_id' => $group_id]);
+			$this->functionality_id = $functionality->id;
+		}
+
+		return $this->functionality_id;
 	}
 
 	/*
@@ -263,7 +371,7 @@ class Card extends Model
 	public function isEqualOrBetterThan(Card $other)
 	{
 		// Must not be a duplicate
-		if ($this->id === $other->id || ($other->functional_reprints_id && $this->functional_reprints_id === $other->functional_reprints_id))
+		if ($this->id === $other->id || ($this->main_card_id === null && $other->main_card_id === null && $this->functionality->group_id === $other->functionality->group_id))
 			return false;
 
 		// If this a multifaced card, check card faces against the other card
@@ -290,30 +398,23 @@ class Card extends Model
 			return true;
 		}
 
-		// Types must match
-		if (count($this->supertypes) != count($other->supertypes) || array_diff($this->supertypes, $other->supertypes))
+		// This card must not be slower than the other card
+		if ((in_array("Instant", $other->types) || preg_match('/\bFlash\b/', $other->substituted_rules)) &&
+			!(in_array("Instant", $this->types) || preg_match('/\bFlash\b/', $this->substituted_rules)))
 			return false;
 
-		if (count($this->types) != count($other->types) || array_diff($this->types, $other->types)) {
 
-			// Instant vs Sorcery is an exception
-			// Creatures may have any other types
-			if (!(in_array("Instant", $this->types) && in_array("Sorcery", $other->types)) &&
-				!(in_array("Creature", $this->types) && in_array("Creature", $other->types)))
+		// This card must not be a permanent, if the other is a non-permenent...
+		$non_permanents = ["Sorcery", "Instant"];
+		if (array_intersect($non_permanents, $other->types) && !array_intersect($non_permanents, $this->types)) {
+			
+			// ... Unless this permanent does it's thing when entering battlefield or can self sacrifice for the effect
+			if (!preg_match('/\bWhen (?:^another ).*? enters the battlefield/', $this->substituted_rules) &&
+				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules))
 				return false;
 		}
 
-		// If both have subtypes, atleast one of them has to be a common one
-		if (count($this->subtypes) > 0 && count($other->subtypes) > 0 && empty(array_intersect($this->subtypes, $other->subtypes)))
-			return false;
-
-/*
-		if (count($this->subtypes) != count($other->subtypes) || array_diff($this->subtypes, $other->subtypes))
-			return false;*/
-/*
-		if (array_diff($this->colors, $other->colors))
-			return false;*/
-
+		// This must cost more than the other
 		if ($other->cmc !== null && $this->cmc > $other->cmc) {
 
 			// Check for a special case, where mana cost is less based on target

@@ -4,17 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Card;
 use App\Obsolete;
+use App\Labeling;
 use App\Vote;
 use App\Cardtype;
 use Illuminate\Http\Request;
-
-use mtgsdk\Card as CardApi;
+use Illuminate\Support\Facades\DB;
 
 class CardController extends Controller
 {
 	protected $card_orders = [
 		'name' => ['card' => 'name', 'obsolete' => 'name', 'direction' => 'asc'], 
-		'updated_at' => ['card' => 'updated_at', 'obsolete' => 'obsoletes.created_at', 'direction' => 'desc'], 
+		'updated_at' => ['card' => 'updated_at', 'obsolete' => 'labelings.created_at', 'direction' => 'desc'], 
 		'upvotes' => ['card' => 'updated_at', 'obsolete' => 'upvotes', 'direction' => 'desc']
 	];
 
@@ -49,7 +49,7 @@ class CardController extends Controller
 		$filters = $request->input('filters');
 
 		$filterlist = [];
-		foreach (Obsolete::$labellist as $label) {
+		foreach (Labeling::$labellist as $label) {
 			if ($label == "strictly_better")
 				continue;
 			$filterlist[$label] = \Lang::get('card.filters.' . $label);
@@ -124,7 +124,7 @@ class CardController extends Controller
 
 		$card_filters = function($q) use ($format, $tribe, $filters, $order) {
 
-			$q->guiOnly();
+			$q->relatedGuiOnly();
 
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
@@ -135,8 +135,8 @@ class CardController extends Controller
 			// Apply filters
 			if (is_array($filters)) {
 				foreach ($filters as $filter) {
-					if (in_array($filter, Obsolete::$labellist))
-						$q->where('obsoletes.labels->' . $filter, false);
+					if (in_array($filter, Labeling::$labellist))
+						$q->where('labelings.labels->' . $filter, false);
 				}
 			}
 
@@ -189,7 +189,7 @@ class CardController extends Controller
 	 * Show the form for creating a new resource.
 	 *
 	 * @return \Illuminate\Http\Response
-	 */
+	 */ 
 	public function create(Card $card = null)
 	{
 		$inferiors = [];
@@ -204,7 +204,10 @@ class CardController extends Controller
 			}
 			else {
 
-				$card->load(['functionalReprints', 'superiors']);
+				$card->load([
+					'functionalReprints' => function($q) { $q->guiOnly(); }, 
+					'superiors' => function($q) { $q->relatedGuiOnly(); }
+				]);
 
 				$inferiors = $card->functionalReprints;
 				if ($inferiors->isEmpty())
@@ -225,7 +228,9 @@ class CardController extends Controller
 
 	public function upgradeview(Card $card)
 	{
-		$card->load(['functionalReprints', 'superiors']);
+		$card->load([
+			'functionalReprints' => function($q) { $q->guiOnly(); }, 
+			'superiors' => function($q) { $q->relatedGuiOnly(); }]);
 
 		// Remove self from reprints
 		$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
@@ -267,23 +272,28 @@ class CardController extends Controller
 			'superior' => 'required|different:inferior',
 		]);
 
-		$inferior = Card::with('functionalReprints')->where('id', $request->input('inferior'))->whereNull('main_card_id')->first();
-		$superior = Card::with('functionalReprints')->where('id', $request->input('superior'))->whereNull('main_card_id')->first();
+		$inferior = Card::with(['functionality'])->where('id', $request->input('inferior'))->whereNull('main_card_id')->first();
+		$superior = Card::with(['functionality'])->where('id', $request->input('superior'))->whereNull('main_card_id')->first();
 
 		if (!$inferior || !$superior)
 			return back()->withErrors(['Card not found'])->withInput();
 
-		if ($inferior->name == $superior->name)
-			return redirect()->route('card.create', $inferior->id)->withErrors(['The cards must be different'])->withInput();
+		if ($inferior->functionality->group_id == $superior->functionality->group_id)
+			return redirect()->route('card.create', $inferior->id)->withErrors(['The cards belong to same functionality group'])->withInput();
 
 		if (!$superior->isEqualOrBetterThan($inferior))
-			return redirect()->route('card.create', $inferior->id)->withErrors(['The strictly better card does not seem to fill the requirements of the term'])->withInput();
+			return redirect()->route('card.create', $inferior->id)->withErrors(["The superior card doesn't seem to be better"])->withInput();
 
-		create_obsolete($inferior, $superior, true);
+		DB::transaction(function () use ($inferior, $superior) {
+			create_obsolete($inferior, $superior, true);
 
-		// Add vote
-		$obsolete = Obsolete::where('superior_card_id', $superior->id)->where('inferior_card_id', $inferior->id)->first();
-		$this->addVote($obsolete, true);
+			// Add vote
+			$obsolete = Obsolete::where('superior_functionality_group_id', $superior->functionality->group_id)
+				->where('inferior_functionality_group_id', $inferior->functionality->group_id)
+				->first();
+
+			$this->addVote($obsolete->id, true);
+		});
 
 	    return redirect()->route('card.create', $inferior->id)->withInput();
 	}
@@ -348,9 +358,9 @@ class CardController extends Controller
 		return redirect()->route('index', ["search" => $card->name]);
 	}
 
-	public function upvote(Obsolete $obsolete)
+	public function upvote($obsolete_id)
 	{
-		$this->addVote($obsolete, true);
+		$obsolete = $this->addVote($obsolete_id, true);
 
 		if ($this->request->ajax())
 			return response()->json(['upvotes' => $obsolete->upvotes, 'downvotes' => $obsolete->downvotes]);
@@ -358,9 +368,9 @@ class CardController extends Controller
 			return back()->withInput();
 	}
 
-	public function downvote(Obsolete $obsolete)
+	public function downvote($obsolete_id)
 	{
-		$this->addVote($obsolete, false);
+		$obsolete = $this->addVote($obsolete_id, false);
 
 		if ($this->request->ajax())
 			return response()->json(['upvotes' => $obsolete->upvotes, 'downvotes' => $obsolete->downvotes]);
@@ -368,44 +378,49 @@ class CardController extends Controller
 			return back()->withInput();
 	}
 
-	protected function addVote(Obsolete $obsolete, $upvote) 
+	protected function addVote($obsolete_id, $upvote) 
 	{
 		$ip = $this->request->ip();
-		$previous_vote = Vote::where('obsolete_id', $obsolete->id)->where('ip', $ip)->first();
+		$obsolete = null;
 
-		if ($previous_vote) {
-			if ($previous_vote->upvote == $upvote)
-				return false;
-			else {
-				$previous_vote->upvote = $upvote;
-				$previous_vote->save();
+		DB::transaction(function () use (&$obsolete, $obsolete_id, $upvote, $ip) {
+			$obsolete = Obsolete::sharedLock()->findOrFail($obsolete_id);
+			$previous_vote = Vote::where('obsolete_id', $obsolete->id)->where('ip', $ip)->first();
 
-				if ($upvote)
-					$obsolete->downvotes--;
-				else
-					$obsolete->upvotes--;
+			if ($previous_vote) {
+				if ($previous_vote->upvote == $upvote)
+					return $obsolete;
+				else {
+					$previous_vote->upvote = $upvote;
+					$previous_vote->save();
+
+					if ($upvote)
+						$obsolete->downvotes--;
+					else
+						$obsolete->upvotes--;
+				}
 			}
-		}
-		else {
+			else {
 
-			$obsolete->votes()->create([
-				'obsolete_id' => $obsolete->id,
-				'ip' => $ip,
-				'upvote' => $upvote
-			]);
-		}
+				$obsolete->votes()->create([
+					'obsolete_id' => $obsolete->id,
+					'ip' => $ip,
+					'upvote' => $upvote
+				]);
+			}
 
-		if ($upvote)
-			$obsolete->upvotes++;
-		else
-			$obsolete->downvotes++;
+			if ($upvote)
+				$obsolete->upvotes++;
+			else
+				$obsolete->downvotes++;
 
-		$labels = $obsolete->labels;
-		$labels['downvoted'] = (($obsolete->upvotes - $obsolete->downvotes) <= -10);
-		$obsolete->labels = $labels;
+			$is_downvoted = (($obsolete->upvotes - $obsolete->downvotes) <= -10);
 
-		$obsolete->save(['touch' => false]);
+			$obsolete->labelings()->update(['labels->downvoted' => $is_downvoted]);
 
-		return true;
+			$obsolete->save();
+		});
+
+		return $obsolete;
 	}
 }

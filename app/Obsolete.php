@@ -4,36 +4,61 @@ namespace App;
 
 use App\Card;
 use App\Vote;
+use App\Labeling;
+use App\Functionality;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Model;
 
-class Obsolete extends Pivot
+class Obsolete extends Model
 {
 	protected $table = 'obsoletes';
-	/*'more_colors', 'more_colored_mana', 'supertypes_differ', 'types_differ', 'subtypes_differ', 'less_colors', 'strictly_better'*/
-
-	public static $labellist = ['more_colors', 'more_colored_mana', 'supertypes_differ', 'types_differ', 'subtypes_differ', 'less_colors', 'strictly_better', 'downvoted'];
 	protected $guarded = ['id'];
 
 	protected $appends = ['votesum'];
 
-	protected $casts = ['labels' => 'array'];
-	protected $touches = ['inferior'];
-
-	public function superior()
+/*
+	public function superiors()
 	{
-		return $this->belongsTo(Card::class, 'superior_card_id');
+		return $this->hasManyThrough(Card::class, Functionality::class, 'group_id', 'functionality_id', 'superior_functionality_group_id', 'id');
 	}
 
-	public function inferior()
+	public function inferiors()
 	{
-		return $this->belongsTo(Card::class, 'inferior_card_id');
+		return $this->hasManyThrough(Card::class, Functionality::class, 'group_id', 'functionality_id', 'inferior_functionality_group_id', 'id');
+	}
+*/
+//	return $this->belongsToMany(Card::class, 'labelings', 'superior_functionality_id', 'inferior_functionality_id', 'functionality_id', 'functionality_id');
+
+	public function superiors()
+	{
+		return $this->belongsToMany(Card::class, 'functionalities', 'group_id', 'id', 'superior_functionality_group_id', 'functionality_id');
+	}
+
+	public function inferiors()
+	{
+		return $this->belongsToMany(Card::class, 'functionalities', 'group_id', 'id', 'inferior_functionality_group_id', 'functionality_id');
 	}
 
 	public function votes() 
 	{
 		return $this->hasMany(Vote::class, 'obsolete_id');
 	}
+
+	public function labelings() 
+	{
+		return $this->hasMany(Labeling::class, 'obsolete_id');
+	}
+
+	/*
+	public function superiorLabelings()
+	{
+		return $this->belongsToMany(Labeling::class, 'cards', 'functionality_id', 'functionality_group_id', 'superior_functionality_group_id', 'superior_functionality_id');
+	}
+
+	public function inferiorLabelings()
+	{
+		return $this->belongsToMany(Labeling::class, 'cards', 'functionality_id', 'functionality_group_id', 'inferior_functionality_group_id', 'inferior_functionality_id');
+	}*/
 
 	public function getVotesumAttribute()
 	{

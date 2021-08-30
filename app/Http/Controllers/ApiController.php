@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Card;
 use App\Obsolete;
+use App\Labeling;
 use App\FunctionalReprint;
 use Illuminate\Http\Request;
 
@@ -17,41 +18,54 @@ class ApiController extends Controller
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function obsoletes($search = null)
+	public function obsoletes(Request $request, $search = null)
 	{
 
-		$obsoletes = Obsolete::with(['superior', 'inferior']);
+		$select = ['name', 'multiverse_id', 'functional_reprints_id'];
+
+		$labelings = Labeling::with([
+			'superiors' => function($q) use ($select) { return $q->select(array_merge($select, ['functionality_id'])); }, 
+			'inferiors' => function($q) use ($select) { return $q->select(array_merge($select, ['functionality_id'])); },
+			'obsolete'
+		])->whereNotNull('obsolete_id');
 
 		if ($search !== null) {
 			$term = escapeLike($search);
-			$obsoletes = $obsoletes->whereHas('inferior', function($q) use ($term) {
+			$labelings = $labelings->whereHas('inferiors', function($q) use ($term) {
 				$q->where('name', 'like', $term . '%');
 			});
 		}
 
-		$obsoletes = $obsoletes->orderBy('created_at', 'desc')->paginate(50);
+		$labelings = $labelings->orderBy('created_at', 'desc')->paginate(50);
 
-		$obsoletes->getCollection()->transform(function ($obsolete) {
+		$collection = collect([]);
+		foreach ($labelings as $labeling) {
+			foreach ($labeling->superiors as $superior) {
+				foreach ($labeling->inferiors as $inferior) {
+					$collection->push([
+						'id' => $labeling->id,
+						'upvotes' => $labeling->obsolete->upvotes,
+						'downvotes' => $labeling->obsolete->downvotes,
+						'created_at' => $labeling->created_at->toDateTimeString(),
+						'updated_at' => $labeling->updated_at->toDateTimeString(),
+						'inferior' => $inferior->only($select),
+						'superior' => $superior->only($select),
+						'labels' => $labeling->labels
 
-			return [
-				'id' => $obsolete->id,
-				'upvotes' => $obsolete->upvotes,
-				'downvotes' => $obsolete->downvotes,
-				'created_at' => $obsolete->created_at->toDateTimeString(),
-				'updated_at' => $obsolete->updated_at->toDateTimeString(),
-				'inferior' => $obsolete->inferior->only(['name', 'multiverse_id', 'functional_reprints_id']),
-				'superior' => $obsolete->superior->only(['name', 'multiverse_id', 'functional_reprints_id']),
-				'labels' => $obsolete->labels
+					]);
+				}
+			}
+		}
 
-			];
-		});
-
-	    return response()->json($obsoletes);
+	    return response()->json($collection);
 	}
 
-	public function functional_reprints()
+	public function functional_reprints(Request $request)
 	{
-		$reprints = FunctionalReprint::with(['cards'])->paginate(200);
+
+		$reprints = FunctionalReprint::with([
+			'cards' => function($q) { $q->select(['name', 'multiverse_id', 'functional_reprints_id']); }
+		])->paginate(200);
 
 		$reprints->getCollection()->transform(function ($group) {
 

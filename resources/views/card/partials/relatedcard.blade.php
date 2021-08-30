@@ -24,25 +24,27 @@
 		@endif
 	</div>
 
-	<div class="row card-votes">
+	@if($related->pivot->obsolete_id)
+	<div class="row card-votes" data-obsolete-id="{{ $related->pivot->obsolete_id }}">
 
-		{{ Form::open(['route' => ['upvote', $related->pivot->id], 'class' => 'form-inline vote-form']) }}
+		{{ Form::open(['route' => ['upvote', $related->pivot->obsolete_id], 'class' => 'form-inline vote-form']) }}
 			<button type="submit" class="btn vote" style="color:green;">
 				<span class="vote-text">{{ (isset($type) && $type == 'inferior') ? "Strictly Worse" : "Strictly Better" }}</span>
 				<i class="fa fa-thumbs-up" style="font-size:24px;"></i>
-				<span class="upvote-count">{{ $related->pivot->upvotes }}</span>
+				<span class="upvote-count">{{ $related->upvotes }}</span>
 			</button>
 		{{ Form::close() }}
 
-		{{ Form::open(['route' => ['downvote', $related->pivot->id], 'class' => 'form-inline vote-form']) }}
+		{{ Form::open(['route' => ['downvote', $related->pivot->obsolete_id], 'class' => 'form-inline vote-form']) }}
 			<button type="submit" class="btn vote" style="color:red;">
 				<span class="vote-text">Not</span>
 				<i class="fa fa-thumbs-down" style="font-size:24px;"></i>
-				<span class="downvote-count">{{ $related->pivot->downvotes }}</span>
+				<span class="downvote-count">{{ $related->downvotes }}</span>
 			</button>
 		{{ Form::close() }}
 
 	</div>
+	@endif
 	<div class="row card-external-links">
 		@if($related->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $related->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
 		@if($related->multiverse_id)<a class="btn btn-light btn-gatherer" href="{{ $related->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif

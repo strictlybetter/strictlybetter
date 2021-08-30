@@ -49,8 +49,8 @@ class DeckController extends Controller
 		}
 
 		$card_restrictions = function($q) use ($format, $un_color_identity, $cards) {
-			
-			$q->guiOnly(['subtypes']);
+
+			$q->relatedGuiOnly(['subtypes']);
 
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');

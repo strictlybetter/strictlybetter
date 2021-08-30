@@ -129,7 +129,7 @@ Artisan::command('populate-functional-reprints', function () {
 
 	$this->comment("Looking for duplicate families...");
 
-	$results = Card::whereNull('main_card_id')->get()->groupBy('functionalReprintLine')->reject(function($item) {
+	$results = Card::whereNull('main_card_id')->get()->groupBy('functionality_line')->reject(function($item) {
 		return (count($item) <= 1);
 	})->values();
 
@@ -194,78 +194,18 @@ Artisan::command('remove-bad-cards', function () {
 
 });
 
-
-Artisan::command('create-functional-obsoletes', function () {
-
-	$this->comment("Building additonal suggestions based on functional reprints...");
-
-	$results = FunctionalReprint::with(['cards.inferiors', 'cards.superiors'])->get();
-	$old_obsolete_count = Obsolete::count();
-
-	DB::transaction(function () use ($results) {
-		foreach ($results as $reprint_group) {
-
-			if (count($reprint_group->cards) < 2)
-				continue;
-
-			// Find all relations for all cards in the reprint group (+ their relation labels)
-			$inferior_ids = $reprint_group->cards->pluck('inferiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
-			$superior_ids = $reprint_group->cards->pluck('superiors')->flatten()->pluck('pivot.labels', 'id')->toArray();
-
-			// Replace 'downvoted' label with false, since are only going to create new relations
-			// Other labels should be equal, since the cards are reprints of each other
-			foreach ($inferior_ids as $id => $labels) {
-				$labels['downvoted'] = false;
-				$inferior_ids[$id] = ["labels" => $labels];
-			}
-			foreach ($superior_ids as $id => $labels) {
-				$labels['downvoted'] = false;
-				$superior_ids[$id] = ["labels" => $labels];
-			}
-
-			// Sync all relations of each card in the group with each other card in the group
-			foreach ($reprint_group->cards as $card) {
-
-				// Filter attachable ids here, so we can rely on downvoted = false label
-				$inferiors_to_add = array_diff_key($inferior_ids, $card->inferiors->pluck('', 'id')->toArray());
-				$superiors_to_add = array_diff_key($superior_ids, $card->superiors->pluck('', 'id')->toArray());
-
-				if (count($inferiors_to_add) > 0) {
-					$changes = $card->inferiors()->syncWithoutDetaching($inferiors_to_add);
-
-					// Touch attached inferiors, so they are listed first on Browse page
-					if (!empty($changes['attached'])) {
-						$inferiors = $card->inferiors()->whereIn('cards.id', $changes['attached'])->get();
-
-						foreach ($inferiors as $inferior) {
-							$inferior->touch();
-						}
-					}	
-				}
-
-				if (count($superiors_to_add) > 0) {
-					$changes = $card->superiors()->syncWithoutDetaching($superiors_to_add);
-
-					// Touch this card if any new superiors were added, so this card is listed first on Browse page
-					if (!empty($changes['attached']))
-						$card->touch();
-				}
-			}
-		}
-	});
-	$new_obsoletes = Obsolete::count() - $old_obsolete_count;
-
-	$this->comment($new_obsoletes . " new suggestions created.");
-
-})->describe('Creates suggestions based on functional reprints and their existing suggestions');
-
 Artisan::command('create-labels', function () {
 	DB::transaction(function () {
-		$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
+		$labelings = Labeling::with([
+			'inferiors' => function($q) { $q->first(); }, 
+			'superiors' => function($q) { $q->first(); }, 
+			'obsolete'
+		])->get();
 
-		foreach ($obsoletes as $obsolete) {
-			$obsolete->labels = create_labels($obsolete->inferior, $obsolete->superior, $obsolete);
-			$obsolete->save(['touch' => false]);
+		foreach ($labelings as $labeling) {
+			$labeling->timestamps = false;
+			$labeling->labels = create_labels($labeling->inferiors->first(), $labeling->superior->first(), $labeling->obsolete);
+			$labeling->save(['touch' => false]);
 		}
 	});
 })->describe('Re-creates labels for obsolete cards');
@@ -277,12 +217,12 @@ Artisan::command('remove-bad-suggestions', function () {
 
 	DB::transaction(function () use (&$count) {
 
-		$obsoletes = Obsolete::with(['inferior', 'superior'])->get();
+		$obsoletes = Obsolete::with(['inferiors', 'superiors'])->get();
 	
 		foreach ($obsoletes as $obsolete) {
-			if (!$obsolete->superior->isEqualOrBetterThan($obsolete->inferior)) {
+			if (!$obsolete->superiors->first()->isEqualOrBetterThan($obsolete->inferiors->first())) {
 
-				$this->comment("Removing suggestion: " . $obsolete->inferior->name . " -> " . $obsolete->superior->name);
+				$this->comment("Removing suggestion family: " . $obsolete->inferiors->first()->name . " -> " . $obsolete->superiors->first()->name);
 
 				$obsolete->delete();
 				$count++;
@@ -325,7 +265,7 @@ Artisan::command('create-obsoletes', function () {
 	$this->comment("Looking for better cards...");
 
 	$obsoletion_attributes = [
-		'id',
+		'cards.id',
 		'supertypes',
 		'types',
 		'subtypes',
@@ -340,7 +280,7 @@ Artisan::command('create-obsoletes', function () {
 		'power',
 		'toughness',
 		'loyalty',
-		'functional_reprints_id'
+		'functionality_id'
 	];
 
 	$cards = Card::select($obsoletion_attributes)
@@ -362,9 +302,10 @@ Artisan::command('create-obsoletes', function () {
 
 		$betters = Card::select($obsoletion_attributes)
 			->where('substituted_rules', $card->substituted_rules)
-			->whereJsonContains('supertypes', $card->supertypes)
-			->whereJsonLength('supertypes', count($card->supertypes))
+		//	->whereJsonContains('supertypes', $card->supertypes)
+		//	->whereJsonLength('supertypes', count($card->supertypes))
 			->where('id', "!=", $card->id)
+			->where('functionality_id', "!=", $card->functionality_id)
 			->whereDoesntHave('cardFaces')
 			->where(function($q) {
 				$q->where('flip', false)->orWhereNotNull('cmc');
@@ -384,8 +325,9 @@ Artisan::command('create-obsoletes', function () {
 				$q->whereJsonContains('types', $card->types)
 					->orWhereJsonContains('types', $substitute_types);
 
-			})->whereJsonLength('types', count($card->types));
+			});
 		}
+		
 		// Creatures are compared to creatures, however, they may have other types aswell
 		else if (in_array("Creature", $card->types)) {
 			$betters = $betters->whereJsonContains('types', "Creature");
@@ -397,23 +339,10 @@ Artisan::command('create-obsoletes', function () {
 				->whereJsonLength('types', count($card->types));
 		}
 
-		if (!empty($card->subtypes)) {
-			$betters = $betters->where(function($q) use ($card) {
-
-				$q->whereJsonLength('subtypes', 0);
-				foreach ($card->subtypes as $subtype) {
-					$q->orWhereJsonContains('subtypes', $subtype);
-				}
-			});
-		}
-
 		// Musn't have colors the worse card hasn't eithers
 		/*foreach (array_diff($allcolors, $card->colors) as $un_color) {
 			$betters = $betters->whereJsonDoesntContain('colors', $un_color);
 		}*/
-
-		if ($card->functional_reprints_id)
-			$betters = $betters->where('functional_reprints_id', "!=", $card->functional_reprints_id);
 
 		if ($card->cmc === null)
 			$betters = $betters->whereNull('cmc');
@@ -679,7 +608,6 @@ Artisan::command('full-update', function () {
 	Artisan::call('download-typedata', [], $this->getOutput());
 	Artisan::call('load-scryfall', [], $this->getOutput());
 	Artisan::call('populate-functional-reprints', [], $this->getOutput());
-	Artisan::call('create-functional-obsoletes', [], $this->getOutput());
 	Artisan::call('create-obsoletes', [], $this->getOutput());
 
 })->describe('Performs full update cycle');

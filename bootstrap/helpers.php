@@ -238,6 +238,9 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		}
 	}
 
+	if (!$card->functionality_id)
+		$card->linkToFunctionality();
+
 	if ($card->isDirty()) {
 		$card->save();
 	}
@@ -321,42 +324,61 @@ function create_labels(App\Card $inferior, App\Card $superior, App\Obsolete $obs
 	return $labels;
 }
 
-function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_reprints = true)
+function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_groups = true)
 {
 	// Confirm this relation doesn't already exist (to prevent timestamp touching)
-	if (in_array($superior->id, $inferior->superiors->pluck('id')->toArray()))
+	if (in_array($superior->functionality_id, $inferior->superiors->pluck('functionality_id')->toArray()))
 		return false;
 
-	$labels = create_labels($inferior, $superior);
+	$superior->loadMissing('functionality');
+	$inferior->loadMissing('functionality');
 
-	$changes = $superior->inferiors()->syncWithoutDetaching([$inferior->id => ['labels' => $labels]]);
+	DB::transaction(function() use ($inferior, $superior, $cascade_to_groups) {
 
-	// If new association was created, touch inferior to put it first in Browse page
-	if (in_array($inferior->id, $changes['attached'])) 
-		$inferior->touch();
+		// Create obsolete, but only if not referring to same functionality group.
+		// In such case, labels will still be created, but obsolete_id will be null.
+		$obsolete = null;
+		if ($superior->functionality->group_id !== $inferior->functionality->group_id)
+			$obsolete = App\Obsolete::firstOrCreate([
+				'superior_functionality_group_id' => $superior->functionality->group_id,
+				'inferior_functionality_group_id' => $inferior->functionality->group_id,
+			]);
+	
+		// Add labels
+		$changes = $superior->functionality->inferiors()->syncWithoutDetaching([
+			$inferior->functionality_id => [
+				'labels' => create_labels($inferior, $superior, $obsolete), 
+				'obsolete_id' => $obsolete ? $obsolete->id : null
+			]
+		]);
 
-	// Handle reprints
-	if ($cascade_to_reprints) {
+		// If new association was created, touch inferior to put it first in Browse page
+		if (in_array($inferior->functionality_id, $changes['attached'])) 
+			$inferior->touch();
 
-		// Find duplicates of inferior
-		$inferior_list = $inferior->functionalReprints->pluck('id');
-		$inferior_list[] = $inferior->id;
+		// Add labels for other functionalities in the group
+		if ($cascade_to_groups) {
 
-		$inferiors = [];
-		foreach ($inferior_list as $addable_id) {
-			$inferiors[$addable_id] = ['labels' => $labels];
-		}
+			$inferior_list = $inferior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id')->first(); }])->get();
+			$superior_list = $superior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id')->first(); }])->get();
 
-		// Add all inferior duplicates to all superiors
-		if (count($superior->functionalReprints) == 0)
-			$superior->inferiors()->syncWithoutDetaching($inferiors);
+			// Add all inferior duplicates to all superiors
+			foreach ($superior_list as $superior_item) {
 
-		else {
-			foreach ($superior->functionalReprints as $superior_item) {
+				$inferiors = [];
+				foreach ($inferior_list as $inferior_item) {
+
+					$inferiors[$inferior_item->id] = [
+						'labels' => create_labels($inferior_item->cards->first(), $superior_item->cards->first(), $obsolete), 
+						'obsolete_id' => $obsolete ? $obsolete->id : null
+					];
+				}
+
 				$superior_item->inferiors()->syncWithoutDetaching($inferiors);
 			}
+
 		}
-	}
+	});
 	return true;
 }
 

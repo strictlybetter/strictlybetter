@@ -220,15 +220,18 @@
 				$(".container-fluid").on("submit", ".vote-form", function(event) {
 					event.preventDefault();
 
-					var row = $(this).closest('.row');
+					var obsolete_id = $(this).closest('.card-votes').attr('data-obsolete-id');
 
 					$.ajax({
 						type: "POST",
 						url: $(this).attr('action'),
 						dataType: "json",
 						success: function(response) {
-							$(row).find('.upvote-count').text(response.upvotes);
-							$(row).find('.downvote-count').text(response.downvotes);
+							// There might be multiple cards from same obsoletion id, so update them all
+							$('.card-votes[data-obsolete-id='+obsolete_id+']').each(function(e) {
+								$(this).find('.upvote-count').text(response.upvotes);
+								$(this).find('.downvote-count').text(response.downvotes);
+							});
 						}
 					});
 				});
