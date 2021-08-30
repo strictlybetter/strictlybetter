@@ -469,7 +469,7 @@ class Card extends Model
 		if (array_intersect($non_permanents, $other->types) && !array_intersect($non_permanents, $this->types)) {
 			
 			// ... Unless this permanent does it's thing when entering battlefield or can self sacrifice for the effect
-			if (!preg_match('/\bWhen (?:^another ).*? enters the battlefield/', $this->substituted_rules) &&
+			if (!preg_match('/\bWhen (?!another).*? enters the battlefield/', $this->substituted_rules) &&
 				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules))
 				return false;
 		}
