@@ -50,6 +50,7 @@
 		<li>Changed Add Suggestion page card links. Card links now point back to Add Suggestion page, except for the topmost Infreior card which takes user back to Browse page.</li>
 		<li>Added support for alternative manacost: Evoke. 
 			Ie. <i>Mulldrifter</i> is now better than <i>Divination</i></li>
+		<li>Added Help Voting tab where visitors can upvote or downvote random suggestions that have a low vote count.</li>
 	</ul>
 
 	<h4>07/11/21</h4>
