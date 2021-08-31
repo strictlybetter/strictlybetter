@@ -393,7 +393,7 @@ Artisan::command('create-obsoletes', function () {
 		if (count($betters) > 0 && $card->cmc !== null) {
 
 			$betters = $betters->filter(function($better) use ($card) {
-				return (!$better->costsMoreColoredThan($card));
+				return (!$better->costsMoreThan($card, true));
 			})->values();
 
 			$betters = $betters->filter(function($better) use ($card) {
@@ -402,7 +402,7 @@ Artisan::command('create-obsoletes', function () {
 				if ($card->main_card_id === null && $better->main_card_id !== null)
 					return true;
 
-				if ($card->cmc > $better->cmc || $card->costsMoreColoredThan($better))
+				if ($card->costsMoreThan($better))
 					return true;
 
 				if ($card->hasStats()) {

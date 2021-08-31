@@ -343,6 +343,23 @@ class Card extends Model
 		return $cmc;
 	}
 
+	public function costsMoreThan(Card $other, $may_cost_more_of_same = false)
+	{
+
+		if (!$this->alternativeCostsMoreColoredThan($other, $may_cost_more_of_same))
+			return false;
+
+		if ($other->cmc !== null && $this->cmc > $other->cmc) {
+
+			// Check for a special case, where mana cost is less based on target
+			$result = preg_match('/this spell costs (?:{.+?})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
+			if ($result != 1 || stripos($other->substituted_rules, "Target " . $match[1]) === false)
+				return true;
+		}
+
+		return $this->costsMoreColoredThan($other, $may_cost_more_of_same);
+	}
+
 	public function costsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
 	{
 		// If this costs nothing colored, it can't cost more
@@ -474,16 +491,8 @@ class Card extends Model
 				return false;
 		}
 
-		// This must not cost more than the other
-		if ($other->cmc !== null && $this->cmc > $other->cmc) {
-
-			// Check for a special case, where mana cost is less based on target
-			$result = preg_match('/this spell costs (?:{.+?})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
-			if ($result != 1 || stripos($other->substituted_rules, "Target " . $match[1]) === false)
-				return false;
-		}
-
-		if ($this->costsMoreColoredThan($other, true) && $this->alternativeCostsMoreColoredThan($other, true))
+		// This card must not cost more mana, but may cost more of the existing colors.
+		if ($this->costsMoreThan($other, true))
 			return false;
 
 		return true;
@@ -577,7 +586,7 @@ class Card extends Model
 		//	"Awaken", // — turns land in play into a creature
 		//	"Bestow", // — a creature is cast as an enchantment
 		//	"Dash", // — grants a creature haste, but returns it to hand at end of turn
-		//	"Evoke", // — a creature is cast and immediately sacrificed, creating a sorcery-like effect
+			"Evoke", // — a creature is cast and immediately sacrificed, creating a sorcery-like effect
 		//	"Morph", // — a creature is cast face down, but can be turned face up later
 		//	"Megamorph", // — a creature is cast face down, but can be turned face up later
 			"Overload", // — a spell affects all possible targets instead of just one
