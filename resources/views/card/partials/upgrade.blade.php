@@ -14,7 +14,7 @@
 			@foreach($card->functionalReprints as $i => $reprint_card)
 
 				<div class="mtgcard-wrapper reprint-stack reprint-{{ ($i >= 2) ? ($i) : $i }}">
-					@if(Request::is('card/*'))
+					@if(Request::is('card/*') || Request::is('upgradeview/*'))
 						<a class="card-link" href="{{ route('card.create', [$reprint_card->id]) }}" title="{{ $reprint_card->name }}">
 					@else
 						<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $reprint_card->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $reprint_card->name }}">
@@ -34,11 +34,7 @@
 		@endif
 	
 		<div class="mtgcard-wrapper reprint-{{ ($reprint_count > 3) ? $reprint_count : $reprint_count }} reprint-primary" >
-			@if(Request::is('card/*'))
-				<a class="card-link" href="{{ route('card.create', [$card->id]) }}" title="{{ $card->name }}">
-			@else
 				<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $card->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $card->name }}">
-			@endif
 				<div class="flipper">
 					{{ Html::image(asset('image/card-back.jpg'), $card->name, ['class' => 'mtgcard back', 'loading' => 'eager']) }}
 					{{ Html::image($card->imageUrl, $card->name, ['class' => 'mtgcard front', 'loading' => 'lazy', 'alt-src' => $card->gathererImg]) }}
@@ -64,7 +60,7 @@
 		@endforeach
 		@if(Request::is('quicksearch'))
 		<div class="mtgcard-wrapper newcard">
-			<a class="card-create-link" href="{{ route('card.create', [$card->id]) }}" title="New supeior card for {{ $card->name }}">
+			<a class="card-create-link" href="{{ route('card.create', [$card->id]) }}" title="New superior card for {{ $card->name }}">
 				{{ Html::image(asset('image/card-back.jpg'), 'New superior card', ['class' => 'mtgcard']) }}
 				<span class="mtgcard-text">New superior card</span>
 				<span class="plus-sign"><b>+</b></span>

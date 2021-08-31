@@ -1,5 +1,5 @@
 <div class="mtgcard-wrapper">
-	@if(Request::is('card/*'))
+	@if(Request::is('card/*') || Request::is('upgradeview/*'))
 		<a class="card-link" href="{{ route('card.create', [$related->id]) }}" title="{{ $related->name }}">
 	@else
 		<a class="card-link" href="{{ route('index', ['format' => isset($format) ? $format : '', 'search' => $related->name, 'filters' => isset($filters) ? $filters : '']) }}" title="{{ $related->name }}">
