@@ -423,4 +423,21 @@ class CardController extends Controller
 
 		return $obsolete;
 	}
+
+	public function votehelp(Request $request)
+	{
+		$random = function($q) { 
+			$q->relatedGuiOnly()->where("obsoletes.downvotes", '<', 10)->where("obsoletes.upvotes", '<', 10);
+		};
+
+		$inferior = Card::with(['superiors' => $random])
+			->guiOnly()
+			->whereHas('superiors', $random)
+			->inRandomOrder()
+			->first();
+
+		$superior = $inferior ? $inferior->superiors->random() : null;
+
+		return view('votehelp')->with(['inferior' => $inferior, 'superior' => $superior]);
+	}
 }

@@ -50,6 +50,9 @@
 						<li class="nav-item {{ Request::is('card', 'card/*') ? 'active' : '' }}">
 							<a class="nav-link" href="{{ route('card.create') }}">Add Suggestion</a>
 						</li>
+						<li class="nav-item {{ Request::is('votehelp') ? 'active' : '' }}">
+							<a class="nav-link" href="{{ route('card.votehelp') }}">Help Voting</a>
+						</li>
 						<li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">
 							<a class="nav-link" href="{{ route('api.guide') }}">API Guide</a>
 						</li>
@@ -130,6 +133,12 @@
 			@endif
 
 			var card_cache = {};
+			var vote_refresh = false;
+
+			function set_vote_refreshing(value) {
+				vote_refresh = value;
+			}
+
 			function card_autocomplete(selector, max_results, select_callback) {
 
 				var autocomplete_query = null;
@@ -232,6 +241,9 @@
 								$(this).find('.upvote-count').text(response.upvotes);
 								$(this).find('.downvote-count').text(response.downvotes);
 							});
+
+							if (vote_refresh)
+								location.reload();
 						}
 					});
 				});
