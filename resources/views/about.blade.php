@@ -23,7 +23,7 @@
 
 	<p>
 		Using the the site a MTG player may search for better card alternatives for their older deck or cards that may have been printed without putting in too much effort.
-		For example, they may want to upgrade their <a href="{{ route('index') }}?search=Murder" rel="noopener noreferrer">Murder to Hero's Downfall</a>.
+		For example, they may want to upgrade their <a href="{{ route('index') }}?search=Murder" rel="noopener noreferrer"><i>Murder</i> to <i>Hero's Downfall</i></a>.
 	</p>
 
 	<p>
@@ -53,11 +53,12 @@
 
 			<li>The supposed better card has manacolors in manacost the worse card doesn't have. (Hybrid mana is an exception)</li>
 
-			<li>The cards do not share types. (Sorcery vs Instant is an exception. Creatures may also have other card types, but both must still be creatures)</li>
+			<li>The supposed better card can't be cast at same "speed" than the worse card. (Instant / Flash)</li>
 
-			<li>Both cards have subtypes, but no common subtype is found</li>
+			<li>The supposed better card doesn't have immediate effect like the worse Instant or Sorcery.<br>
+				(This can be achieved via "Enters the Battlefield" or self sacrifice effects)</li>
 
-			<li>The cards are the same or functional reprints of each other</li>
+			<li>The cards belong to same functionality group. (Ie. <i>Llanowar Elves</i> vs <i>Elvish Mystic</i>)</li>
 		</ul>
 	</p>
 	<br>

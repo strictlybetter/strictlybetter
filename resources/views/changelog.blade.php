@@ -46,12 +46,16 @@
 			</ul>
 		</li>
 		<li>Fixed Unhinged cards with duplicate names not being listed.</li>
+		<li>Automatic suggestions now also search for cards costing more of same mana, but same cmc. (These are marked with a label and can be filtered in UI)</li>
+		<li>Changed Add Suggestion page card links. Card links now point back to Add Suggestion page, except for the topmost Infreior card which takes user back to Browse page.</li>
+		<li>Added support for alternative manacost: Evoke. 
+			Ie. <i>Mulldrifter</i> is now better than <i>Divination</i></li>
 	</ul>
 
 	<h4>07/11/21</h4>
 	<ul>
 		<li>Added support for alternative manacost: Overload.
-		Ie. "Damn" is now better than "Wrath of God".</li>
+		Ie. <i>Damn</i> is now better than <i>Wrath of God</i>.</li>
 	</ul>
 
 	<h4>11/09/20</h4>
