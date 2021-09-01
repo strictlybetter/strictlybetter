@@ -170,12 +170,9 @@ class Card extends Model
 	{
 		$values = array_values($this->only(Card::$functionality_group_attributes));
 
-		foreach ($this->types as $type) {
+		foreach (Card::$functionality_group_exclusive_types as $type) {
+			if (in_array($type, $this->types))
 				$values[] = $type;
-		}
-
-		foreach ($this->supertypes as $supertype) {
-				$values[] = $supertype;
 		}
 
 		$line = implode("|", $values);
@@ -189,14 +186,16 @@ class Card extends Model
 
 	public function linkToFunctionality()
 	{
+		// Don't link individual card faces
+		if ($this->main_card_id)
+			return null;
+
 		$migrate_from_orphan_functionality = null;
 		$new_functionality = null;
 
 		// If this card already has a functionality (that we are re-establishing) 
 		// and this card is the only card in this functionality, migrate assets from the functionality to new one
 		if ($this->functionality_id) {
-			$this->loadCount('functionalReprints');
-			$this->load('functionality');
 			if ($this->functional_reprints_count <= 1)
 				$migrate_from_orphan_functionality = $this->functionality;
 		}
@@ -241,8 +240,10 @@ class Card extends Model
 			$new_functionality = Functionality::create(['group_id' => $group_id]);
 		}
 
-		$this->functionality()->associate($new_functionality);
-		$this->save();
+		if ($this->functionality_id != $new_functionality->id) {
+			$this->functionality()->associate($new_functionality);
+			$this->save();
+		}
 
 		// Move better-worse relations and voting data to new functionality if leaving orhpans
 		if ($migrate_from_orphan_functionality && $migrate_from_orphan_functionality->id != $new_functionality->id) {

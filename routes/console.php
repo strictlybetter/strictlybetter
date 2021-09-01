@@ -599,6 +599,61 @@ Artisan::command('download-typedata', function () {
 	$this->comment("Update completed");
 });
 
+Artisan::command('regroup-cards', function () {
+
+	$this->comment("Regrouping cards...");
+
+	$cards = Card::with(['functionality'])->withCount('functionalReprints')->whereNull('main_card_id')->get();
+	$bar = $this->output->createProgressBar(count($cards));
+
+	DB::transaction(function () use ($cards, $bar) {
+		foreach ($cards as $card) {
+			$card->linkToFunctionality();
+			$bar->advance();
+		}
+	});
+
+	$bar->finish();
+});
+
+/*
+ This command goes through existing obsoletes and creates missing labelings for any functionalities related to functionality groups referred in the Obsolete
+ This doesn't happen in normal runtime, sometimes things break.
+ */
+Artisan::command('relabel-obsoletes', function () {
+
+	$obsoletes = Obsolete::with(['inferiors', 'superiors', 'labelings'])
+		->whereRaw('inferior_functionality_group_id != superior_functionality_group_id')
+		->get();
+
+	$labeling_count = Labeling::count();
+
+	$bar = $this->output->createProgressBar(count($obsoletes));
+
+	DB::transaction(function () use ($obsoletes, $bar) {
+		foreach ($obsoletes as $obsolete) {
+			
+			foreach ($obsolete->inferiors as $inferior) {
+				foreach ($obsolete->superiors as $superior) {
+					if ($inferior->functionality_id != $superior->functionality_id) {
+						if ($obsolete->labelings
+							->where('inferior_functionality_id', $inferior->functionality_id)
+							->where('superior_functionality_id', $superior->functionality_id)
+							->count() == 0)
+							create_labeling($inferior, $superior, $obsolete, false);
+					}
+				}
+			}
+			$bar->advance();
+		}
+	});
+
+	$bar->finish();
+
+	$new_labeling_count = Labeling::count();
+	$this->comment("Created " . ($new_labeling_count - $labeling_count) . " new labelings");
+});
+
 Artisan::command('full-update', function () {
 
 	$this->comment(date('[Y-m-d H:i:s]') . " Full update started");

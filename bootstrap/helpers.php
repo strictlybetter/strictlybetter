@@ -149,7 +149,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 
 	// ... Or use oracle_id. Unless it's a split card, in which case find using card name and parent_id
 	else {
-		$q = App\Card::query();
+		$q = App\Card::with(['functionality'])->withCount('functionalReprints');
 
 		if ($parent)
 			$q = $q->where('main_card_id', $parent->id)->where('name', $obj->name);
@@ -286,6 +286,8 @@ function create_labels(App\Card $inferior, App\Card $superior, App\Obsolete $obs
 		$labels = [];
 
 		foreach ($inferior->cardFaces as $face) {
+
+			// Only create labels for the face that is better, ignore the other(s)
 			if ($superior->isEqualOrBetterThan($face))
 				$labels = sum_labels(create_labels($face, $superior, $obsolete), $labels);
 		}
@@ -347,42 +349,48 @@ function create_obsolete(App\Card $inferior, App\Card $superior, $cascade_to_gro
 				'inferior_functionality_group_id' => $inferior->functionality->group_id,
 			]);
 	
-		// Add labels
-		$changes = $superior->functionality->inferiors()->syncWithoutDetaching([
-			$inferior->functionality_id => [
-				'labels' => create_labels($inferior, $superior, $obsolete), 
-				'obsolete_id' => $obsolete ? $obsolete->id : null
-			]
-		]);
-
-		// If new association was created, touch inferior to put it first in Browse page
-		if (in_array($inferior->functionality_id, $changes['attached'])) 
-			$inferior->touch();
-
-		// Add labels for other functionalities in the group
-		if ($cascade_to_groups) {
-
-			$inferior_list = $inferior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
-			$superior_list = $superior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
-
-			// Add all inferior duplicates to all superiors
-			foreach ($superior_list as $superior_item) {
-
-				$inferiors = [];
-				foreach ($inferior_list as $inferior_item) {
-
-					$inferiors[$inferior_item->id] = [
-						'labels' => create_labels($inferior_item->cards->first(), $superior_item->cards->first(), $obsolete), 
-						'obsolete_id' => $obsolete ? $obsolete->id : null
-					];
-				}
-
-				$superior_item->inferiors()->syncWithoutDetaching($inferiors);
-			}
-
-		}
+		create_labeling($inferior, $superior, $obsolete, $cascade_to_groups);
 	});
 	return true;
+}
+
+function create_labeling($inferior, $superior, $obsolete = null, $cascade_to_groups = true) {
+
+	// Add labels
+	$changes = $superior->functionality->inferiors()->syncWithoutDetaching([
+		$inferior->functionality_id => [
+			'labels' => create_labels($inferior, $superior, $obsolete), 
+			'obsolete_id' => $obsolete ? $obsolete->id : null
+		]
+	]);
+
+	// If new association was created, touch inferior to put it first in Browse page
+	if (in_array($inferior->functionality_id, $changes['attached'])) 
+		$inferior->touch();
+
+	// Add labels for other functionalities in the group
+	if ($cascade_to_groups) {
+
+		$inferior_list = $inferior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
+		$superior_list = $superior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
+
+		// Add all inferior duplicates to all superiors
+		foreach ($superior_list as $superior_item) {
+
+			$inferiors = [];
+			foreach ($inferior_list as $inferior_item) {
+
+				$inferiors[$inferior_item->id] = [
+					'labels' => create_labels($inferior_item->cards->first(), $superior_item->cards->first(), $obsolete), 
+					'obsolete_id' => $obsolete ? $obsolete->id : null
+				];
+			}
+
+			$superior_item->inferiors()->syncWithoutDetaching($inferiors);
+		}
+
+	}
+
 }
 
 function get_line_count($filename) {
