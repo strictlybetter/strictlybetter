@@ -285,11 +285,11 @@ class Card extends Model
 						->where('superior_functionality_group_id', $labeling->obsolete->superior_functionality_group_id)
 						->first();
 
-					if ($existing_osbolete) {
+					if ($existing_obsolete) {
 						$copy_only = ($labeling->obsolete->labelings()->count() > 1);
-						$existing_osbolete->migrateVotesTo($existing_osbolete, $copy_only);
+						$existing_obsolete->migrateVotesTo($existing_obsolete, $copy_only);
 
-						$labeling->obsolete_id = $existing_osbolete->id;
+						$labeling->obsolete_id = $existing_obsolete->id;
 						$labeling->save();
 
 						if (!$copy_only) 
