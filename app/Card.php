@@ -200,12 +200,26 @@ class Card extends Model
 				$migrate_from_orphan_functionality = $this->functionality;
 		}
 
-		// Try finding a card with identical characteristics and a set functionality_id
-		$card = Card::with(['functionality'])//->select(['cards.id', 'functionality_id'])
-			->where($this->only(Card::$functionality_attributes))
+		$face = $this;
+
+		$functionality_rules = function($q) use ($face) {
+			$q = $q->where($face->only(Card::$functionality_attributes))
 			->whereNotNull('functionality_id')
-			->whereNull('main_card_id')
-			->first();
+			->whereNull('main_card_id');
+		};
+
+		// Try finding a card with identical characteristics and a set functionality_id
+		$q = Card::with(['functionality'])//->select(['cards.id', 'functionality_id'])
+			->where($functionality_rules);
+
+		foreach ($this->cardFaces as $cardface) {
+			$face = $cardface;
+			$q = $q->whereHas('cardFaces', function($q) use ($functionality_rules) {
+				$q->where($functionality_rules);
+			});
+		}
+
+		$card = $q->first();
 		
 		if ($card)
 			$new_functionality = $card->functionality;
@@ -213,18 +227,29 @@ class Card extends Model
 		else {
 
 			$group_id = null;
+			$face = $this;
 
-			// Try finding a card with similar characteristics and a set functionality_id (for group_id)
-			$q = Card::with(['functionality'])//->select(['cards.id', 'functionality_id'])
-				->where($this->only(Card::$functionality_group_attributes))
+			$group_rules = function($q) use ($face) {
+				$q = $q->where($face->only(Card::$functionality_group_attributes))
 				->whereNotNull('functionality_id')
 				->whereNull('main_card_id');
 
-			foreach (Card::$functionality_group_exclusive_types as $type) {
-				if (in_array($type, $this->types))
-					$q = $q->whereJsonContains('types', $type);
-				else
-					$q = $q->whereJsonDoesntContain('types', $type);
+				foreach (Card::$functionality_group_exclusive_types as $type) {
+					if (in_array($type, $face->types))
+						$q = $q->whereJsonContains('types', $type);
+					else
+						$q = $q->whereJsonDoesntContain('types', $type);
+				}
+			};
+
+			// Try finding a card with similar characteristics and a set functionality_id (for group_id)
+			$q = Card::with(['functionality'])->where($group_rules);
+
+			foreach ($this->cardFaces as $cardface) {
+				$face = $cardface;
+				$q = $q->whereHas('cardFaces', function($q) use ($group_rules) {
+					$q->where($group_rules);
+				});
 			}
 
 			$similiar = $q->first();
@@ -251,24 +276,82 @@ class Card extends Model
 			$inferiors = Labeling::with(['obsolete'])->where('inferior_functionality_id', $migrate_from_orphan_functionality->id)->get();
 			$superiors = Labeling::with(['obsolete'])->where('superior_functionality_id', $migrate_from_orphan_functionality->id)->get();
 
+			// Inferiors
 			foreach ($inferiors as $labeling) {
+				$labeling->timestamps = false;
 				if ($labeling->obsolete && $migrate_from_orphan_functionality->group_id !== $new_functionality->group_id) {
-					$labeling->obsolete->inferior_functionality_group_id = $new_functionality->group_id;
-					$labeling->obsolete->save();
+
+					$existing_obsolete = Obsolete::where('inferior_functionality_group_id', $new_functionality->group_id)
+						->where('superior_functionality_group_id', $labeling->obsolete->superior_functionality_group_id)
+						->first();
+
+					if ($existing_osbolete) {
+						$copy_only = ($labeling->obsolete->labelings()->count() > 1);
+						$existing_osbolete->migrateVotesTo($existing_osbolete, $copy_only);
+
+						$labeling->obsolete_id = $existing_osbolete->id;
+						$labeling->save();
+
+						if (!$copy_only) 
+							$labeling->obsolete->delete();
+					}
+					else {
+						$labeling->obsolete->timestamps = false;
+						$labeling->obsolete->inferior_functionality_group_id = $new_functionality->group_id;
+						$labeling->obsolete->save();
+					}
 				}
 
-				$labeling->inferior_functionality_id = $new_functionality->id;
-				$labeling->save();
+				$existing_labeling = Labeling::where('inferior_functionality_id', $new_functionality->id)
+					->where('superior_functionality_id', $labeling->superior_functionality_id)
+					->first();
+
+				if ($existing_labeling) {
+					$labeling->delete();
+				}
+				else {
+					$labeling->inferior_functionality_id = $new_functionality->id;
+					$labeling->save();
+				}
 			}
 
+			// Superiors
 			foreach ($superiors as $labeling) {
+				$labeling->timestamps = false;
 				if ($labeling->obsolete && $migrate_from_orphan_functionality->group_id !== $new_functionality->group_id) {
-					$labeling->obsolete->superior_functionality_group_id = $new_functionality->group_id;
-					$labeling->obsolete->save();
+
+					$existing_obsolete = Obsolete::where('superior_functionality_group_id', $new_functionality->group_id)
+						->where('inferior_functionality_group_id', $labeling->obsolete->inferior_functionality_group_id)
+						->first();
+
+					if ($existing_obsolete) {
+						$copy_only = ($labeling->obsolete->labelings()->count() > 1);
+						$existing_obsolete->migrateVotesTo($existing_obsolete, $copy_only);
+
+						$labeling->obsolete_id = $existing_obsolete->id;
+						$labeling->save();
+
+						if (!$copy_only) 
+							$labeling->obsolete->delete();
+					}
+					else {
+						$labeling->obsolete->timestamps = false;
+						$labeling->obsolete->superior_functionality_group_id = $new_functionality->group_id;
+						$labeling->obsolete->save();
+					}
 				}
 
-				$labeling->superior_functionality_id = $new_functionality->id;
-				$labeling->save();
+				$existing_labeling = Labeling::where('superior_functionality_id', $new_functionality->id)
+					->where('inferior_functionality_id', $labeling->inferior_functionality_id)
+					->first();
+
+				if ($existing_labeling) {
+					$labeling->delete();
+				}
+				else {
+					$labeling->superior_functionality_id = $new_functionality->id;
+					$labeling->save();
+				};
 			}
 
 			if ($migrate_from_orphan_functionality->group_id && $migrate_from_orphan_functionality->group_id !== $new_functionality->group_id) {

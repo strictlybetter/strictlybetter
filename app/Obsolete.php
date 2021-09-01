@@ -64,4 +64,32 @@ class Obsolete extends Model
 	{
 		return $this->upvotes - $this->downvotes;
 	}
+
+	public function migrateVotesTo(Obsolete $other, $copy_only)
+	{
+
+		$votes_to_migrate = $this->votes()->whereNotIn('ip', $other->votes->pluck('ip'))->get();
+
+		if (count($votes_to_migrate) > 0) {
+			foreach ($votes_to_migrate as $vote) {
+
+				if ($vote->upvote)
+					$other->upvotes++;
+				else
+					$other->downvotes++;		
+
+				if ($copy_only) {
+					$copy = $vote->replicate();
+					$copy->obsolete_id = $other->id;
+					$copy->push();
+				}
+				else {
+					$vote->obsolete_id = $other->id;
+					$vote->save();
+				}
+			}
+			$other->timestamps = false;
+			$other->save();
+		}
+	}
 }
