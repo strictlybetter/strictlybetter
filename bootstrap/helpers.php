@@ -240,10 +240,6 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		}
 	}
 
-	else if ($regroup) {
-		$card->linkToFunctionality();
-	}
-
 	if ($card->isDirty()) {
 		$card->save();
 	}
@@ -258,6 +254,10 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		// Remove previous faces no longer present
 		if ($card->id)
 			App\Card::where('main_card_id', $card->id)->whereNotIn('name', $names)->delete();
+	}
+
+	if (!$parent && $regroup) {
+		$card->linkToFunctionality();
 	}
 
 	return true;
