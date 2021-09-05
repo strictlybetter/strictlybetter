@@ -5,6 +5,7 @@ use App\Obsolete;
 use App\FunctionalReprint;
 use App\Cardtype;
 use App\Labeling;
+use App\Excerpt;
 
 /*
 |--------------------------------------------------------------------------
@@ -273,214 +274,57 @@ Artisan::command('create-obsoletes', function () {
 
 	$this->comment("Looking for better cards...");
 
-	$obsoletion_attributes = [
-		'cards.id',
-		'supertypes',
-		'types',
-		'subtypes',
-		'colors',
-		'color_identity',
-		'manacost_sorted',
-		'cmc',
-		'hybridless_cmc',
-		'main_card_id',
-		'flip',
-		'substituted_rules',
-		'manacost',
-		'power',
-		'toughness',
-		'loyalty',
-		'functionality_id'
-	];
-
-	$cards = Card::select($obsoletion_attributes)
-		->whereNull('main_card_id')
-		->whereDoesntHave('cardFaces')
-		->orderBy('id', 'asc')->get();
-
-	$allcolors = ["W","B","U","R","G"];
-
-	$bar = $this->output->createProgressBar(count($cards));
-
-	$bar->start();
+	$bar = null;
 	$count = 0;
-	$old_obsolete_count = Obsolete::count();
+	$progress_callback = function($cardcount, $at) use (&$bar) {
 
-	DB::transaction(function () use ($cards, $bar, $obsoletion_attributes, &$count) {
-
-	foreach ($cards as $card) {
-
-		$betters = Card::select($obsoletion_attributes)
-			->where('substituted_rules', $card->substituted_rules)
-		//	->whereJsonContains('supertypes', $card->supertypes)
-		//	->whereJsonLength('supertypes', count($card->supertypes))
-			->where('id', "!=", $card->id)
-			->where('functionality_id', "!=", $card->functionality_id)
-			->whereDoesntHave('cardFaces')
-			->where(function($q) {
-				$q->where('flip', false)->orWhereNotNull('cmc');
-			});
-
-		// Sorcery may be substituted by an Instant
-		if (in_array("Sorcery", $card->types)) {
-
-			$betters = $betters->where(function($q) use ($card) {
-
-				$substitute_types = $card->types;
-
-				array_splice($substitute_types, array_search("Sorcery", $substitute_types), 1, ["Instant"]);
-
-				// $this->comment("Found sorcery id ". $card->id . " subsituting: " . implode(" ", $substitute_types) . " originial " . implode(" ", $card->types));
-
-				$q->whereJsonContains('types', $card->types)
-					->orWhereJsonContains('types', $substitute_types);
-
-			});
-		}
-		
-		// Creatures are compared to creatures, however, they may have other types aswell
-		else if (in_array("Creature", $card->types)) {
-			$betters = $betters->whereJsonContains('types', "Creature");
+		if (!$bar) {
+			$bar = $this->output->createProgressBar($cardcount);
+			$bar->start();
 		}
 
-		// Others follow a stricter policy
-		else {
-			$betters = $betters->whereJsonContains('types', $card->types)
-				->whereJsonLength('types', count($card->types));
-		}
+		if ($at > 0 && $at < $cardcount)
+			$bar->advance();
 
-		// Musn't have colors the worse card hasn't eithers
-		/*foreach (array_diff($allcolors, $card->colors) as $un_color) {
-			$betters = $betters->whereJsonDoesntContain('colors', $un_color);
-		}*/
+		else if ($at >= $cardcount)
+			$bar->finish();
+	};
 
-		if ($card->cmc === null)
-			$betters = $betters->whereNull('cmc');
-		else {
-			$betters = $betters->where('cmc', '<=', $card->cmc)->where('hybridless_cmc', '<=', $card->hybridless_cmc);
-		}
+	$old_obsolete_count = App\Obsolete::count();
 
-		// Creatures need additional rules
-		// Either power, toughness or cmc has to be better
-		if ($card->power !== null) {
-
-			if (is_numeric($card->power))
-				$betters = $betters->where('power', '>=', (double)$card->power);
-			else
-				$betters = $betters->where('power', '=', $card->power);
-
-			if (is_numeric($card->toughness))
-				$betters = $betters->where('toughness', '>=', (double)$card->toughness);
-			else
-				$betters = $betters->where('toughness', '=', $card->toughness);
-		}
-		else
-			$betters = $betters->whereNull('power')->whereNull('toughness');
-
-			/*	->where(function($q) use ($card) {
-
-					$q->where('power', '>', $card->power)
-						->orWhere('toughness', '>', $card->toughness)
-						->orWhere('cmc', '<', $card->cmc);
-				});*/
-		
-
-		if (!empty($card->manacost_sorted)) {
-			foreach ($card->manacost_sorted as $symbol => $amount) {
-				$betters = $betters->where(function($q) use ($symbol, $amount){
-					$q->whereNull('manacost_sorted->' . $symbol)
-						->orWhere('manacost_sorted->' . $symbol, '<=', $amount);
-				});
-			}
-		}
-		else
-			$betters = $betters->whereJsonLength('manacost_sorted', 0);
-
-
-		$betters = $betters->orderBy('id', 'asc')->get();
-
-		// Filter out any better cards that cost more colored mana
-		if (count($betters) > 0 && $card->cmc !== null) {
-
-			$betters = $betters->filter(function($better) use ($card) {
-				return (!$better->costsMoreThan($card, true));
-			})->values();
-
-			$betters = $betters->filter(function($better) use ($card) {
-
-				// Split card is better, even if everything else matches
-				if ($card->main_card_id === null && $better->main_card_id !== null)
-					return true;
-
-				if ($card->costsMoreThan($better))
-					return true;
-
-				if ($card->hasStats()) {
-					return ($card->power < $better->power || $card->toughness < $better->toughness);
-				}
-
-				if ($card->hasLoyalty()) {
-					return ($card->loyalty < $better->loyalty);
-				}
-
-				if (in_array("Instant", $better->types) && in_array("Sorcery", $card->types)) {
-					return true;
-				}
-
-				// $this->comment("#" . $card->id . " " . $card->name . " is not better than #" . $better->id . " " . $better->name);
-
-				return false;
-			})->values();
-			
-		}
-		
-
-
-// where('power', 'not like', '%*%')->where('toughness', 'not like', '%*%')
-		/*
-
-		$betters = $cards->filter(function($other) use ($card, $colors, $hasLoylaty, $isCreature) {
-
-			if ($other->cmc <= $card->cmc
-
-			if ($other->multiverse_id === $card->multiverse_id || $other->functional_reprints_id === $card->functional_reprints_id)
-				return false;
-
-			if (implode("", $other->colors) === $colors &&
-				$other->typeLine === $card->typeLine &&
-				$other->rules === $card->rules
-			) {
-				if ($isCreature && ($other->power === '*' || $other->power < $card->power || $other->toughness === '*' || $other->toughness < $card->toughness))
-					return false;
-
-				if ($hasLoylaty && $other->loyalty < $card->loyalty)
-					return false;
-
-				return true;
-			}
-			return false;
-		});
-		*/
-
-		foreach ($betters as $better) {
-			//$this->comment("#" . $card->id . " " . $card->name . " can be upgraded to #" . $better->id . " " . $better->name);
-
-			if ($better->main_card_id) {
-				//$this->comment("Would create " . $card->name . " -> " .$better->name . " (". $better->mainCard->name . ")");
-				create_obsolete($card, $better->mainCard, false);
-			}
-			else
-				create_obsolete($card, $better, false);
-			$count++;
-		}
-		
-		$bar->advance();
-	}
-	});
-	$bar->finish();
+	create_obsoletes(false, $progress_callback, $count);
+	
 	$this->comment($count . " better cards found. " . (Obsolete::count() - $old_obsolete_count) . "  new records created for database. ");
 
 })->describe('Populates obsoletes table with programmatically findable strictly better cards');
+
+Artisan::command('create-obsoletes-by-analysis', function () {
+
+	$this->comment("Looking for better cards by analysis...");
+
+	$bar = null;
+	$count = 0;
+	$progress_callback = function($cardcount, $at) use (&$bar) {
+
+		if (!$bar) {
+			$bar = $this->output->createProgressBar($cardcount);
+			$bar->start();
+		}
+
+		if ($at > 0 && $at < $cardcount)
+			$bar->advance();
+
+		else if ($at >= $cardcount)
+			$bar->finish();
+	};
+
+	$old_obsolete_count = App\Obsolete::count();
+
+	create_obsoletes(true, $progress_callback, $count);
+	
+	$this->comment($count . " better cards found. " . (Obsolete::count() - $old_obsolete_count) . "  new records created for database. ");
+
+})->describe('Populates obsoletes table with cards that are better by previous rule analysis');
 
 
 Artisan::command('download-scryfall', function () {
@@ -663,6 +507,84 @@ Artisan::command('relabel-obsoletes', function () {
 
 	$new_labeling_count = Labeling::count();
 	$this->comment("Created " . ($new_labeling_count - $labeling_count) . " new labelings");
+});
+
+Artisan::command('analyze-rules', function () {
+
+	$obsoletes = Obsolete::with(['inferiors', 'superiors'])
+		->whereRaw('inferior_functionality_group_id != superior_functionality_group_id')
+		->where('upvotes', '>', 5)->whereRaw('downvotes / upvotes < 0.3')
+		->get();
+
+	// Clear previous analyzes
+	// This will keep positivty and negativity points relevant and also clear any previous misjudgements
+	Excerpt::truncate();
+
+	$bar = $this->output->createProgressBar(count($obsoletes));
+	$new_excerpts = 0;
+
+	foreach ($obsoletes as $obsolete) {
+		$superior = $obsolete->superiors->first();
+		$inferior = $obsolete->inferiors->first();
+		
+		// If inferior or superior is a multifaced card, 
+		// search for the actual face that is better
+		$face_found = (count($superior->cardFaces) == 0) && (count($inferior->cardFaces) == 0);
+		if (!$face_found) {
+			foreach ($superior->cardFaces as $sup) {
+
+				foreach($inferior->cardFaces as $inf) {
+					if ($sup->isEqualOrBetterThan($inf)) {
+						$superior = $sup;
+						$inferior = $inf;
+						$face_found = true;
+						break 2;
+					}
+				}
+
+				if ($sup->isEqualOrBetterThan($inferior)) {
+					$superior = $sup;
+					$face_found = true;
+				}
+			}
+			if (!$face_found) {
+				foreach($inferior->cardFaces as $inf) {
+					if ($superior->isEqualOrBetterThan($inf)) {
+						$inferior = $inf;
+						$face_found = true;
+						break;
+					}
+				}
+				if (!$face_found)
+					continue;
+			}
+		}
+		
+
+		$excerpts = Excerpt::getNewExcerpts($inferior, $superior);
+		foreach ($excerpts as $e) {
+
+			$existing = Excerpt::where('text', $e->text)->first();
+			if ($existing) {
+
+				// Update ratings. 
+				// Point system attempts to verify we haven't made misjudgements about rule being positive/negative
+				$existing->positivity_points += $e->positivity_points;
+				$existing->negativity_points += $e->negativity_points;
+				$existing->positive = ($existing->positivity_points > $existing->negativity_points);
+				$existing->save();
+			}
+			else {
+				$e->push();
+				$new_excerpts++;
+			}
+		}
+		$bar->advance();
+	}
+
+	$bar->finish();
+
+	$this->comment("Created " . ($new_excerpts) . " new excerpts");
 });
 
 Artisan::command('full-update', function () {
