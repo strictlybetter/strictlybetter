@@ -298,10 +298,14 @@ class Card extends Model
 		$name = preg_quote($this->name, '/');
 		$pattern = '/(\b|^|\W)' . preg_replace('/\s+/u', '\s+', $name)  . '(\b|$|\W)/u';
 
-		$substitute_rules = preg_replace($pattern, '\1@@@\2', $this->rules);
+		$substitute_rules = preg_replace($pattern, '\1@@@\2', $this->rules);	// Replace own name with @@@
+		$substitute_rules = preg_replace('/;/u', ',', $substitute_rules);		// Some older cards separate keywords with ; replace to ,
 
-		// Remove reminder text
-		// $substitute_rules = preg_replace('/^\(.*?\)\n/um', '', $substitute_rules);
+		// Lands have their tap ability in parenthesis, remove the parenthesis
+		$substitute_rules = preg_replace('/\(({T}: Add (?:{.+?})+(?: or (?:{.+?})+)*\.)\)/u', '\1', $substitute_rules);
+
+		// Remove all reminder texts
+		$substitute_rules = preg_replace('/\s*?\(.*?\)/u', '', $substitute_rules);
 
 		return $substitute_rules;
 	}
