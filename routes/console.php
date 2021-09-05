@@ -608,6 +608,7 @@ Artisan::command('regroup-cards', function () {
 
 	DB::transaction(function () use ($cards, $bar) {
 		foreach ($cards as $card) {
+			$card->timestamps = false;
 			$card->linkToFunctionality();
 			$bar->advance();
 		}
