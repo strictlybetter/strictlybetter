@@ -156,6 +156,7 @@ Artisan::command('populate-functional-reprints', function () {
 			//$group->cards()->associate($reprint_group->pluck('id'));
 			foreach ($reprint_group as $card) {
 				if ($card->functional_reprints_id != $group->id) {
+					$card->timestamps = false;
 					$card->functional_reprints_id = $group->id;
 					$card->save();
 					$card_count++;
@@ -164,8 +165,15 @@ Artisan::command('populate-functional-reprints', function () {
 		}
 	});
 
-	$results = FunctionalReprint::count() - $count;
-	$this->comment($results . " new families created and " . $card_count . " cards added");
+	$new_count = FunctionalReprint::count();
+	$results = $new_count - $count;
+
+	// Delete any orphaned functional reprints
+	FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
+
+	$deleted = $new_count - FunctionalReprint::count();
+
+	$this->comment($results . " new families created and " . $card_count . " cards added. " . $deleted . " orphaned families were deleted.");
 
 })->describe('Populates functional reprints table based on existing cards');
 
