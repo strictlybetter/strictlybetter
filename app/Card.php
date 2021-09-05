@@ -302,10 +302,10 @@ class Card extends Model
 		$substitute_rules = preg_replace('/;/u', ',', $substitute_rules);		// Some older cards separate keywords with ; replace to ,
 
 		// Lands have their tap ability in parenthesis, remove the parenthesis
-		$substitute_rules = preg_replace('/\(([^\)]*{T}: Add (?:{.+?})+(?: or (?:{.+?})+)*\."?)\)/u', '\1', $substitute_rules);
+		$substitute_rules = preg_replace('/\(([^\)]*{T}: Add (?:\{[^\}]+\})+(?: or (?:\{[^\}]+\})+)*\."?)\)/u', '\1', $substitute_rules);
 
 		// Remove all reminder texts
-		$substitute_rules = preg_replace('/\s*?\(.*?\)/u', '', $substitute_rules);
+		$substitute_rules = preg_replace('/\s*?\([^\)]*\)/u', '', $substitute_rules);
 
 		// Remove empty lines
 		$substitute_rules = preg_replace('/^\n/um', '', $substitute_rules);
@@ -320,7 +320,7 @@ class Card extends Model
 	{
 		$costs = [];
 
-		if (preg_match_all('/({[^\d]+?})/u', $this->manacost, $symbols)) {
+		if (preg_match_all('/(\{[^\d\}]+\})/u', $this->manacost, $symbols)) {
 			foreach ($symbols[1] as $symbol) {
 				if (!isset($costs[$symbol]))
 					$costs[$symbol] = 1;
@@ -336,7 +336,7 @@ class Card extends Model
 	{
 		$cmc = null;
 		
-		if (preg_match('/{(\d+)}/u', $this->manacost, $matches))
+		if (preg_match('/\{(\d+)\}/u', $this->manacost, $matches))
 			$cmc = $matches[1];
 
 		$mana_counts = ($this->manacost_sorted !== null) ? $this->manacost_sorted : $this->calculateColoredManaCosts();
@@ -365,7 +365,7 @@ class Card extends Model
 		if ($other->cmc !== null && $this->cmc > $other->cmc) {
 
 			// Check for a special case, where mana cost is less based on target
-			$result = preg_match('/this spell costs (?:{.+?})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
+			$result = preg_match('/this spell costs (?:\{[^\}]+\})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
 			if ($result != 1 || stripos($other->substituted_rules, "Target " . $match[1]) === false)
 				return true;
 		}
@@ -499,7 +499,7 @@ class Card extends Model
 		if (array_intersect($non_permanents, $other->types) && !array_intersect($non_permanents, $this->types)) {
 			
 			// ... Unless this permanent does it's thing when entering battlefield or can self sacrifice for the effect
-			if (!preg_match('/\bWhen (?!another).*? enters the battlefield/', $this->substituted_rules) &&
+			if (!preg_match('/\bWhen (?!another)[^\.]* enters the battlefield/', $this->substituted_rules) &&
 				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules))
 				return false;
 		}
@@ -606,7 +606,7 @@ class Card extends Model
 		];
 
 		$words = implode("|", $alt_keywords);
-		$pattern = '/\b('.$words.') ((?:{[^}]+})+)/u';
+		$pattern = '/\b('.$words.') ((?:\{[^\}]+\})+)/u';
 
 		preg_match_all($pattern, $this->substituted_rules, $matches, PREG_SET_ORDER);
 
