@@ -282,6 +282,7 @@ Artisan::command('create-obsoletes', function () {
 		'color_identity',
 		'manacost_sorted',
 		'cmc',
+		'hybridless_cmc',
 		'main_card_id',
 		'flip',
 		'substituted_rules',
@@ -355,20 +356,21 @@ Artisan::command('create-obsoletes', function () {
 
 		if ($card->cmc === null)
 			$betters = $betters->whereNull('cmc');
-		else
-			$betters = $betters->where('cmc', '<=', $card->cmc);
+		else {
+			$betters = $betters->where('cmc', '<=', $card->cmc)->where('hybridless_cmc', '<=', $card->hybridless_cmc);
+		}
 
 		// Creatures need additional rules
 		// Either power, toughness or cmc has to be better
 		if ($card->power !== null) {
 
-			if (strpos($card->power, '*') === false)
-				$betters = $betters->where('power', '>=', (int)$card->power);
+			if (is_numeric($card->power))
+				$betters = $betters->where('power', '>=', (double)$card->power);
 			else
 				$betters = $betters->where('power', '=', $card->power);
 
-			if (strpos($card->toughness, '*') === false)
-				$betters = $betters->where('toughness', '>=', (int)$card->toughness);
+			if (is_numeric($card->toughness))
+				$betters = $betters->where('toughness', '>=', (double)$card->toughness);
 			else
 				$betters = $betters->where('toughness', '=', $card->toughness);
 		}

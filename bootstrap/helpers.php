@@ -197,7 +197,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 		'multiverse_id' => empty($obj->multiverse_ids) ? null : $obj->multiverse_ids[0],
 		'legalities' => isset($obj->legalities) ? $obj->legalities : [],
 		'manacost' => isset($obj->mana_cost) ? $obj->mana_cost : "",
-		'cmc' => isset($obj->cmc) ? ceil($obj->cmc) : null,
+		'cmc' => isset($obj->cmc) ? (double)$obj->cmc : null,
 		'supertypes' => array_values(array_intersect($types, array_merge(App\Card::$all_supertypes, ['//']))),
 		'types' => array_values(array_diff($types, App\Card::$all_supertypes)),
 		'subtypes' => $subtypes,
@@ -239,6 +239,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 			$parent->save();
 		}
 	}
+	$card->hybridless_cmc = $card->calculateHybridlessCmcFromCost();
 
 	if ($card->isDirty()) {
 		$card->save();

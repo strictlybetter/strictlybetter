@@ -322,10 +322,18 @@ class Card extends Model
 
 		if (preg_match_all('/(\{[^\d\}]+\})/u', $this->manacost, $symbols)) {
 			foreach ($symbols[1] as $symbol) {
+
+				$cost = 1;
+				// Handle "half mana" from Unhinged set
+				if ($symbol[1] === 'H') {
+					$cost = 0.5;
+					$symbol = '{' . mb_substr($symbol, 2);
+				}
+
 				if (!isset($costs[$symbol]))
-					$costs[$symbol] = 1;
+					$costs[$symbol] = $cost;
 				else
-					$costs[$symbol]++;
+					$costs[$symbol] += $cost;
 			}
 		}
 
@@ -356,13 +364,29 @@ class Card extends Model
 		return $cmc;
 	}
 
+	public function calculateHybridlessCmcFromCost()
+	{
+		if ($this->cmc === null)
+			return null;
+
+		$cmc = $this->cmc;
+		foreach ($this->manacost_sorted as $symbol => $amount) {
+			if (mb_strpos($symbol, 'P') !== false || mb_strpos($symbol, '2') !== false)
+
+				// Both phyrexian and 2/color hybrids should cost the lesser amount 
+				// 0 for phyrexian and 1 for 2/color, but 2/color is already calculated as 2 cmc per symbol, so -amount gives the correct amount in both cases
+				$cmc -= $amount;	
+		}
+		return $cmc;
+	}
+
 	public function costsMoreThan(Card $other, $may_cost_more_of_same = false)
 	{
 
 		if (!$this->alternativeCostsMoreColoredThan($other, $may_cost_more_of_same))
 			return false;
 
-		if ($other->cmc !== null && $this->cmc > $other->cmc) {
+		if ($other->cmc !== null && ($this->cmc > $other->cmc || $this->hybridless_cmc > $other->hybridless_cmc)) {
 
 			// Check for a special case, where mana cost is less based on target
 			$result = preg_match('/this spell costs (?:\{[^\}]+\})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
@@ -375,28 +399,28 @@ class Card extends Model
 
 	public function costsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
 	{
+		$mana = $this->manacost_sorted;
+		$mana_left = $other->manacost_sorted;
+
+		// Strip variable costs
+		$variable_costs = ['{X}','{Y}','{Z}'];
+		foreach ($variable_costs as $variable_cost) {
+			unset($mana_left[$variable_cost]);
+			unset($mana[$variable_cost]);
+		}
+
+		$cmc = $other->cmc ? $other->cmc : 0;
+		$anytype_left = $cmc - (array_sum(array_values($mana_left)));
+		
 		// If this costs nothing colored, it can't cost more
-		if (empty($this->manacost_sorted))
+		if (empty($mana))
 			return false;
 
 		// If the other costs nothing colored, then this must cost more
-		if (empty($other->manacost_sorted))
+		if (empty($mana_left))
 			return true;
 
-		$mana_left = $other->manacost_sorted;
-
-		$variable_costs = ['{X}','{Y}','{Z}'];
-
-		foreach ($variable_costs as $variable_cost)
-			unset($mana_left[$variable_cost]);
-
-		$cmc = $other->cmc ? $other->cmc : 0;
-		$anytype_left = $cmc - array_sum(array_values($mana_left));
-
-		foreach ($this->manacost_sorted as $symbol => $cost) {
-
-			if (in_array($symbol, $variable_costs))
-				continue;
+		foreach ($mana as $symbol => $cost) {
 
 			if (!isset($mana_left[$symbol])) {
 
@@ -545,7 +569,9 @@ class Card extends Model
 				$compare_to->substituteAlternativeCost($alt2[$keyword]);
 			}
 
-			if (($other->cmc === null || $dummy->cmc <= $compare_to->cmc) && !$dummy->costsMoreColoredThan($compare_to, $may_cost_more_of_same))
+			if (($other->cmc === null || 
+				($dummy->cmc <= $compare_to->cmc && $dummy->hybridless_cmc <= $compare_to->hybridless_cmc)) && 
+				!$dummy->costsMoreColoredThan($compare_to, $may_cost_more_of_same))
 				return false;
 		}
 		return true;
@@ -564,6 +590,7 @@ class Card extends Model
 		$this->manacost = $manacost;
 		$this->manacost_sorted = $this->calculateColoredManaCosts();
 		$this->cmc = $this->calculateCmcFromCost();
+		$this->hybridless_cmc = $this->calculateHybridlessCmcFromCost();
 
 		return $this;
 	}
