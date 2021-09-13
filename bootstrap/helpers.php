@@ -414,6 +414,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 	DB::transaction(function () use ($progress_callback, &$count, $using_analysis) {
 
 	$obsoletion_attributes = [
+		'name',
 		'cards.id',
 		'supertypes',
 		'types',
@@ -433,10 +434,10 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		'functionality_id'
 	];
 
-	$cards = App\Card::select($obsoletion_attributes)
+	$cards = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
 		->whereNull('main_card_id')
 		->whereDoesntHave('cardFaces')
-		->orderBy('id', 'asc')->get();
+		->orderBy('cards.id', 'asc')->get();
 
 	$cardcount = count($cards);
 	$progress = 0;
@@ -446,11 +447,11 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 
 	$allcolors = ["W","B","U","R","G"];
 
-	$excerpts = $using_analysis ? App\Excerpt::all()->groupBy(['positive', 'regex'])->all() : null;
+	$allexcerpts = $using_analysis ? App\Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all() : null;
 
 	foreach ($cards as $card) {
 
-		$betters = App\Card::select($obsoletion_attributes)
+		$betters = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
 		//	->whereJsonContains('supertypes', $card->supertypes)
 		//	->whereJsonLength('supertypes', count($card->supertypes))
 			->where('id', "!=", $card->id)
@@ -463,9 +464,64 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		if (!$using_analysis)
 			$betters = $betters->where('substituted_rules', $card->substituted_rules);
 
-		// Can't do rule analysis on empty rules
+		
+	/*	// Can't do rule analysis on empty rules
 		else if ($card->substituted_rules == '')
 			$betters = $betters->where('substituted_rules', '!=', '');
+	*/	
+	
+	
+		else {
+
+			$excerpts = $card->functionality->excerpts;
+
+			// If the inferior doesn't have any excerpts, superior must have some excerpts
+			if (count($excerpts) == 0)
+				$betters->has('functionality.excerpts');
+
+			// Must have all non-negative excerpts the inferior has
+			else {
+				foreach ($excerpts as $excerpt) {
+					if ($excerpt->positive !== 0)
+						$betters->whereHas('functionality.excerpts',  function($q) use ($excerpt) {
+							$q->where('excerpts.id', $excerpt->id);
+						});
+				}
+			}
+
+			// Doesnt have excerpts that aren't either positive or part of inferior card
+			$betters->whereDoesntHave('functionality.excerpts', function($q) use ($excerpts) {
+				$q->whereNotIn('excerpts.id', $excerpts->pluck('id'))
+					->orWhere('positive', '=', 1, 'or not');
+			});
+
+			/*
+			$betters = $betters->whereHas('functionality', function($q) use ($excerpts) {
+
+				$count = count($excerpts);
+
+				// If the inferior doesn't have any excerpts, superior must have some excerpts
+				if ($count == 0)
+					$q->has('excerpts');
+
+				// Must have all non-negative excerpts the inferior has
+				else {
+					$must_haves = $excerpts->where('positive', '!=', 0)->all();
+					foreach ($must_haves as $must_have) {
+						$q->whereHas('excerpts',  function($q) use ($must_have) {
+							$q->where('excerpts.id', $must_have->id);
+						});
+					}
+				}
+
+				// Doesnt have excerpts that aren't either positive or part of inferior card
+				$q->whereDoesntHave('excerpts', function($q) use ($excerpts, $count) {
+					$q->whereNotIn('excerpts.id', $excerpts->pluck('id'))
+						->orWhere('positive', '!=', 1);
+				});
+			});
+			*/
+		}
 
 		// Sorcery may be substituted by an Instant
 		if (in_array("Sorcery", $card->types)) {
@@ -534,18 +590,20 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 			$betters = $betters->whereJsonLength('manacost_sorted', 0);
 
 
-		$betters = $betters->orderBy('id', 'asc')->get();
+		$betters = $betters->orderBy('cards.id', 'asc')->get();
 
 		// Filter out any better cards that cost more colored mana
 		if (count($betters) > 0 && $card->cmc !== null) {
+
+			// echo "Found betters: " . count($betters) . PHP_EOL; // for debugging
 
 			$betters = $betters->filter(function($better) use ($card) {
 				return (!$better->costsMoreThan($card, true));
 			})->values();
 
 			if ($using_analysis) {
-				$betters = $betters->filter(function($better) use ($card, $excerpts) {
-					return $better->isBetterByRuleAnalysisThan($card, $excerpts);
+				$betters = $betters->filter(function($better) use ($card, $allexcerpts) {
+					return $better->isBetterByRuleAnalysisThan($card, $allexcerpts);
 				})->values();
 			}
 
@@ -582,7 +640,6 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		}
 
 		foreach ($betters as $better) {
-			//$this->comment("#" . $card->id . " " . $card->name . " can be upgraded to #" . $better->id . " " . $better->name);
 
 			if ($better->main_card_id) {
 				//$this->comment("Would create " . $card->name . " -> " .$better->name . " (". $better->mainCard->name . ")");
@@ -595,7 +652,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		
 		if ($progress_callback !== null) {
 			$progress++;
-			$progress_callback($cardcount, $progress);
+			$progress_callback($cardcount, $progress, $card, $betters);
 		}
 	}
 	});

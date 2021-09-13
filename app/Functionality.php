@@ -61,6 +61,17 @@ class Functionality extends Model
 			->using(Labeling::class)->withPivot(['labels', 'id', 'obsolete_id'])->withTimestamps();
 	}
 
+	public function excerpts()
+	{
+		return $this->belongsToMany(Excerpt::class, 'excerpt_group', 'group_id', 'excerpt_id', 'group_id');
+	}
+
+	public function scopeAnalyzedExcerpts($query)
+	{
+		return $query->with(['excerpts' => function($e) { return $e->whereNotNull('positive'); }])
+			->whereHas('excerpts', function($e) { return $e->whereNotNull('positive'); });
+	}
+
 	public function migrateTo(Functionality $new_functionality)
 	{
 		$inferiors = Labeling::with(['obsolete'])->where('inferior_functionality_id', $this->id)->get();

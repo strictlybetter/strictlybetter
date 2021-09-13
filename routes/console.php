@@ -6,6 +6,7 @@ use App\FunctionalReprint;
 use App\Cardtype;
 use App\Labeling;
 use App\Excerpt;
+use App\FunctionalityGroup;
 
 /*
 |--------------------------------------------------------------------------
@@ -276,7 +277,7 @@ Artisan::command('create-obsoletes', function () {
 
 	$bar = null;
 	$count = 0;
-	$progress_callback = function($cardcount, $at) use (&$bar) {
+	$progress_callback = function($cardcount, $at, $card = null, $betters = []) use (&$bar) {
 
 		if (!$bar) {
 			$bar = $this->output->createProgressBar($cardcount);
@@ -288,6 +289,12 @@ Artisan::command('create-obsoletes', function () {
 
 		else if ($at >= $cardcount)
 			$bar->finish();
+
+		/*
+		foreach ($betters as $better) {
+			$this->comment("#" . $card->id . " " . $card->name . " -> #" . $better->id . " " . $better->name);
+		}
+		*/
 	};
 
 	$old_obsolete_count = App\Obsolete::count();
@@ -304,7 +311,7 @@ Artisan::command('create-obsoletes-by-analysis', function () {
 
 	$bar = null;
 	$count = 0;
-	$progress_callback = function($cardcount, $at) use (&$bar) {
+	$progress_callback = function($cardcount, $at, $card = null, $betters = []) use (&$bar) {
 
 		if (!$bar) {
 			$bar = $this->output->createProgressBar($cardcount);
@@ -316,6 +323,10 @@ Artisan::command('create-obsoletes-by-analysis', function () {
 
 		else if ($at >= $cardcount)
 			$bar->finish();
+
+		foreach ($betters as $better) {
+			$this->comment("#" . $card->id . " " . $card->name . " -> #" . $better->id . " " . $better->name);
+		}
 	};
 
 	$old_obsolete_count = App\Obsolete::count();
@@ -511,17 +522,21 @@ Artisan::command('relabel-obsoletes', function () {
 
 Artisan::command('analyze-rules', function () {
 
+	// Clear previous analyzes
+	// This will keep positivty and negativity points relevant and also clear any previous misjudgements
+	Excerpt::query()->delete();
+	DB::statement('ALTER TABLE excerpts AUTO_INCREMENT = 1;');
+
+	$new_excerpts = 0;
+
+	$this->comment("Creating positive/negative excerpts from current suggestions...");
+
 	$obsoletes = Obsolete::with(['inferiors', 'superiors'])
 		->whereRaw('inferior_functionality_group_id != superior_functionality_group_id')
 		->where('upvotes', '>', 5)->whereRaw('downvotes / upvotes < 0.3')
 		->get();
 
-	// Clear previous analyzes
-	// This will keep positivty and negativity points relevant and also clear any previous misjudgements
-	Excerpt::truncate();
-
 	$bar = $this->output->createProgressBar(count($obsoletes));
-	$new_excerpts = 0;
 
 	foreach ($obsoletes as $obsolete) {
 		$superior = $obsolete->superiors->first();
@@ -571,11 +586,15 @@ Artisan::command('analyze-rules', function () {
 				// Point system attempts to verify we haven't made misjudgements about rule being positive/negative
 				$existing->positivity_points += $e->positivity_points;
 				$existing->negativity_points += $e->negativity_points;
-				$existing->positive = ($existing->positivity_points > $existing->negativity_points);
+				$existing->positive = $existing->positivity_points == $existing->negativity_points ? null : ($existing->positivity_points > $existing->negativity_points);
 				$existing->save();
+				$existing->groups()->syncWithoutDetaching([$e->positive ? $obsolete->superior_functionality_group_id : $obsolete->inferior_functionality_group_id]);
 			}
 			else {
 				$e->push();
+
+				$id = $e->positive ? $obsolete->superior_functionality_group_id : $obsolete->inferior_functionality_group_id;
+				$e->groups()->syncWithoutDetaching($id);
 				$new_excerpts++;
 			}
 		}
@@ -584,7 +603,32 @@ Artisan::command('analyze-rules', function () {
 
 	$bar->finish();
 
-	$this->comment("Created " . ($new_excerpts) . " new excerpts");
+	$this->comment("Analyzed " . ($new_excerpts) . " new excerpts from current suggestions");
+
+	$new_excerpts = 0;
+	$this->comment("Creating excerpts from cards...");
+
+	$groups = FunctionalityGroup::with(['examplecard'])->get();
+
+	$bar = $this->output->createProgressBar(count($groups));
+	
+	foreach ($groups as $group) {
+		$raws = Excerpt::cardToRawExcerpts($group->examplecard);
+		foreach ($raws as $text) {
+
+			$excerpt = Excerpt::firstOrCreate(['text' => $text], ['regex' => 1]);
+			$excerpt->groups()->syncWithoutDetaching($group->id);
+
+			if ($excerpt->wasRecentlyCreated) {
+				//ExcerptVariable::getVariablesFromText($text);
+				$new_excerpts++;
+			}
+		}
+		$bar->advance();
+	}
+	$bar->finish();
+
+	$this->comment("Created " . ($new_excerpts) . " new excerpts for cards");
 });
 
 Artisan::command('full-update', function () {

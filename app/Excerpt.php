@@ -2,6 +2,8 @@
 
 namespace App;
 
+use App\FunctionalityGroup;
+
 use Illuminate\Database\Eloquent\Model;
 
 class Excerpt extends Model
@@ -19,8 +21,9 @@ class Excerpt extends Model
 	];
 
 	protected static $exception_patterns = [
-		//'/this spell costs (?:\{.+?\})+ less to cast\b/ui' => true,	// Casting less is a positive effect (Might not need with scoring system)
-		'/^(?:\{[^\}]+\})+$/u' => null 	// Text only contains manacost and nothing else? Can't deduce anything from it
+		'/this spell costs (?:\{[^\}]+\})+ less to cast\b/ui' => true,	// Casting less is a positive effect (Might not need with scoring system)
+		'/^(?:\{[^\}]+\})+$/u' => null, 	// Text only contains manacost and nothing else? Can't deduce anything from it
+		'/\bSurge \{/u' => true 	// Surge may be evaluated as negative, since some spells are cheaper even without Surge
 	];
 
 	// We need to find patterns from escaped source
@@ -28,18 +31,21 @@ class Excerpt extends Model
 		// Digits
 		'/\b\d+\b/u' => [				
 			'escaped' => '/\b\d+\b/u',
-			'replacement' => '(\d+)'
+			'replacement' => '(\d+)',
+			'type' => 'digits'
 		],
 		// Manacost
 		'/(?:\{[^\}]+\})+/u' => [			
 			'escaped' => '/(?:\\\\\{[^\}]+\\\\\})+/u',
-			'replacement' => '((?:\{[^\}]+\})+)'
+			'replacement' => '((?:\{[^\}]+\})+)',
+			'type' => 'manacost'
 		],
 		
 		// Number words
 		'/\b(one|two|three|four|five|six|seven|eight|nine|ten|elven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/u' => [
 			'escaped' => '/\b(one|two|three|four|five|six|seven|eight|nine|ten|elven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/u',
-			'replacement' => '(one|two|three|four|five|six|seven|eight|nine|ten|elven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)'
+			'replacement' => '(one|two|three|four|five|six|seven|eight|nine|ten|elven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)',
+			'type' => 'numberword'
 		]								
 	];
 
@@ -53,7 +59,37 @@ class Excerpt extends Model
 		return $query->where('positive', 0);
 	}
 
-	public static function getNewExcerpts(Card $inferior, Card $superior, $make_regex = true)
+	public function groups()
+	{
+		return $this->belongsToMany(FunctionalityGroup::class, 'excerpt_group', 'excerpt_id', 'group_id');
+	}
+
+	public static function cardToRawExcerpts(Card $card)
+	{
+		return array_filter(array_map(function($value) {
+			return trim($value, " \n\r\t\v\0.");
+		}, preg_split('/(\n|(?<!\}),|\.(?!\"))/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY)));
+	}
+
+	public static function cardToExcerpts(Card $card)
+	{
+		$raws = self::cardToRawExcerpts($card);
+		$collection = [];
+
+		foreach ($raws as $raw) {
+			$collection[] = new Excerpt([
+				'text' => $raw,
+				'positive' => null,
+				'regex' => 1
+			]);
+		}
+		return collect($collection);
+	}
+
+	public static function compare_by_text($a, $b) { return $a->text <=> $b->text; }
+	public static function compare_by_regex_text($a, $b) { return self::rawToRegex($a) <=> self::rawToRegex($b); }
+
+	public static function getNewExcerptsV2(Card $inferior, Card $superior, $make_regex = true)
 	{
 		$excerpts = collect([]);
 /*
@@ -173,6 +209,63 @@ class Excerpt extends Model
 				$e->toRegex();
 			}
 		}
+		return $excerpts;
+	}
+
+	public static function getNewExcerpts(Card $inferior, Card $superior)
+	{
+		$excerpts = collect([]);
+
+
+		$inferior_excerpts = self::cardToRawExcerpts($inferior);
+		$superior_excerpts = self::cardToRawExcerpts($superior);
+
+/*
+		foreach ($inferior_excerpts as $excerpt) {
+			ExcerptVariable::getVariablesFromText($excerpt);
+		}
+*/		
+
+//		$intesecting_excerpts = array_uintersect($inferior_excerpts, $superior_excerpts, self::compare_by_regex_text);
+		$diff_inferior_excerpts = array_udiff($inferior_excerpts, $superior_excerpts, [Excerpt::class, 'compare_by_regex_text']);
+		$diff_superior_excerpts = array_udiff($superior_excerpts, $inferior_excerpts, [Excerpt::class, 'compare_by_regex_text']);
+
+		if (count($diff_inferior_excerpts) == 0) {
+			foreach ($diff_superior_excerpts as $raw) {
+				$excerpts->push(new Excerpt([
+					'text' => $raw,
+					'positive' => 1,
+					'regex' => 0,
+					'negativity_points' => 0,
+					'positivity_points' => 1
+				]));
+			}
+		}
+
+		if (count($diff_superior_excerpts) == 0) {
+			foreach ($diff_inferior_excerpts as $raw) {
+				$excerpts->push(new Excerpt([
+					'text' => $raw,
+					'positive' => 0,
+					'regex' => 0,
+					'negativity_points' => 1,
+					'positivity_points' => 0
+				]));
+			}
+		}
+
+		foreach ($excerpts as $key => $e) {
+			foreach (self::$exception_patterns as $pattern => $override_value) {
+				if (preg_match($pattern, $e->text) == 1) {
+					if ($override_value === null) {
+						unset($excerpts[$key]);
+						continue 2;
+					}
+					else 
+						$e->positive = $override_value;
+				}
+			}
+		}
 
 		return $excerpts;
 	}
@@ -186,11 +279,16 @@ class Excerpt extends Model
 		return false;
 	}
 
+	public static function rawToRegex($text)
+	{
+		$pattern = preg_quote($text, '/');
+		$pattern = self::substituteVariablesInRules($pattern, true);
+		return '/' . $pattern . '/u';
+	}
+
 	public function toRegex()
 	{
-		$pattern = preg_quote($this->text, '/');
-		$pattern = self::substituteVariablesInRules($pattern, true);
-		$this->text = '/' . $pattern . '/u';
+		$this->text = self::rawToRegex($this->text);
 	}
 
 	public static function substituteVariablesInRules($rules, $escaped = false)
