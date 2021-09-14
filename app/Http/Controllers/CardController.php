@@ -426,8 +426,13 @@ class CardController extends Controller
 
 	public function votehelp(Request $request)
 	{
-		$random = function($q) { 
-			$q->relatedGuiOnly()->where("obsoletes.downvotes", '<', 10)->where("obsoletes.upvotes", '<', 10);
+		$ip = $request->ip();
+
+		$random = function($q) use ($ip) { 
+			$q->relatedGuiOnly()->where("obsoletes.downvotes", '<', 10)->where("obsoletes.upvotes", '<', 10)
+				->whereNotExists(function($q) use ($ip) {
+					$q->select(DB::raw(1))->from('votes')->whereColumn('obsoletes.id', 'votes.obsolete_id')->where('ip', $ip);
+				});
 		};
 
 		$inferior = Card::with(['superiors' => $random])
