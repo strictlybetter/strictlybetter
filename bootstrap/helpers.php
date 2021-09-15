@@ -414,7 +414,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 	DB::transaction(function () use ($progress_callback, &$count, $using_analysis) {
 
 	$obsoletion_attributes = [
-		'name',
+	//	'name',
 		'cards.id',
 		'supertypes',
 		'types',

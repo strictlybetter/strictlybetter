@@ -323,10 +323,12 @@ Artisan::command('create-obsoletes-by-analysis', function () {
 
 		else if ($at >= $cardcount)
 			$bar->finish();
-
+		
+		/*
 		foreach ($betters as $better) {
 			$this->comment("#" . $card->id . " " . $card->name . " -> #" . $better->id . " " . $better->name);
 		}
+		*/
 	};
 
 	$old_obsolete_count = App\Obsolete::count();
@@ -629,7 +631,7 @@ Artisan::command('analyze-rules', function () {
 	$bar->finish();
 
 	$this->comment("Created " . ($new_excerpts) . " new excerpts for cards");
-});
+})->describe('Trains AI about rules text betterness using highly voted suggestions');;
 
 Artisan::command('full-update', function () {
 
