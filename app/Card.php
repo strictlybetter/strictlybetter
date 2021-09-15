@@ -9,6 +9,7 @@ use App\FunctionalReprint;
 use App\Functionality;
 use App\FunctionalityGroup;
 use App\Labeling;
+use App\Excerpt;
 
 class Card extends Model
 {
@@ -543,6 +544,77 @@ class Card extends Model
 	public function hasLoyalty() 
 	{
 		return ($this->loyalty !== null);
+	}
+
+	public function isBetterByRuleAnalysisThanV2(Card $other, $excerpts = null)
+	{
+		$card_excerpts = Excerpt::getNewExcerptsV2($other, $this, false);
+
+		// No text, no analysis
+		if ($card_excerpts->count() == 0)
+			return false;
+
+		// If doing batch job, please provide $excerpts as parameter for performance
+		if ($excerpts === null)
+			$excerpts = Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all();
+
+		foreach ($card_excerpts as $card_excerpt) {
+
+			// Check if we have any excerpts we could even try to use
+			if (!isset($excerpts[$card_excerpt->positive][$card_excerpt->regex]))
+				return false;
+
+			$edited = false;
+			do {
+				$edited = false;
+
+				foreach ($excerpts[$card_excerpt->positive][$card_excerpt->regex] as $excerpt) {
+
+					$changecount = 0;
+					$card_excerpt->text = $card_excerpt->regex ? 
+						preg_replace($excerpt->text, '', $card_excerpt->text, $changecount) :
+						str_replace($excerpt->text, '', $card_excerpt->text, $changecount);
+
+					if ($changecount > 0) {
+						$edited = true;
+						$card_excerpt->text = trim($card_excerpt->text, " \n\r\t\v\0,.");
+					}
+				}
+			} while ($edited);
+
+			if ($card_excerpt->text != "")
+				return false;
+		}
+
+		return true;
+	}
+
+	public function isBetterByRuleAnalysisThan(Card $other)
+	{
+		
+		$superior_excerpts_org = $this->functionality->excerpts->keyBy('id');
+		$inferior_excerpts_org = $other->functionality->excerpts->keyBy('id');
+
+		$superior_excerpts = $superior_excerpts_org->diffKeys($inferior_excerpts_org);
+		$inferior_excerpts = $inferior_excerpts_org->diffKeys($superior_excerpts_org);
+
+		// Either inferior or superior must have excerpts remaining
+		if ($superior_excerpts->count() == 0 && $inferior_excerpts->count() == 0)
+			return false;
+
+		// Remaining superior excerpts must all be positive
+		foreach ($superior_excerpts as $id => $excerpt) {
+			if ($excerpt->positive !== 1)
+				return false;
+		}
+
+		// Remaining inferior excerpts must all be negative
+		foreach ($inferior_excerpts as $id => $excerpt) {
+			if ($excerpt->positive !== 0)
+				return false;
+		}
+
+		return true;
 	}
 
 	/**
