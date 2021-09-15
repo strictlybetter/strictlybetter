@@ -19,6 +19,29 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>09/16/21</h4>
+	<ul>
+		<li>Introducing <b>machine learning</b> to determine some rules text betterness and finding more card suggestions automatically.
+			<ul>
+				<li>Suggestions with good upvote status are used as training material. Training finds out the positive and negative effects in rules texts.</li>
+				<li>The positive and negative effects are matched to otherwise similar card pairs to find more suggestions.
+					<ul>
+						<li>Each card is first matched to cards with identical or better stats, like manacost, power, cast speed, etc, but different rules text.</li>
+						<li>Each matched card must only have positive effects or effects the original card also has.</li>
+						<li>Each matched card must also have all the positive effects the original card has.</li>
+						<li>If all above conditions are met, the matched cards are added as suggestions to the original card.</li>
+					</ul>
+				</li>
+				<li>This feature is still undergoing some improvements and optimizations as such it has some limitations
+					<ul>
+						<li>This process is only run occasionally for now due to heavy load it causes.</li>
+						<li>This process cannot yet evaluate variable information in rules texts, like numbers or manacosts.</li>
+					</ul>
+				</li>
+			</ul>
+		</li>
+	</ul>
+
 	<h4>08/31/21</h4>
 	<ul>
 		<li>Identical cards (excluding subtypes) share better-worse relations and voting data.<br>

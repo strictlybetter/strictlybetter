@@ -68,7 +68,7 @@ class Excerpt extends Model
 	{
 		return array_filter(array_map(function($value) {
 			return trim($value, " \n\r\t\v\0.");
-		}, preg_split('/(\n|(?<!\}),|\.(?!\"))/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY)));
+		}, preg_split('/(\n|\.(?!\"))/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY))); // (?<!\}),|
 	}
 
 	public static function cardToExcerpts(Card $card)

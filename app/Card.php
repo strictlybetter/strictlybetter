@@ -589,7 +589,7 @@ class Card extends Model
 		return true;
 	}
 
-	public function isBetterByRuleAnalysisThan(Card $other, $excerpts = null)
+	public function isBetterByRuleAnalysisThan(Card $other)
 	{
 		
 		$superior_excerpts_org = $this->functionality->excerpts->keyBy('id');

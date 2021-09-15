@@ -447,14 +447,14 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 
 	$allcolors = ["W","B","U","R","G"];
 
-	$allexcerpts = $using_analysis ? App\Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all() : null;
+	//$allexcerpts = $using_analysis ? App\Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all() : null;
 
 	foreach ($cards as $card) {
 
 		$betters = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
 		//	->whereJsonContains('supertypes', $card->supertypes)
 		//	->whereJsonLength('supertypes', count($card->supertypes))
-			->where('id', "!=", $card->id)
+		//	->where('id', "!=", $card->id)
 			->where('functionality_id', "!=", $card->functionality_id)
 			->whereDoesntHave('cardFaces')
 			->where(function($q) {
@@ -474,25 +474,26 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		else {
 
 			$excerpts = $card->functionality->excerpts;
+			$betters = $betters->where('substituted_rules', '!=', $card->substituted_rules);
 
 			// If the inferior doesn't have any excerpts, superior must have some excerpts
-			if (count($excerpts) == 0)
-				$betters->has('functionality.excerpts');
+		//	if (count($excerpts) == 0)
+		//		$betters->has('functionality.excerpts');
 
 			// Must have all non-negative excerpts the inferior has
-			else {
+		//	else {
 				foreach ($excerpts as $excerpt) {
 					if ($excerpt->positive !== 0)
 						$betters->whereHas('functionality.excerpts',  function($q) use ($excerpt) {
 							$q->where('excerpts.id', $excerpt->id);
 						});
 				}
-			}
+		//	}
 
-			// Doesnt have excerpts that aren't either positive or part of inferior card
+			// Doesnt have excerpts that are non-positive and not part of inferior card
 			$betters->whereDoesntHave('functionality.excerpts', function($q) use ($excerpts) {
 				$q->whereNotIn('excerpts.id', $excerpts->pluck('id'))
-					->orWhere('positive', '=', 1, 'or not');
+					->where('positive', '!=', 1);
 			});
 
 			/*
@@ -602,8 +603,8 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 			})->values();
 
 			if ($using_analysis) {
-				$betters = $betters->filter(function($better) use ($card, $allexcerpts) {
-					return $better->isBetterByRuleAnalysisThan($card, $allexcerpts);
+				$betters = $betters->filter(function($better) use ($card) {
+					return $better->isBetterByRuleAnalysisThan($card);
 				})->values();
 			}
 
