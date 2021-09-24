@@ -601,9 +601,9 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 				})->values();
 
 				if ($using_analysis) {
-				/*	$betters = $betters->filter(function($better) use ($card) {
+					$betters = $betters->filter(function($better) use ($card) {
 						return $better->isBetterByRuleAnalysisThan($card);
-					})->values();*/
+					})->values();
 				}
 
 				// No rule analysis (default), 
