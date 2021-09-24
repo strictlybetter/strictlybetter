@@ -434,24 +434,26 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		'functionality_id'
 	];
 
-	$cards = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
+	$queryAll = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
 		->whereNull('main_card_id')
 		->whereDoesntHave('cardFaces')
-		->orderBy('cards.id', 'asc')->get();
+		->orderBy('cards.id', 'asc');
 
-	$cardcount = count($cards);
+	$cardcount = $queryAll->count();
 	$progress = 0;
 
 	if ($progress_callback !== null)
 		$progress_callback($cardcount, $progress);
 
-	$allcolors = ["W","B","U","R","G"];
+	// $allcolors = ["W","B","U","R","G"];
 
 	//$allexcerpts = $using_analysis ? App\Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all() : null;
 
+	$queryAll->chunk(1000, function($cards) use ($using_analysis, $cardcount, $progress_callback, &$count, &$progress, $obsoletion_attributes) {
+
 	foreach ($cards as $card) {
 
-		$betters = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
+		$q = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
 		//	->whereJsonContains('supertypes', $card->supertypes)
 		//	->whereJsonLength('supertypes', count($card->supertypes))
 		//	->where('id', "!=", $card->id)
@@ -462,42 +464,38 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 			});
 
 		if (!$using_analysis)
-			$betters = $betters->where('substituted_rules', $card->substituted_rules);
+			$q = $q->where('substituted_rules', $card->substituted_rules);
 
 		
 	/*	// Can't do rule analysis on empty rules
 		else if ($card->substituted_rules == '')
-			$betters = $betters->where('substituted_rules', '!=', '');
+			$q = $q->where('substituted_rules', '!=', '');
 	*/	
 	
 	
 		else {
 
 			$excerpts = $card->functionality->excerpts;
-			$betters = $betters->where('substituted_rules', '!=', $card->substituted_rules);
 
-			// If the inferior doesn't have any excerpts, superior must have some excerpts
-		//	if (count($excerpts) == 0)
-		//		$betters->has('functionality.excerpts');
+			// Must have differing rules text
+			$q = $q->where('substituted_rules', '!=', $card->substituted_rules);
 
 			// Must have all non-negative excerpts the inferior has
-		//	else {
-				foreach ($excerpts as $excerpt) {
-					if ($excerpt->positive !== 0)
-						$betters->whereHas('functionality.excerpts',  function($q) use ($excerpt) {
-							$q->where('excerpts.id', $excerpt->id);
-						});
-				}
-		//	}
+			foreach ($excerpts as $excerpt) {
+				if ($excerpt->positive !== 0)
+					$q->whereHas('functionality.excerpts',  function($q) use ($excerpt) {
+						$q->where('excerpts.id', $excerpt->id);
+					});
+			}
 
 			// Doesnt have excerpts that are non-positive and not part of inferior card
-			$betters->whereDoesntHave('functionality.excerpts', function($q) use ($excerpts) {
+			$q->whereDoesntHave('functionality.excerpts', function($q) use ($excerpts) {
 				$q->whereNotIn('excerpts.id', $excerpts->pluck('id'))
 					->where('positive', '!=', 1);
 			});
 
 			/*
-			$betters = $betters->whereHas('functionality', function($q) use ($excerpts) {
+			$q = $q->whereHas('functionality', function($q) use ($excerpts) {
 
 				$count = count($excerpts);
 
@@ -527,7 +525,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		// Sorcery may be substituted by an Instant
 		if (in_array("Sorcery", $card->types)) {
 
-			$betters = $betters->where(function($q) use ($card) {
+			$q = $q->where(function($q) use ($card) {
 
 				$substitute_types = $card->types;
 
@@ -543,119 +541,124 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		
 		// Creatures are compared to creatures, however, they may have other types aswell
 		else if (in_array("Creature", $card->types)) {
-			$betters = $betters->whereJsonContains('types', "Creature");
+			$q = $q->whereJsonContains('types', "Creature");
 		}
 
 		// Others follow a stricter policy
 		else {
-			$betters = $betters->whereJsonContains('types', $card->types)
+			$q = $q->whereJsonContains('types', $card->types)
 				->whereJsonLength('types', count($card->types));
 		}
 
 		// Musn't have colors the worse card hasn't eithers
 		/*foreach (array_diff($allcolors, $card->colors) as $un_color) {
-			$betters = $betters->whereJsonDoesntContain('colors', $un_color);
+			$q = $q->whereJsonDoesntContain('colors', $un_color);
 		}*/
 
 		if ($card->cmc === null)
-			$betters = $betters->whereNull('cmc');
+			$q = $q->whereNull('cmc');
 		else
-			$betters = $betters->where('cmc', '<=', $card->cmc)->where('hybridless_cmc', '<=', $card->hybridless_cmc);
+			$q = $q->where('cmc', '<=', $card->cmc)->where('hybridless_cmc', '<=', $card->hybridless_cmc);
 
 		// Creatures need additional rules
 		// Either power, toughness or cmc has to be better
 		if ($card->power !== null) {
 
 			if (is_numeric($card->power))
-				$betters = $betters->where('power', '>=', (double)$card->power);
+				$q = $q->where('power', '>=', (double)$card->power);
 			else
-				$betters = $betters->where('power', '=', $card->power);
+				$q = $q->where('power', '=', $card->power);
 
 			if (is_numeric($card->toughness))
-				$betters = $betters->where('toughness', '>=', (double)$card->toughness);
+				$q = $q->where('toughness', '>=', (double)$card->toughness);
 			else
-				$betters = $betters->where('toughness', '=', $card->toughness);
+				$q = $q->where('toughness', '=', $card->toughness);
 		}
 		else
-			$betters = $betters->whereNull('power')->whereNull('toughness');
+			$q = $q->whereNull('power')->whereNull('toughness');
 
 		if (!empty($card->manacost_sorted)) {
 			foreach ($card->manacost_sorted as $symbol => $amount) {
-				$betters = $betters->where(function($q) use ($symbol, $amount){
+				$q = $q->where(function($q) use ($symbol, $amount){
 					$q->whereNull('manacost_sorted->' . $symbol)
 						->orWhere('manacost_sorted->' . $symbol, '<=', $amount);
 				});
 			}
 		}
 		else
-			$betters = $betters->whereJsonLength('manacost_sorted', 0);
+			$q = $q->whereJsonLength('manacost_sorted', 0);
 
 
-		$betters = $betters->orderBy('cards.id', 'asc')->get();
+		$q->orderBy('cards.id', 'asc')->chunk(1000, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
 
-		// Filter out any better cards that cost more colored mana
-		if (count($betters) > 0 && $card->cmc !== null) {
+			// Filter out any better cards that cost more colored mana
+			if (count($betters) > 0 && $card->cmc !== null) {
 
-			// echo "Found betters: " . count($betters) . PHP_EOL; // for debugging
-
-			$betters = $betters->filter(function($better) use ($card) {
-				return (!$better->costsMoreThan($card, true));
-			})->values();
-
-			if ($using_analysis) {
-				$betters = $betters->filter(function($better) use ($card) {
-					return $better->isBetterByRuleAnalysisThan($card);
-				})->values();
-			}
-
-			// No rule analysis (default), 
-			// $better must prove to be better in some defined category (it's already atleast eqaul at this point)
-			else {
+				// echo "Found betters: " . count($betters) . PHP_EOL; // for debugging
 
 				$betters = $betters->filter(function($better) use ($card) {
-
-					// Split card is better, even if everything else matches
-					if ($card->main_card_id === null && $better->main_card_id !== null)
-						return true;
-
-					if ($card->costsMoreThan($better))
-						return true;
-
-					if ($card->hasStats()) {
-						return ($card->power < $better->power || $card->toughness < $better->toughness);
-					}
-
-					if ($card->hasLoyalty()) {
-						return ($card->loyalty < $better->loyalty);
-					}
-
-					if (in_array("Instant", $better->types) && in_array("Sorcery", $card->types)) {
-						return true;
-					}
-
-					// $this->comment("#" . $card->id . " " . $card->name . " is not better than #" . $better->id . " " . $better->name);
-
-					return false;
+					return (!$better->costsMoreThan($card, true));
 				})->values();
-			}
-		}
 
-		foreach ($betters as $better) {
+				if ($using_analysis) {
+				/*	$betters = $betters->filter(function($better) use ($card) {
+						return $better->isBetterByRuleAnalysisThan($card);
+					})->values();*/
+				}
 
-			if ($better->main_card_id) {
-				//$this->comment("Would create " . $card->name . " -> " .$better->name . " (". $better->mainCard->name . ")");
-				create_obsolete($card, $better->mainCard, false);
+				// No rule analysis (default), 
+				// $better must prove to be better in some defined category (it's already atleast eqaul at this point)
+				else {
+
+					$betters = $betters->filter(function($better) use ($card) {
+
+						// Split card is better, even if everything else matches
+						if ($card->main_card_id === null && $better->main_card_id !== null)
+							return true;
+
+						if ($card->costsMoreThan($better))
+							return true;
+
+						if ($card->hasStats()) {
+							return ($card->power < $better->power || $card->toughness < $better->toughness);
+						}
+
+						if ($card->hasLoyalty()) {
+							return ($card->loyalty < $better->loyalty);
+						}
+
+						if (in_array("Instant", $better->types) && in_array("Sorcery", $card->types)) {
+							return true;
+						}
+
+						// $this->comment("#" . $card->id . " " . $card->name . " is not better than #" . $better->id . " " . $better->name);
+
+						return false;
+					})->values();
+				}
 			}
-			else
-				create_obsolete($card, $better, false);
-			$count++;
-		}
-		
+
+			foreach ($betters as $better) {
+
+				if ($better->main_card_id) {
+					//$this->comment("Would create " . $card->name . " -> " .$better->name . " (". $better->mainCard->name . ")");
+					create_obsolete($card, $better->mainCard, false);
+				}
+				else
+					create_obsolete($card, $better, false);
+				$count++;
+			}
+			
+			if ($progress_callback !== null) {
+				$progress_callback($cardcount, $progress, $card, $betters);
+			}
+		});
 		if ($progress_callback !== null) {
 			$progress++;
-			$progress_callback($cardcount, $progress, $card, $betters);
+			$progress_callback($cardcount, $progress, $card);
 		}
 	}
+	});
 	});
 
 }

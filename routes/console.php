@@ -207,17 +207,18 @@ Artisan::command('remove-bad-cards', function () {
 
 Artisan::command('create-labels', function () {
 	DB::transaction(function () {
-		$labelings = Labeling::with([
+		Labeling::with([
 			'inferiors', 
 			'superiors', 
 			'obsolete'
-		])->get();
+		])->chunk(1000, function($labelings) {
 
-		foreach ($labelings as $labeling) {
-			$labeling->timestamps = false;
-			$labeling->labels = create_labels($labeling->inferiors->first(), $labeling->superiors->first(), $labeling->obsolete);
-			$labeling->save(['touch' => false]);
-		}
+			foreach ($labelings as $labeling) {
+				$labeling->timestamps = false;
+				$labeling->labels = create_labels($labeling->inferiors->first(), $labeling->superiors->first(), $labeling->obsolete);
+				$labeling->save(['touch' => false]);
+			}
+		});
 	});
 })->describe('Re-creates labels for obsolete cards');
 
@@ -228,17 +229,18 @@ Artisan::command('remove-bad-suggestions', function () {
 
 	DB::transaction(function () use (&$count) {
 
-		$obsoletes = Obsolete::with(['inferiors', 'superiors'])->get();
+		Obsolete::with(['inferiors', 'superiors'])->chunk(1000, function($obsoletes) use (&$count) {
 	
-		foreach ($obsoletes as $obsolete) {
-			if (!$obsolete->superiors->first()->isEqualOrBetterThan($obsolete->inferiors->first())) {
+			foreach ($obsoletes as $obsolete) {
+				if (!$obsolete->superiors->first()->isEqualOrBetterThan($obsolete->inferiors->first())) {
 
-				$this->comment("Removing suggestion family: " . $obsolete->inferiors->first()->name . " -> " . $obsolete->superiors->first()->name);
+					$this->comment("Removing suggestion family: " . $obsolete->inferiors->first()->name . " -> " . $obsolete->superiors->first()->name);
 
-				$obsolete->delete();
-				$count++;
+					$obsolete->delete();
+					$count++;
+				}
 			}
-		}
+		});
 	});
 	$this->comment("Removed " . $count . " bad suggestions.");
 
@@ -249,22 +251,25 @@ Artisan::command('recreate-substitute-rules', function () {
 	$this->comment("Updating cards...");
 	$count = 0;
 
-	$cards = Card::all();
-	$bar = $this->output->createProgressBar(count($cards));
+	$q = Card::query();
+	$bar = $this->output->createProgressBar($q->count());
 
-	DB::transaction(function () use ($cards, $bar, &$count) {
-		foreach ($cards as $card) {
+	DB::transaction(function () use ($q, $bar, &$count) {
+		$q->chunk(1000, function($cards) use ($bar, &$count) {
+			foreach ($cards as $card) {
 
-			$bar->advance();
-			$new_rules = $card->substituteRules();
+				$bar->advance();
+				$new_rules = $card->substituteRules();
 
-			if ($new_rules !== $card->substituted_rules) {
-				$card->substituted_rules = $new_rules;
+				if ($new_rules !== $card->substituted_rules) {
+					$card->substituted_rules = $new_rules;
 
-				$card->save();
-				$count++;
+					$card->save();
+					$count++;
+				}
 			}
-		}
+		});
+		
 	});
 	$bar->finish();
 	$this->comment("Updated " . $count . " cards with new rule substitutions.");
@@ -285,7 +290,7 @@ Artisan::command('create-obsoletes', function () {
 		}
 
 		if ($at > 0 && $at < $cardcount)
-			$bar->advance();
+			$bar->setProgress($at);
 
 		else if ($at >= $cardcount)
 			$bar->finish();
@@ -319,7 +324,7 @@ Artisan::command('create-obsoletes-by-analysis', function () {
 		}
 
 		if ($at > 0 && $at < $cardcount)
-			$bar->advance();
+			$bar->setProgress($at);
 
 		else if ($at >= $cardcount)
 			$bar->finish();
@@ -470,15 +475,17 @@ Artisan::command('regroup-cards', function () {
 
 	$this->comment("Regrouping cards...");
 
-	$cards = Card::with(['functionality'])->withCount('functionalReprints')->whereNull('main_card_id')->get();
-	$bar = $this->output->createProgressBar(count($cards));
+	$q = Card::with(['functionality'])->withCount('functionalReprints')->whereNull('main_card_id');
+	$bar = $this->output->createProgressBar($q->count());
 
-	DB::transaction(function () use ($cards, $bar) {
-		foreach ($cards as $card) {
-			$card->timestamps = false;
-			$card->linkToFunctionality();
-			$bar->advance();
-		}
+	DB::transaction(function () use ($q, $bar) {
+		$q->chunk(1000, function($cards) use ($bar) {
+			foreach ($cards as $card) {
+				$card->timestamps = false;
+				$card->linkToFunctionality();
+				$bar->advance();
+			}
+		});
 	});
 
 	$bar->finish();
@@ -490,30 +497,31 @@ Artisan::command('regroup-cards', function () {
  */
 Artisan::command('relabel-obsoletes', function () {
 
-	$obsoletes = Obsolete::with(['inferiors', 'superiors', 'labelings'])
-		->whereRaw('inferior_functionality_group_id != superior_functionality_group_id')
-		->get();
+	$q = Obsolete::with(['inferiors', 'superiors', 'labelings'])
+		->whereRaw('inferior_functionality_group_id != superior_functionality_group_id');
 
 	$labeling_count = Labeling::count();
 
-	$bar = $this->output->createProgressBar(count($obsoletes));
+	$bar = $this->output->createProgressBar($q->count());
 
-	DB::transaction(function () use ($obsoletes, $bar) {
-		foreach ($obsoletes as $obsolete) {
-			
-			foreach ($obsolete->inferiors as $inferior) {
-				foreach ($obsolete->superiors as $superior) {
-					if ($inferior->functionality_id != $superior->functionality_id) {
-						if ($obsolete->labelings
-							->where('inferior_functionality_id', $inferior->functionality_id)
-							->where('superior_functionality_id', $superior->functionality_id)
-							->count() == 0)
-							create_labeling($inferior, $superior, $obsolete, false);
+	DB::transaction(function () use ($q, $bar) {
+		$q->chunk(1000, function($obsoletes) use ($bar) {
+			foreach ($obsoletes as $obsolete) {
+				
+				foreach ($obsolete->inferiors as $inferior) {
+					foreach ($obsolete->superiors as $superior) {
+						if ($inferior->functionality_id != $superior->functionality_id) {
+							if ($obsolete->labelings
+								->where('inferior_functionality_id', $inferior->functionality_id)
+								->where('superior_functionality_id', $superior->functionality_id)
+								->count() == 0)
+								create_labeling($inferior, $superior, $obsolete, false);
+						}
 					}
 				}
+				$bar->advance();
 			}
-			$bar->advance();
-		}
+		});
 	});
 
 	$bar->finish();
@@ -533,75 +541,77 @@ Artisan::command('analyze-rules', function () {
 
 	$this->comment("Creating positive/negative excerpts from current suggestions...");
 
-	$obsoletes = Obsolete::with(['inferiors', 'superiors'])
+	$q = Obsolete::with(['inferiors', 'superiors'])
 		->whereRaw('inferior_functionality_group_id != superior_functionality_group_id')
-		->where('upvotes', '>', 5)->whereRaw('downvotes / upvotes < 0.3')
-		->get();
+		->where('upvotes', '>', 5)->whereRaw('downvotes / upvotes < 0.3');
 
-	$bar = $this->output->createProgressBar(count($obsoletes));
+	$bar = $this->output->createProgressBar($q->count());
 
-	foreach ($obsoletes as $obsolete) {
-		$superior = $obsolete->superiors->first();
-		$inferior = $obsolete->inferiors->first();
-		
-		// If inferior or superior is a multifaced card, 
-		// search for the actual face that is better
-		$face_found = (count($superior->cardFaces) == 0) && (count($inferior->cardFaces) == 0);
-		if (!$face_found) {
-			foreach ($superior->cardFaces as $sup) {
+	$q->chunk(1000, function($obsoletes) use (&$new_excerpts, $bar) {
 
-				foreach($inferior->cardFaces as $inf) {
-					if ($sup->isEqualOrBetterThan($inf)) {
-						$superior = $sup;
-						$inferior = $inf;
-						$face_found = true;
-						break 2;
-					}
-				}
-
-				if ($sup->isEqualOrBetterThan($inferior)) {
-					$superior = $sup;
-					$face_found = true;
-				}
-			}
+		foreach ($obsoletes as $obsolete) {
+			$superior = $obsolete->superiors->first();
+			$inferior = $obsolete->inferiors->first();
+			
+			// If inferior or superior is a multifaced card, 
+			// search for the actual face that is better
+			$face_found = (count($superior->cardFaces) == 0) && (count($inferior->cardFaces) == 0);
 			if (!$face_found) {
-				foreach($inferior->cardFaces as $inf) {
-					if ($superior->isEqualOrBetterThan($inf)) {
-						$inferior = $inf;
+				foreach ($superior->cardFaces as $sup) {
+
+					foreach($inferior->cardFaces as $inf) {
+						if ($sup->isEqualOrBetterThan($inf)) {
+							$superior = $sup;
+							$inferior = $inf;
+							$face_found = true;
+							break 2;
+						}
+					}
+
+					if ($sup->isEqualOrBetterThan($inferior)) {
+						$superior = $sup;
 						$face_found = true;
-						break;
 					}
 				}
-				if (!$face_found)
-					continue;
+				if (!$face_found) {
+					foreach($inferior->cardFaces as $inf) {
+						if ($superior->isEqualOrBetterThan($inf)) {
+							$inferior = $inf;
+							$face_found = true;
+							break;
+						}
+					}
+					if (!$face_found)
+						continue;
+				}
 			}
+			
+
+			$excerpts = Excerpt::getNewExcerpts($inferior, $superior);
+			foreach ($excerpts as $e) {
+
+				$existing = Excerpt::where('text', $e->text)->first();
+				if ($existing) {
+
+					// Update ratings. 
+					// Point system attempts to verify we haven't made misjudgements about rule being positive/negative
+					$existing->positivity_points += $e->positivity_points;
+					$existing->negativity_points += $e->negativity_points;
+					$existing->positive = $existing->positivity_points == $existing->negativity_points ? null : ($existing->positivity_points > $existing->negativity_points);
+					$existing->save();
+					$existing->groups()->syncWithoutDetaching([$e->positive ? $obsolete->superior_functionality_group_id : $obsolete->inferior_functionality_group_id]);
+				}
+				else {
+					$e->push();
+
+					$id = $e->positive ? $obsolete->superior_functionality_group_id : $obsolete->inferior_functionality_group_id;
+					$e->groups()->syncWithoutDetaching($id);
+					$new_excerpts++;
+				}
+			}
+			$bar->advance();
 		}
-		
-
-		$excerpts = Excerpt::getNewExcerpts($inferior, $superior);
-		foreach ($excerpts as $e) {
-
-			$existing = Excerpt::where('text', $e->text)->first();
-			if ($existing) {
-
-				// Update ratings. 
-				// Point system attempts to verify we haven't made misjudgements about rule being positive/negative
-				$existing->positivity_points += $e->positivity_points;
-				$existing->negativity_points += $e->negativity_points;
-				$existing->positive = $existing->positivity_points == $existing->negativity_points ? null : ($existing->positivity_points > $existing->negativity_points);
-				$existing->save();
-				$existing->groups()->syncWithoutDetaching([$e->positive ? $obsolete->superior_functionality_group_id : $obsolete->inferior_functionality_group_id]);
-			}
-			else {
-				$e->push();
-
-				$id = $e->positive ? $obsolete->superior_functionality_group_id : $obsolete->inferior_functionality_group_id;
-				$e->groups()->syncWithoutDetaching($id);
-				$new_excerpts++;
-			}
-		}
-		$bar->advance();
-	}
+	});
 
 	$bar->finish();
 
@@ -610,24 +620,27 @@ Artisan::command('analyze-rules', function () {
 	$new_excerpts = 0;
 	$this->comment("Creating excerpts from cards...");
 
-	$groups = FunctionalityGroup::with(['examplecard'])->get();
+	$q = FunctionalityGroup::with(['examplecard']);
 
-	$bar = $this->output->createProgressBar(count($groups));
+	$bar = $this->output->createProgressBar($q->count());
+
+	$q->chunk(1000, function($groups) use (&$new_excerpts, $bar) {
 	
-	foreach ($groups as $group) {
-		$raws = Excerpt::cardToRawExcerpts($group->examplecard);
-		foreach ($raws as $text) {
+		foreach ($groups as $group) {
+			$raws = Excerpt::cardToRawExcerpts($group->examplecard);
+			foreach ($raws as $text) {
 
-			$excerpt = Excerpt::firstOrCreate(['text' => $text], ['regex' => 1]);
-			$excerpt->groups()->syncWithoutDetaching($group->id);
+				$excerpt = Excerpt::firstOrCreate(['text' => $text], ['regex' => 1]);
+				$excerpt->groups()->syncWithoutDetaching($group->id);
 
-			if ($excerpt->wasRecentlyCreated) {
-				//ExcerptVariable::getVariablesFromText($text);
-				$new_excerpts++;
+				if ($excerpt->wasRecentlyCreated) {
+					//ExcerptVariable::getVariablesFromText($text);
+					$new_excerpts++;
+				}
 			}
+			$bar->advance();
 		}
-		$bar->advance();
-	}
+	});
 	$bar->finish();
 
 	$this->comment("Created " . ($new_excerpts) . " new excerpts for cards");
