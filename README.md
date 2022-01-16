@@ -1,5 +1,5 @@
 # Strictly Better
-A community run webapp made with PHP 7 framework Laravel 5.8, for finding strictly better Magic: The Gathering cards
+A community run webapp made with PHP 7 framework Laravel 8.x, for finding strictly better Magic: The Gathering cards
 
 The app is running on https://www.strictlybetter.eu
 
