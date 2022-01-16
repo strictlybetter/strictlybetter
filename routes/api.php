@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 
+use App\Http\Controllers\ApiController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -19,5 +21,5 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });*/
 
 
-Route::match(['get', 'options'], '/obsoletes/{search?}', 'ApiController@obsoletes')->name('api.obsoletes');
-Route::match(['get', 'options'], '/functional_reprints/{id?}', 'ApiController@functional_reprints')->name('api.functional_reprints');
+Route::match(['get', 'options'], '/obsoletes/{search?}', [ApiController::class, 'obsoletes'])->name('api.obsoletes');
+Route::match(['get', 'options'], '/functional_reprints/{id?}', [ApiController::class, 'functional_reprints'])->name('api.functional_reprints');

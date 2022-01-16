@@ -40,7 +40,7 @@ class Kernel extends HttpKernel
 
         'api' => [
             'throttle:100,1',
-            'bindings',
+             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             'cors',
             'cache.headers:private;max_age=60;etag',
             \App\Http\Middleware\VerifyCsrfToken::class

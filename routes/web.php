@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\CardController;
+use App\Http\Controllers\DeckController;
+use App\Http\Controllers\ApiController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -22,28 +26,28 @@ Route::bind('card', function ($id) {
 // CSRF refresh route (still requires valid csrf token)
 Route::post('/refresh-csrf', function() { return response()->json(['token' => csrf_token()]); });
 
-Route::get('/', 'CardController@index')->name('index');
+Route::get('/', [CardController::class, 'index'])->name('index');
 
-Route::get('/deck', 'DeckController@index')->name('deck.index');
-Route::post('/upgrade_deck', 'DeckController@upgrade')->name('deck.upgrade');
+Route::get('/deck', [DeckController::class, 'index'])->name('deck.index');
+Route::post('/upgrade_deck', [DeckController::class, 'upgrade'])->name('deck.upgrade');
 
-Route::get('/quicksearch', 'CardController@quicksearch')->name('card.quicksearch');
-Route::get('/card_autocomplete', 'CardController@cardAutocomplete')->name('card.autocomplete');
-Route::post('/card/search', 'CardController@search')->name('card.search');
-Route::get('/upgradeview/{card}', 'CardController@upgradeview')->name('card.upgradeview');
+Route::get('/quicksearch', [CardController::class, 'quicksearch'])->name('card.quicksearch');
+Route::get('/card_autocomplete', [CardController::class, 'cardAutocomplete'])->name('card.autocomplete');
+Route::post('/card/search', [CardController::class, 'search'])->name('card.search');
+Route::get('/upgradeview/{card}', [CardController::class, 'upgradeview'])->name('card.upgradeview');
 
-Route::get('/card/{card?}', 'CardController@create')->name('card.create');
-Route::post('/card', 'CardController@store')->name('card.store');
+Route::get('/card/{card?}', [CardController::class, 'create'])->name('card.create');
+Route::post('/card', [CardController::class, 'store'])->name('card.store');
 
-Route::post('/upvote/{obsolete}', 'CardController@upvote')->name('upvote');
-Route::post('/downvote/{obsolete}', 'CardController@downvote')->name('downvote');
+Route::post('/upvote/{obsolete}', [CardController::class, 'upvote'])->name('upvote');
+Route::post('/downvote/{obsolete}', [CardController::class, 'downvote'])->name('downvote');
 
 Route::get('/about', function () { return view('about'); })->name('about');
 Route::get('/changelog', function () { return view('changelog'); })->name('changelog');
 
-Route::get('/votehelp', 'CardController@votehelp')->name('card.votehelp');
+Route::get('/votehelp', [CardController::class, 'votehelp'])->name('card.votehelp');
 
 
 // API
-Route::get('/api-guide', 'ApiController@guide')->name('api.guide');
+Route::get('/api-guide', [ApiController::class, 'guide'])->name('api.guide');
 
