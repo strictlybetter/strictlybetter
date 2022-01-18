@@ -73,7 +73,7 @@ Point Apache/Nginx webroot to repository's 'public' folder.
 
 
 ## Troubleshooting
-[Laravel 8.0 documentation](https://laravel.com/docs/8.0) can help you further if anything goes wrong during setup.
+[Laravel 8.x documentation](https://laravel.com/docs/8.x) can help you further if anything goes wrong during setup.
 
 If parsing of [bulk-data files](https://scryfall.com/docs/api/bulk-data) (scryfall-oracle-cards.json) fails during full-update or load-scryfall artisan command, the format may have changed to an incompatible one. In such case an issue should be created here. 
 
