@@ -77,7 +77,7 @@ Point Apache/Nginx webroot to repository's 'public' folder.
 
 If parsing of [bulk-data files](https://scryfall.com/docs/api/bulk-data) (scryfall-oracle-cards.json) fails during full-update or load-scryfall artisan command, the format may have changed to an incompatible one. In such case an issue should be created here. 
 
-If you can fix it yourself, you may also make a pull request. Investigating [Scryfall API documentation](https://scryfall.com/docs/api) and the downloaded scryfall-default-cards.json (in repository root) can help you there.
+If you can fix it yourself, you may also make a pull request. Investigating [Scryfall API documentation](https://scryfall.com/docs/api) and the downloaded scryfall-oracle-cards.json (in repository root) can help you there.
 
 
 Henri "Dankkirk" Kulotie
