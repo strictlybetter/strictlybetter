@@ -21,7 +21,9 @@ class AddHybridlessCmcToCards extends Migration
         $cards = App\Card::all();
         foreach ($cards as $card) {
             $card->timestamps = false;
-            $card->hybridless_cmc = $card->calculateHybridlessCmcFromCost();
+
+            $manacost = App\Manacost::createFromManacostString($card->manacost, $card->cmc);
+            $card->hybridless_cmc = $manacost->hybridless_cmc;
             $card->save();
         }
     }

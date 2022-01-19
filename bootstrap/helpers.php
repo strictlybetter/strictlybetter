@@ -219,12 +219,15 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 	$new_rules = $card->substituteRules();
 	$regroup = !$card->functionality_id || ($new_rules !== $card->substituted_rules);
 	$card->substituted_rules = $new_rules;
-	$card->manacost_sorted = $card->calculateColoredManaCosts();
+
+	$manacost = App\Manacost::createFromManacostString($card->manacost, $card->cmc);
+
+	$card->manacost_sorted = $manacost->manacost_sorted;
 
 	if ($parent) {
 		$card->multiverse_id = $parent->multiverse_id;
 		$card->legalities = $parent->legalities;
-		$card->cmc = $card->calculateCmcFromCost();
+		$card->cmc = $manacost->cmc;
 		$card->colors = isset($obj->colors) ? $card->colors : $parent->colors;
 		$card->color_identity = isset($obj->color_identity) ? $card->color_identity : $parent->color_identity;
 		$card->flip = $parent->flip;
@@ -239,7 +242,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 			$parent->save();
 		}
 	}
-	$card->hybridless_cmc = $card->calculateHybridlessCmcFromCost();
+	$card->hybridless_cmc = $manacost->hybridless_cmc;
 
 	if ($card->isDirty()) {
 		$card->save();

@@ -10,6 +10,7 @@ use App\Functionality;
 use App\FunctionalityGroup;
 use App\Labeling;
 use App\Excerpt;
+use App\Manacost;
 
 class Card extends Model
 {
@@ -313,161 +314,27 @@ class Card extends Model
 		return $substitute_rules;
 	}
 
-	/*
-		Should only be used to generate/populate manacost_sorted field,
-		in other cases use manacost_sorted attribute
-	*/
-	public function calculateColoredManaCosts() 
-	{
-		$costs = [];
-
-		if (preg_match_all('/(\{[^\d\}]+\})/u', $this->manacost, $symbols)) {
-			foreach ($symbols[1] as $symbol) {
-
-				$cost = 1;
-				// Handle "half mana" from Unhinged set
-				if ($symbol[1] === 'H') {
-					$cost = 0.5;
-					$symbol = '{' . mb_substr($symbol, 2);
-				}
-
-				if (!isset($costs[$symbol]))
-					$costs[$symbol] = $cost;
-				else
-					$costs[$symbol] += $cost;
-			}
-		}
-
-		return $costs;
-	}
-
-	public function calculateCmcFromCost()
-	{
-		$cmc = null;
-		
-		if (preg_match('/\{(\d+)\}/u', $this->manacost, $matches))
-			$cmc = $matches[1];
-
-		$mana_counts = ($this->manacost_sorted !== null) ? $this->manacost_sorted : $this->calculateColoredManaCosts();
-
-		if (empty($mana_counts))
-			return $cmc;
-
-		if ($cmc === null)
-			$cmc = 0;
-
-		foreach ($mana_counts as $symbol => $amount) {
-			if (mb_strpos($symbol, '/2') === false)
-				$cmc += $amount;
-			else
-				$cmc += ($amount * 2);
-		}
-		return $cmc;
-	}
-
-	public function calculateHybridlessCmcFromCost()
-	{
-		if ($this->cmc === null)
-			return null;
-
-		$cmc = $this->cmc;
-		foreach ($this->manacost_sorted as $symbol => $amount) {
-			if (mb_strpos($symbol, 'P') !== false || mb_strpos($symbol, '2') !== false)
-
-				// Both phyrexian and 2/color hybrids should cost the lesser amount 
-				// 0 for phyrexian and 1 for 2/color, but 2/color is already calculated as 2 cmc per symbol, so -amount gives the correct amount in both cases
-				$cmc -= $amount;	
-		}
-		return $cmc;
-	}
-
 	public function costsMoreThan(Card $other, $may_cost_more_of_same = false)
 	{
 
 		if (!$this->alternativeCostsMoreColoredThan($other, $may_cost_more_of_same))
 			return false;
 
-		if ($other->cmc !== null && ($this->cmc > $other->cmc || $this->hybridless_cmc > $other->hybridless_cmc)) {
+		$costs_more = Manacost::createFromCard($this)->costsMoreThan(Manacost::createFromCard($other), $may_cost_more_of_same);
+		if ($costs_more) {
 
 			// Check for a special case, where mana cost is less based on target
 			$result = preg_match('/this spell costs (?:\{[^\}]+\})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
-			if ($result != 1 || stripos($other->substituted_rules, "Target " . $match[1]) === false)
-				return true;
+			if ($result == 1 && stripos($other->substituted_rules, "Target " . $match[1]) !== false)
+				return false;
 		}
 
-		return $this->costsMoreColoredThan($other, $may_cost_more_of_same);
+		return $costs_more;
 	}
 
 	public function costsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
 	{
-		$mana = $this->manacost_sorted;
-		$mana_left = $other->manacost_sorted;
-
-		// Strip variable costs
-		$variable_costs = ['{X}','{Y}','{Z}'];
-		foreach ($variable_costs as $variable_cost) {
-			unset($mana_left[$variable_cost]);
-			unset($mana[$variable_cost]);
-		}
-
-		$cmc = $other->cmc ? $other->cmc : 0;
-		$anytype_left = $cmc - (array_sum(array_values($mana_left)));
-		
-		// If this costs nothing colored, it can't cost more
-		if (empty($mana))
-			return false;
-
-		// If the other costs nothing colored, then this must cost more
-		if (empty($mana_left))
-			return true;
-
-		foreach ($mana as $symbol => $cost) {
-
-			if (!isset($mana_left[$symbol])) {
-
-				// Is it hybrid mana?
-				$pos = mb_strpos($symbol, '/');
-				if ($pos === false || $pos < 1)
-					return true;
-
-				// Translate Phyrexian mana to the base color
-				// Phyrexian red > red
-				if ($symbol[$pos + 1] === 'P')
-					$symbol = '{'.$symbol[$pos-1].'}';
-
-				// Translate multicolor / 2-generic/color to one of the left colors if any
-				// multicolor / 2-generic/color > base color
-				else {
-					
-					$symbol2 = '{'.$symbol[$pos-1].'}';
-					$symbol = '{'.$symbol[$pos+1].'}';
-
-					if (!isset($mana_left[$symbol]) || (
-						($may_cost_more_of_same && $cost > ($anytype_left + $mana_left[$symbol])) || 
-						(!$may_cost_more_of_same && $cost > $mana_left[$symbol])
-					))
-						$symbol = $symbol2;
-				}
-
-				if (!isset($mana_left[$symbol]))
-					return true;
-
-			}
-
-			// Reduce usable mana for next iteration, unless we alredy ran out
-			if ($cost > $mana_left[$symbol]) {
-				if (!$may_cost_more_of_same || $cost > ($anytype_left + $mana_left[$symbol]))
-					return true;
-				else {
-					$anytype_left -= ($cost - $mana_left[$symbol]);
-					$mana_left[$symbol] = 0;
-				}
-			}
-			else
-				$mana_left[$symbol] -= $cost;
-		}
-
-		return false;
+		return Manacost::createFromCard($this)->costsMoreColoredThan(Manacost::createFromCard($other), $may_cost_more_of_same);
 	}
 
 	/**
@@ -626,45 +493,18 @@ class Card extends Model
 	 */
 	public function alternativeCostsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
 	{
-		$alt = $this->getSortedAlternativeCosts();
-		$alt2 = $other->getSortedAlternativeCosts();
+		$alt = $this->getAlternativeCosts();
+		$alt2 = $other->getAlternativeCosts();
 
 		foreach ($alt as $keyword => $cost) {
 
-			$dummy = new Card(); 
-			$dummy->substituteAlternativeCost($cost);
+			$compare_to = isset($alt2[$keyword]) ? $alt2[$keyword] : Manacost::createFromCard($other);
 
-			$compare_to = $other;
-
-			if (isset($alt2[$keyword])) {
-				$compare_to = new Card(); 
-				$compare_to->substituteAlternativeCost($alt2[$keyword]);
-			}
-
-			if (($other->cmc === null || 
-				($dummy->cmc <= $compare_to->cmc && $dummy->hybridless_cmc <= $compare_to->hybridless_cmc)) && 
-				!$dummy->costsMoreColoredThan($compare_to, $may_cost_more_of_same))
+			if (!$cost->costsMoreThan($compare_to, $may_cost_more_of_same))
 				return false;
 		}
 		return true;
 
-	}
-
-	/**
-	 * Calculates new manacost for a card based on manacost in string format. 
-	 * Quite heavy for batch processsing. If batch processing is needed, consider saving result to database during initial load (load-scryfall).
-	 * 
-	 * @param  String - Manacost in string format
-	 * @return Card -  Altered card
-	 */
-	private function substituteAlternativeCost($manacost) 
-	{
-		$this->manacost = $manacost;
-		$this->manacost_sorted = $this->calculateColoredManaCosts();
-		$this->cmc = $this->calculateCmcFromCost();
-		$this->hybridless_cmc = $this->calculateHybridlessCmcFromCost();
-
-		return $this;
 	}
 
 	/**
@@ -673,7 +513,7 @@ class Card extends Model
 	 * 
 	 * @return Associateve array of alternative manacost keyword -> manacost
 	 */
-	public function getSortedAlternativeCosts() 
+	public function getAlternativeCosts() 
 	{
 
 		$alt_keywords = [
@@ -712,7 +552,7 @@ class Card extends Model
 		$costs = [];
 
 		foreach ($matches as $val) {
-			$costs[$val[0]] = $val[1];
+			$costs[$val[0]] = Manacost::createFromManacostString($val[1]);
 		}
 		return $costs;
 
