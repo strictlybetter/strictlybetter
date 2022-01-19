@@ -19,6 +19,11 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>01/19/22</h4>
+	<ul>
+		<li>Fixed automatic suggestions not comparing double digit power/toughness correctly. (A bug introduced in recent framework upgrade)</li>
+	</ul>
+
 	<h4>09/16/21</h4>
 	<ul>
 		<li>Introducing <b>machine learning</b> to determine some rules text betterness and finding more card suggestions automatically.

@@ -568,12 +568,12 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		if ($card->power !== null) {
 
 			if (is_numeric($card->power))
-				$q = $q->where('power', '>=', (double)$card->power);
+				$q = $q->whereRaw('power >= CAST(? as DECIMAL(8,1))', [(double)$card->power]);
 			else
 				$q = $q->where('power', '=', $card->power);
 
 			if (is_numeric($card->toughness))
-				$q = $q->where('toughness', '>=', (double)$card->toughness);
+				$q = $q->whereRaw('toughness >= CAST(? as DECIMAL(8,1))', [(double)$card->toughness]);
 			else
 				$q = $q->where('toughness', '=', $card->toughness);
 		}
@@ -623,7 +623,12 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 							return true;
 
 						if ($card->hasStats()) {
-							return ($card->power < $better->power || $card->toughness < $better->toughness);
+
+							// Power and toughness are quaranteed to be atleast equal by this point, so just check for greatness
+							$more_power = is_numeric($better->power) ? ((double)$card->power) < ((double)$better->power) : false;
+							$more_toughness = is_numeric($better->toughness) ? ((double)$card->toughness) < ((double)$better->toughness) : false;
+
+							return ($more_power || $more_toughness);
 						}
 
 						if ($card->hasLoyalty()) {
