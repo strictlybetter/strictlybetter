@@ -17,6 +17,7 @@ use App\Http\Controllers\ApiController;
 
 Route::pattern('card', '[0-9]+');
 Route::pattern('obsolete', '[0-9]+');
+Route::pattern('suggestion', '[0-9]+');
 
 // Prevent requests from accessing multiface card' faces directly (main_card_id must be null)
 Route::bind('card', function ($id) {
@@ -45,8 +46,14 @@ Route::post('/downvote/{obsolete}', [CardController::class, 'downvote'])->name('
 Route::get('/about', function () { return view('about'); })->name('about');
 Route::get('/changelog', function () { return view('changelog'); })->name('changelog');
 
-Route::get('/votehelp', [CardController::class, 'votehelp'])->name('card.votehelp');
+Route::prefix('votehelp')->group(function () {
+	Route::get('low-on-votes', [CardController::class, 'voteHelpLowOnVotes'])->name('votehelp.low-on-votes');
+	Route::get('spreadsheets', [CardController::class, 'voteHelpSpreadsheets'])->name('votehelp.spreadsheets');
+	Route::get('disputed', [CardController::class, 'voteHelpDisputed'])->name('votehelp.disputed');
 
+	Route::post('add-suggestion/{suggestion}', [CardController::class, 'addSuggestion'])->name('votehelp.add-suggestion');
+	Route::post('ignore-suggestion/{suggestion}', [CardController::class, 'ignoreSuggestion'])->name('votehelp.ignore-suggestion');
+});
 
 // API
 Route::get('/api-guide', [ApiController::class, 'guide'])->name('api.guide');

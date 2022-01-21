@@ -229,7 +229,7 @@ Artisan::command('remove-bad-suggestions', function () {
 
 	DB::transaction(function () use (&$count) {
 
-		Obsolete::with(['inferiors', 'superiors'])->chunk(1000, function($obsoletes) use (&$count) {
+		Obsolete::with(['inferiors', 'superiors'])->chunkById(1000, function($obsoletes) use (&$count) {
 	
 			foreach ($obsoletes as $obsolete) {
 				if (!$obsolete->superiors->first()->isEqualOrBetterThan($obsolete->inferiors->first())) {
@@ -528,6 +528,48 @@ Artisan::command('relabel-obsoletes', function () {
 
 	$new_labeling_count = Labeling::count();
 	$this->comment("Created " . ($new_labeling_count - $labeling_count) . " new labelings");
+});
+
+Artisan::command('filter-external-suggestions', function () {
+
+	App\Suggestion::chunkById(1000, function($suggestions) {
+
+		foreach ($suggestions as $suggestion) {
+
+			$inferior_name = $suggestion->inferiors[0];
+
+			$inferior = App\Card::with(['superiors'])->where('name', $inferior_name)->whereNull('main_card_id')->first();
+			$superiors = App\Card::whereIn('name', $suggestion->superiors)->whereNull('main_card_id')->get();
+
+			if (!$inferior || $superiors->isEmpty())  {
+				$this->comment("Couldn't find inferior: ". $inferior_name ." or its superiors: ". $suggestion->Superior);
+				$suggestion->delete();
+				continue;
+			}
+
+			// Check if we already have this suggestion
+			$new_to_db = $superiors->filter(function($superior) use ($inferior) {
+				return !$inferior->superiors->contains('id', $superior->id);
+			});
+
+			// Check if our rules allow this suggestion
+			$new_to_db = $new_to_db->filter(function($superior) use ($inferior) {
+				if ($superior->isEqualOrBetterThan($inferior))
+					return true;
+
+				$this->comment("Rules don't allow suggestion: ". $inferior->name ." -> ". $superior->name);
+				return false;
+			});
+
+			if ($new_to_db->isEmpty()) {
+				$suggestion->delete();
+				continue;
+			}
+
+			$suggestion->Superior = implode(",", $new_to_db->pluck('name')->all());
+			$suggestion->save();
+		}
+	});
 });
 
 Artisan::command('analyze-rules', function () {

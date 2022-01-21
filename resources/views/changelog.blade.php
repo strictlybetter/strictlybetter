@@ -19,6 +19,17 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 
+	<h4>01/21/22</h4>
+	<ul>
+		<li>Added voting categories to Help Voting page and adjusted which cards are listed there
+			<ul>
+				<li><a href="{{ route('votehelp.low-on-votes') }}">Low on Votes</a> - (Default) The original mode which lists suggestions with a low vote count. Vote to help users and AI make better decisions.</li>
+				<li><a href="{{ route('votehelp.disputed') }}">Disputed</a> - Lists seemingly controversial upgrade suggestions with mixed upvote/downvote status, so you can help find a balance.</li>
+				<li><a href="{{ route('votehelp.spreadsheets') }}">External Sources</a> - Lists suggestions other people have gathered on other sites and spreadsheets to help transfer the valid ones here.</li>
+			</ul>
+		</li>
+	</ul>
+
 	<h4>01/19/22</h4>
 	<ul>
 		<li>Fixed automatic suggestions not comparing double digit power/toughness correctly. (A bug introduced in recent framework upgrade)</li>

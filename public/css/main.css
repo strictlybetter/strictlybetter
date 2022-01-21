@@ -4,6 +4,10 @@ html {
 body {
 	margin-bottom: 50px;
 }
+
+.dropdown-menu {
+	margin-top: 0;
+}
 .row {
 	margin-left: 0;
 	margin-right: 0;

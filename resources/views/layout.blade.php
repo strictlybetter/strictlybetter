@@ -33,12 +33,8 @@
 	</head>
 	<body>
 		<div class="container-fluid" style="padding:0">
-			<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+			<nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
 				<a class="navbar-brand" href="{{ route('index') }}">Strictly Better</a>
-				<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-					<span class="navbar-toggler-icon"></span>
-				</button>
-
 				<div class="collapse navbar-collapse" id="navbarSupportedContent">
 					<ul class="navbar-nav mr-auto">
 						<li class="nav-item {{ Request::is('/') ? 'active' : '' }}">
@@ -50,8 +46,18 @@
 						<li class="nav-item {{ Request::is('card', 'card/*') ? 'active' : '' }}">
 							<a class="nav-link" href="{{ route('card.create') }}">Add Suggestion</a>
 						</li>
-						<li class="nav-item {{ Request::is('votehelp') ? 'active' : '' }}">
-							<a class="nav-link" href="{{ route('card.votehelp') }}">Help Voting</a>
+						<li class="nav-item {{ Request::is('votehelp/*') ? 'active' : '' }} dropdown" id="nav-helpvoting">
+							<a class="nav-link dropdown-toggle" href="{{ route('votehelp.low-on-votes') }}" role="button" aria-haspopup="true" aria-expanded="false">
+								Help Voting
+							</a>
+							<div class="dropdown-menu" aria-labelledby="nav-helpvoting">
+								<a class="dropdown-item {{ Request::is('votehelp/low-on-votes') ? 'active' : '' }}" href="{{ route('votehelp.low-on-votes') }}" 
+									title="Help determine if fresh suggestions are valid or not">Low on Votes</a>
+								<a class="dropdown-item {{ Request::is('votehelp/disputed') ? 'active' : '' }}" href="{{ route('votehelp.disputed') }}" 
+									title="Help find a final verdict for disputed suggestions">Disputed</a>
+								<a class="dropdown-item {{ Request::is('votehelp/spreadsheets') ? 'active' : '' }}" href="{{ route('votehelp.spreadsheets') }}"
+									title="Help validate suggestions other people have gathered elsewhere">External Sources</a>
+							</div>
 						</li>
 						<li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">
 							<a class="nav-link" href="{{ route('api.guide') }}">API Guide</a>
@@ -131,6 +137,27 @@
 					});
 				}
 			@endif
+
+			const dropdown = $(".dropdown");
+			const dropdownToggle = $(".dropdown-toggle");
+			const dropdownMenu = $(".dropdown-menu");
+
+			$(window).on("load resize", function() {
+				if (this.matchMedia("(min-width: 768px)").matches) {
+					dropdown.hover(function() {
+						$(this).addClass('show');
+						$(this).find(dropdownToggle).attr("aria-expanded", "true");
+						$(this).find(dropdownMenu).addClass('show');
+					},
+					function() {
+						$(this).removeClass('show');
+						$(this).find(dropdownToggle).attr("aria-expanded", "false");
+						$(this).find(dropdownMenu).removeClass('show');
+					});
+				} else {
+					dropdown.off("mouseenter mouseleave");
+				}
+			});
 
 			var card_cache = {};
 			var vote_refresh = false;
@@ -235,6 +262,7 @@
 						type: "POST",
 						url: $(this).attr('action'),
 						dataType: "json",
+						data: $(this).serialize(),
 						success: function(response) {
 							// There might be multiple cards from same obsoletion id, so update them all
 							$('.card-votes[data-obsolete-id='+obsolete_id+']').each(function(e) {

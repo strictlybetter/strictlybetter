@@ -7,6 +7,7 @@ use App\Obsolete;
 use App\Labeling;
 use App\Vote;
 use App\Cardtype;
+use App\Suggestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -424,25 +425,153 @@ class CardController extends Controller
 		return $obsolete;
 	}
 
-	public function votehelp(Request $request)
-	{
-		$ip = $request->ip();
+	public function voteHelpLowOnVotes(Request $request) {
 
-		$random = function($q) use ($ip) { 
-			$q->relatedGuiOnly()->where("obsoletes.downvotes", '<', 10)->where("obsoletes.upvotes", '<', 10)
+		$ip = $request->ip();
+		$low_votes_not_this_ip = function($q) use ($ip) { 
+			$q->relatedGuiOnly()
+				->whereRaw("(obsoletes.downvotes > 0 or obsoletes.upvotes > 0)") // 0 / 0 votes are added by the automation, no need to vote for those
+				->whereRaw("((obsoletes.downvotes + obsoletes.upvotes) < 8 and ABS(CAST(obsoletes.downvotes AS SIGNED) - CAST(obsoletes.upvotes AS SIGNED)) < 5)")
 				->whereNotExists(function($q) use ($ip) {
 					$q->select(DB::raw(1))->from('votes')->whereColumn('obsoletes.id', 'votes.obsolete_id')->where('ip', $ip);
 				});
 		};
 
-		$inferior = Card::with(['superiors' => $random])
+		$inferior = Card::with(['superiors' => $low_votes_not_this_ip])
 			->guiOnly()
-			->whereHas('superiors', $random)
+			->whereHas('superiors', $low_votes_not_this_ip)
 			->inRandomOrder()
 			->first();
 
 		$superior = $inferior ? $inferior->superiors->random() : null;
 
 		return view('votehelp')->with(['inferior' => $inferior, 'superior' => $superior]);
+	}
+
+	public function voteHelpDisputed(Request $request) {
+
+		$ip = $request->ip();
+		$disputed_not_this_ip = function($q) use ($ip) { 
+			$q->relatedGuiOnly()
+				->where("obsoletes.downvotes", '>', 0)->where("obsoletes.upvotes", '>', 0)
+				->whereRaw("(ABS(CAST(obsoletes.downvotes AS SIGNED) - CAST(obsoletes.upvotes AS SIGNED)) < 2 or ((obsoletes.downvotes / obsoletes.upvotes) > 0.5 and (obsoletes.downvotes / obsoletes.upvotes) < 1.5))")
+				->whereNotExists(function($q) use ($ip) {
+					$q->select(DB::raw(1))->from('votes')->whereColumn('obsoletes.id', 'votes.obsolete_id')->where('ip', $ip);
+				});
+		};
+
+		$inferior = Card::with(['superiors' => $disputed_not_this_ip])
+			->guiOnly()
+			->whereHas('superiors', $disputed_not_this_ip)
+			->inRandomOrder()
+			->first();
+
+		$superior = $inferior ? $inferior->superiors->random() : null;
+
+		return view('votehelp')->with(['inferior' => $inferior, 'superior' => $superior]);
+	}
+
+	public function voteHelpSpreadsheets(Request $request)
+	{
+		$retries_left = 10;
+
+		$inferior = null;
+		$superior = null;
+		$suggestion = null;
+
+		while ($retries_left) {
+
+			$suggestion = Suggestion::inRandomOrder()->first();
+
+			$inferior_name = $suggestion->inferiors[0] ?? '';
+			$superior_name = $suggestion->superiors[0] ?? '';
+
+			$inferior = Card::where('name', $inferior_name)->whereNull('main_card_id')->first();
+			$superior = Card::where('name', $superior_name)->whereNull('main_card_id')->first();
+
+			if ($inferior && $superior)
+				break;
+
+			$retries_left--;
+		}
+
+		if ($inferior && $superior) {
+			$labels = create_labels($inferior, $superior);
+
+			// Create run-time relations (not saved to DB)
+			$superior->setRelation('pivot', $superior->newPivot($inferior, ['labels' => $labels, 'suggestion_id' => $suggestion->id], 'labelings', true));
+			$inferior->setRelation('superiors', new \Illuminate\Database\Eloquent\Collection([$superior]));
+		}
+
+		return view('votehelp')->with(['inferior' => $inferior, 'superior' => $superior]);
+	}
+
+	public function addSuggestion(Request $request, $suggestion_id) {
+
+		$suggestion = Suggestion::find($suggestion_id);
+		if (!$suggestion)
+			return response()->json(['status' => 'This suggestion no longer exists']);
+			
+		$inferior_name = $suggestion->inferiors[0] ?? '';
+		$superior_name = $suggestion->superiors[0] ?? '';
+
+		$inferior = Card::with(['functionality'])->where('name', $inferior_name)->whereNull('main_card_id')->first();
+		$superior = Card::with(['functionality'])->where('name', $superior_name)->whereNull('main_card_id')->first();
+
+		if (!$inferior || !$superior)  {
+			$suggestion->deleteLatest();	// Delete suggestions to invalid cards
+			return response()->json(['status' => 'Card not found']);
+		}
+
+		// Verify we are handling the same suggestion internally as user was in UI
+		if ($superior->id != $request->input('superior_id'))
+			return response()->json(['status' => 'This suggestion no longer exists']);
+
+		// Suggestions are deleted once voted
+		$suggestion->deleteLatest();
+
+		if ($inferior->functionality->group_id == $superior->functionality->group_id)
+			return response()->json(['status' => 'The cards belong to same functionality group']);
+
+		if (!$superior->isEqualOrBetterThan($inferior))
+			return response()->json(['status' => "The superior card doesn't seem to be better"]);
+
+		DB::transaction(function () use ($inferior, $superior) {
+			create_obsolete($inferior, $superior, true);
+
+			// Add vote
+			$obsolete = Obsolete::where('superior_functionality_group_id', $superior->functionality->group_id)
+				->where('inferior_functionality_group_id', $inferior->functionality->group_id)
+				->first();
+
+			$this->addVote($obsolete->id, true);
+		});
+		
+		return response()->json(['status' => 'ok']);
+	}
+
+	public function ignoreSuggestion(Request $request, $suggestion_id) {
+
+		$suggestion = Suggestion::find($suggestion_id);
+		if (!$suggestion)
+			return response()->json(['status' => 'This suggestion no longer exists']);
+
+		$superior_name = $suggestion->superiors[0] ?? '';
+		$superior = Card::with(['functionality'])->where('name', $superior_name)->whereNull('main_card_id')->first();
+
+		if (!$superior) {
+			$suggestion->deleteLatest();	// Delete suggestions to invalid cards
+			return response()->json(['status' => 'Card not found']);
+		}
+
+		// Verify we are handling the same suggestion internally as user was in UI
+		if ($superior->id != $request->input('superior_id'))
+			return response()->json(['status' => 'This suggestion no longer exists']);
+
+		// Suggestions are deleted once voted
+		$suggestion->deleteLatest();
+
+		return response()->json(['status' => 'ok']);
+		
 	}
 }
