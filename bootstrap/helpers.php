@@ -600,7 +600,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 				// echo "Found betters: " . count($betters) . PHP_EOL; // for debugging
 
 				$betters = $betters->filter(function($better) use ($card) {
-					return (!$better->costsMoreThan($card, true));
+					return (!$better->costsMoreThan($card, true, $using_analysis));
 				})->values();
 
 				if ($using_analysis) {
@@ -619,7 +619,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 						if ($card->main_card_id === null && $better->main_card_id !== null)
 							return true;
 
-						if ($card->costsMoreThan($better))
+						if ($card->costsMoreThan($better, false, $using_analysis))
 							return true;
 
 						if ($card->hasStats()) {

@@ -314,14 +314,16 @@ class Card extends Model
 		return $substitute_rules;
 	}
 
-	public function costsMoreThan(Card $other, $may_cost_more_of_same = false)
+	public function costsMoreThan(Card $other, $may_cost_more_of_same = false, $consider_alternatives = false)
 	{
 
-		if (!$this->alternativeCostsMoreColoredThan($other, $may_cost_more_of_same))
-			return false;
+		if ($consider_alternatives) {
+			if (!$this->alternativeCostsMoreColoredThan($other, $may_cost_more_of_same))
+				return false;
+		}
 
 		$costs_more = Manacost::createFromCard($this)->costsMoreThan(Manacost::createFromCard($other), $may_cost_more_of_same);
-		if ($costs_more) {
+		if ($consider_alternatives && $costs_more) {
 
 			// Check for a special case, where mana cost is less based on target
 			$result = preg_match('/this spell costs (?:\{[^\}]+\})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
@@ -381,8 +383,8 @@ class Card extends Model
 		}
 
 		// This card must not be slower than the other card
-		if ((in_array("Instant", $other->types) || preg_match('/\bFlash\b/', $other->substituted_rules)) &&
-			!(in_array("Instant", $this->types) || preg_match('/\bFlash\b/', $this->substituted_rules)))
+		if ((in_array("Instant", $other->types) || preg_match('/\b(Flash|Cycling)\b/', $other->substituted_rules)) &&
+			!(in_array("Instant", $this->types) || preg_match('/\b(Flash|Cycling)\b/', $this->substituted_rules)))
 			return false;
 
 
@@ -390,14 +392,17 @@ class Card extends Model
 		$non_permanents = ["Sorcery", "Instant"];
 		if (array_intersect($non_permanents, $other->types) && !array_intersect($non_permanents, $this->types)) {
 			
-			// ... Unless this permanent does it's thing when entering battlefield or can self sacrifice for the effect
+			// ... Unless this permanent does it's thing when entering battlefield 
+			// or can self sacrifice for the effect
+			// or triggers when cycled
 			if (!preg_match('/\bWhen (?!another)[^\.]* enters the battlefield/', $this->substituted_rules) &&
-				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules))
+				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules) &&
+				!preg_match('/\bWhen(?:ever)? you cycle @@@/', $this->substituted_rules))
 				return false;
 		}
 
 		// This card must not cost more mana, but may cost more of the existing colors.
-		if ($this->costsMoreThan($other, true))
+		if ($this->costsMoreThan($other, true, true))
 			return false;
 
 		return true;
@@ -498,7 +503,7 @@ class Card extends Model
 
 		foreach ($alt as $keyword => $cost) {
 
-			$compare_to = isset($alt2[$keyword]) ? $alt2[$keyword] : Manacost::createFromCard($other);
+			$compare_to = $alt2[$keyword] ?? Manacost::createFromCard($other);
 
 			if (!$cost->costsMoreThan($compare_to, $may_cost_more_of_same))
 				return false;
@@ -535,13 +540,24 @@ class Card extends Model
 		*/
 			// Keywords that change or add to the spells effects when an alternate cost is paid:
 
-		//	"Awaken", // — turns land in play into a creature
-		//	"Bestow", // — a creature is cast as an enchantment
-		//	"Dash", // — grants a creature haste, but returns it to hand at end of turn
+			"Awaken", // — turns land in play into a creature
+			"Bestow", // — a creature is cast as an enchantment
+			"Dash", // — grants a creature haste, but returns it to hand at end of turn
 			"Evoke", // — a creature is cast and immediately sacrificed, creating a sorcery-like effect
-		//	"Morph", // — a creature is cast face down, but can be turned face up later
-		//	"Megamorph", // — a creature is cast face down, but can be turned face up later
+			"Morph", // — a creature is cast face down, but can be turned face up later
+			"Megamorph", // — a creature is cast face down, but can be turned face up later
 			"Overload", // — a spell affects all possible targets instead of just one
+
+			"Cycling",
+		/*
+			"Foretell",
+		*/
+		];
+
+		// Spells with these keywords cost additional colorless mana to get the full effect
+		$alt_cost_keywords = [
+			'Morph' => 3,
+			'Megamorph' => 3
 		];
 
 		$words = implode("|", $alt_keywords);
@@ -552,7 +568,7 @@ class Card extends Model
 		$costs = [];
 
 		foreach ($matches as $val) {
-			$costs[$val[0]] = Manacost::createFromManacostString($val[1]);
+			$costs[$val[0]] = Manacost::createFromManacostString($val[1])->addColorless($alt_cost_keywords[$val[0]] ?? 0);
 		}
 		return $costs;
 

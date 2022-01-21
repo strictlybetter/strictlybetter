@@ -71,6 +71,14 @@ class Manacost {
 		return $costs;
 	}
 
+	public function addColorless($coloress_amount)
+	{
+		$this->cmc += $coloress_amount;
+		$this->hybridless_cmc += $coloress_amount;
+
+		return $this;
+	}
+
 	public function calculateCmcFromCost()
 	{
 		$cmc = null;

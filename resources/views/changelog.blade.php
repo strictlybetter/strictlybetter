@@ -28,6 +28,16 @@
 				<li><a href="{{ route('votehelp.spreadsheets') }}">External Sources</a> - Lists suggestions other people have gathered on other sites and spreadsheets to help transfer the valid ones here.</li>
 			</ul>
 		</li>
+		<li>
+			Added limited support for alternative casting costs (only for user added cards):
+			<ul>
+				<li>Cycling - Cycling can be done at instant speed, so cards with Cycling can't be worse than sorcery speed spells. Cycling cards may also be better than some instants.</li>
+				<li>Morph/Megamorph - Morph allows casting the creature for morph cost + 3 colorless, which may be lower than the hardcast cost.</li>
+				<li>Dash - May be lower than the hardcast cost.</li>
+				<li>Bestow - May be lower than the hardcast cost.</li>
+				<li>Awaken - May be lower than the hardcast cost.</li>
+			</ul>
+		</li>
 	</ul>
 
 	<h4>01/19/22</h4>
