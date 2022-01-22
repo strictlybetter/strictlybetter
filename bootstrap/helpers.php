@@ -599,7 +599,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 
 				// echo "Found betters: " . count($betters) . PHP_EOL; // for debugging
 
-				$betters = $betters->filter(function($better) use ($card) {
+				$betters = $betters->filter(function($better) use ($card, $using_analysis) {
 					return (!$better->costsMoreThan($card, true, $using_analysis));
 				})->values();
 
@@ -613,7 +613,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 				// $better must prove to be better in some defined category (it's already atleast eqaul at this point)
 				else {
 
-					$betters = $betters->filter(function($better) use ($card) {
+					$betters = $betters->filter(function($better) use ($card, $using_analysis) {
 
 						// Split card is better, even if everything else matches
 						if ($card->main_card_id === null && $better->main_card_id !== null)
