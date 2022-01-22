@@ -52,11 +52,11 @@
 							</a>
 							<div class="dropdown-menu" aria-labelledby="nav-helpvoting">
 								<a class="dropdown-item {{ Request::is('votehelp/low-on-votes') ? 'active' : '' }}" href="{{ route('votehelp.low-on-votes') }}" 
-									title="Help determine if fresh suggestions are valid or not">Low on Votes</a>
+									title="Help determine if fresh suggestions with low vote count are valid or not">Low on Votes</a>
 								<a class="dropdown-item {{ Request::is('votehelp/disputed') ? 'active' : '' }}" href="{{ route('votehelp.disputed') }}" 
-									title="Help find a final verdict for disputed suggestions">Disputed</a>
+									title="Help find a final verdict for disputed suggestions with similar amount of upvotes and downvotes">Disputed</a>
 								<a class="dropdown-item {{ Request::is('votehelp/spreadsheets') ? 'active' : '' }}" href="{{ route('votehelp.spreadsheets') }}"
-									title="Help validate suggestions other people have gathered elsewhere">External Sources</a>
+									title="Help validate suggestions people have listed elsewhere">External Sources</a>
 							</div>
 						</li>
 						<li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">

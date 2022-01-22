@@ -52,11 +52,11 @@
 
 		<ul class="categorylist">
 			<li><a class="{{ Request::is('votehelp/low-on-votes') ? 'active' : '' }}" href="{{ route('votehelp.low-on-votes') }}" 
-				title="Help determine if fresh suggestions are valid or not">Low on Votes</a></li>
+				title="Help determine if fresh suggestions with low vote count are valid or not">Low on Votes</a></li>
 			<li><a class="{{ Request::is('votehelp/disputed') ? 'active' : '' }}" href="{{ route('votehelp.disputed') }}" 
-				title="Help find a final verdict for disputed suggestions">Disputed</a></li>
+				title="Help find a final verdict for disputed suggestions with similar amount of upvotes and downvotes">Disputed</a></li>
 			<li><a class="{{ Request::is('votehelp/spreadsheets') ? 'active' : '' }}" href="{{ route('votehelp.spreadsheets') }}"
-				title="Help validate suggestions other people have gathered elsewhere">External Sources</a></li>
+				title="Help validate suggestions people have listed elsewhere">External Sources</a></li>
 			<li>
 				<a class="btn btn-light btn-gatherer btn-refresh" href="javascript:location.reload();">
 					<i class="fa fa-refresh"></i>
@@ -65,9 +65,19 @@
 			</li>
 		</ul>
 
-		@if($inferior && $superior)
-
 		<br>
+		@if(Request::is('votehelp/low-on-votes'))
+			<p>Help determine if fresh suggestions with low vote count are valid or not.</p>
+		@elseif(Request::is('votehelp/disputed'))
+			<p>Help find a final verdict for disputed suggestions with similar amount of upvotes and downvotes.</p>
+		@elseif(Request::is('votehelp/spreadsheets'))
+			<p>Help validate suggestions people have listed elsewhere. Do you have such a list? Email me: <a href="mailto:henri.kulotie@gmail.com">henri.kulotie@gmail.com</a></p>
+		@endif
+
+		<hr>
+		
+		@if($inferior && $superior)
+		
 		<p>Instead of <b>{{ $inferior->name }}</b> should I play <b>{{ $superior->name }}</b> ?</p>
 
 		<div class="row">
@@ -85,7 +95,7 @@
 			
 		</div>
 		@else
-			<p>Unfortunately, we couldn't find any suggestions to vote for.</p>
+			<p>Unfortunately, we couldn't find any suggestions to vote for in this category.</p>
 		@endif
 	</div>
 
