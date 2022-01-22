@@ -20,6 +20,9 @@ return [
     'scryfall' => [
         'bulk-data' => 'https://api.scryfall.com/bulk-data',
         'catalog' => 'https://api.scryfall.com/catalog'
-    ]
+    ],
+
+    // Shown on some pages as author / contact email
+    'author_email' => 'henri.kulotie@gmail.com'
     
 ];

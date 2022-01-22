@@ -71,7 +71,7 @@
 		@elseif(Request::is('votehelp/disputed'))
 			<p>Help find a final verdict for disputed suggestions with similar amount of upvotes and downvotes.</p>
 		@elseif(Request::is('votehelp/spreadsheets'))
-			<p>Help validate suggestions people have listed elsewhere. Do you have such a list? Email me: <a href="mailto:henri.kulotie@gmail.com">henri.kulotie@gmail.com</a></p>
+			<p>Help validate suggestions people have listed elsewhere. Do you have such a list? Email me: <a href="mailto:{{ config('externals.author_email') }}">{{ config('externals.author_email') }}</a></p>
 		@endif
 
 		<hr>

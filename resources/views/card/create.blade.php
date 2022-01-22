@@ -74,7 +74,7 @@
 
 		<div id="test-result-box" class="alert alert-danger" role="alert" style="display: none;">
 			<span id="test-result-text"></span> 
-			<span><a href="mailto:henri.kulotie@gmail.com" title="If you believe this is a mistake or otherwise not how it should be, email me with more info about the case">Is this a mistake?</a></span>
+			<span><a href="mailto:{{ config('externals.author_email') }}" title="If you believe this is a mistake or otherwise not how it should be, email me with more info about the case">Is this a mistake?</a></span>
 		</div>
 		
 	</div>
