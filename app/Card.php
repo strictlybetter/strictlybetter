@@ -573,7 +573,7 @@ class Card extends Model
 		$costs = [];
 
 		foreach ($matches as $val) {
-			$costs[$val[0]] = Manacost::createFromManacostString($val[1])->addColorless($alt_cost_keywords[$val[0]] ?? 0);
+			$costs[$val[1]] = Manacost::createFromManacostString($val[2])->addColorless($alt_cost_keywords[$val[1]] ?? 0);
 		}
 		return $costs;
 
