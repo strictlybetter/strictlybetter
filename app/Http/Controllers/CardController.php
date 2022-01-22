@@ -609,15 +609,10 @@ class CardController extends Controller
 			$status['bootstrap_mode'] = 'alert-info';
 		}
 
-		// Already added as the opposite (inferiors inferior) ?
-		else if ($inferior->inferiors->pluck('functionality_id')->contains($superior->functionality_id)) {
-			$status['reason'] = \Lang::get('card.validation.inferior-exists', ['superior' => $superior->name, 'inferior' => $inferior->name]);
-			$status['bootstrap_mode'] = 'alert-warning';
-		}
-
-		// Already added as the opposite (superiors superior) ?
-		else if ($superior->superiors->pluck('functionality_id')->contains($inferior->functionality_id)) {
-			$status['reason'] = \Lang::get('card.validation.superior-exists', ['superior' => $superior->name, 'inferior' => $inferior->name]);
+		// Already added as the opposite (inferiors inferior or superiors superior) ?
+		else if ($inferior->inferiors->pluck('functionality_id')->contains($superior->functionality_id) ||
+				$superior->superiors->pluck('functionality_id')->contains($inferior->functionality_id)) {
+			$status['reason'] = \Lang::get('card.validation.opposite-exists', ['superior' => $superior->name, 'inferior' => $inferior->name]);
 			$status['bootstrap_mode'] = 'alert-warning';
 		}
 		
