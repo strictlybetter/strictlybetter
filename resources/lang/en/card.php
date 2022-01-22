@@ -59,7 +59,7 @@ return [
     ],
     'validation' => [
     	'not-found' => 'Selected cards are missing',
-    	'duplicate' => ':superior is in the same functionality group with :inferior.',
+    	'duplicate' => ':superior is in the same functionality group with :inferior. They are considered equal.',
     	'not-instant' => ':superior can\'t be cast at instant speed like :inferior.', 
     	'costs-more' => ':superior costs more or other colored mana than :inferior.',
     	'already-exists' => ':superior is already added as superior to :inferior.',
