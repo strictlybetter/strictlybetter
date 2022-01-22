@@ -19,6 +19,13 @@
 
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
+
+	<h4>01/22/22</h4>
+	<ul>
+		<li>Minor UI tweaks and info texts.</li>
+		<li>Add Suggestion -page now automatically checks the validity of selected cards and tells if they are not passing a check for adding</li>
+	</ul>
+
 	<h4>01/21/22</h4>
 	<ul>
 		<li>Added voting categories to Help Voting page and adjusted which cards are listed there
