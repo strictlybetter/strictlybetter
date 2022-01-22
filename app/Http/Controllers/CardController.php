@@ -582,20 +582,45 @@ class CardController extends Controller
 			'superior_id' => 'required',
 		]);
 
-		$superior = Card::where('id', $request->input('superior_id'))->whereNull('main_card_id')->first();
-		$inferior = Card::where('id', $request->input('inferior_id'))->whereNull('main_card_id')->first();
+		$superior = Card::with(['superiors'])->where('id', $request->input('superior_id'))->whereNull('main_card_id')->first();
+		$inferior = Card::with(['superiors', 'inferiors'])->where('id', $request->input('inferior_id'))->whereNull('main_card_id')->first();
 
-		$reason = null; 
+		$status = [
+			'reason' => null,
+			'bootstrap_mode' => null
+		];
 
-		if (!$inferior || !$superior)
-			$reason = Lang::get('card.validation.not-found');
-
-		else {
-			$result = $superior->isEqualOrBetterThan($inferior, true);
-			if ($result !== true)
-				$reason = \Lang::get($result, ['superior' => $superior->name, 'inferior' => $inferior->name]);
+		if (!$inferior || !$superior) {
+			$status['reason'] = \Lang::get('card.validation.not-found');
+			$status['bootstrap_mode'] = 'alert-danger';
+			return response()->json($status);
+		}
+		
+		// Is better ?
+		$result = $superior->isEqualOrBetterThan($inferior, true);
+		if ($result !== true) {
+			$status['reason'] = \Lang::get($result, ['superior' => $superior->name, 'inferior' => $inferior->name]);
+			$status['bootstrap_mode'] = 'alert-danger';
 		}
 
-		return response()->json(['reason' => $reason]);
+		// Already added ?
+		else if ($inferior->superiors->pluck('functionality_id')->contains($superior->functionality_id)) {
+			$status['reason'] = \Lang::get('card.validation.already-exists', ['superior' => $superior->name, 'inferior' => $inferior->name]);
+			$status['bootstrap_mode'] = 'alert-info';
+		}
+
+		// Already added as the opposite (inferiors inferior) ?
+		else if ($inferior->inferiors->pluck('functionality_id')->contains($superior->functionality_id)) {
+			$status['reason'] = \Lang::get('card.validation.inferior-exists', ['superior' => $superior->name, 'inferior' => $inferior->name]);
+			$status['bootstrap_mode'] = 'alert-warning';
+		}
+
+		// Already added as the opposite (superiors superior) ?
+		else if ($superior->superiors->pluck('functionality_id')->contains($inferior->functionality_id)) {
+			$status['reason'] = \Lang::get('card.validation.superior-exists', ['superior' => $superior->name, 'inferior' => $inferior->name]);
+			$status['bootstrap_mode'] = 'alert-warning';
+		}
+		
+		return response()->json($status);
 	}
 }

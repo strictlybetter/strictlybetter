@@ -117,15 +117,16 @@ function test_suggestion() {
 		},
 		dataType: "json",
 		success: function(response) {
-			let is_ok = response['reason'] === null;
+			let is_ok = response['bootstrap_mode'] === null;
 			$("#test-result-text").text(is_ok ? "" : response['reason']);
 			if (is_ok) {
 				$("#test-result-box").hide();
 				$("#add-suggestion-btn").prop("disabled", false);
 			}
 			else {
+				$("#test-result-box").removeClass().addClass('alert').addClass(response['bootstrap_mode']);
 				$("#test-result-box").show();
-				$("#add-suggestion-btn").prop("disabled", true);
+				$("#add-suggestion-btn").prop("disabled", response['bootstrap_mode'] == 'alert-danger');
 			}
 		}
 	});

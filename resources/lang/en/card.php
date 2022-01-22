@@ -62,5 +62,8 @@ return [
     	'duplicate' => ':superior is in the same functionality group with :inferior.',
     	'not-instant' => ':superior can\'t be cast at instant speed like :inferior.', 
     	'costs-more' => ':superior costs more or other colored mana than :inferior.',
+    	'already-exists' => ':superior is already added as superior to :inferior.',
+    	'inferior-exists' => ':superior is already added as inferior to :inferior. Are you sure you want to add this?',
+    	'superior-exists' => ':inferior is already added as superior to :superior. Are you sure you want to add this?'
     ]
 ];
