@@ -4,7 +4,9 @@ html {
 body {
 	margin-bottom: 50px;
 }
-
+button,input[disabled] {
+	cursor: not-allowed;
+}
 .dropdown-menu {
 	margin-top: 0;
 }

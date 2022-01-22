@@ -49,14 +49,14 @@
 		<br><br>
 		Any suggestions with following conditions are automatically rejected
 		<ul>
-			<li>The supposed better card has higher CMC</li>
+			<li>The supposed better card has higher CMC (Some alternative casting costs are also checked)</li>
 
-			<li>The supposed better card has manacolors in manacost the worse card doesn't have. (Hybrid mana is an exception)</li>
+			<li>The supposed better card has manacolors in manacost the worse card doesn't have. (Hybrid mana is an exception, alternative casting costs are checked too)</li>
 
-			<li>The supposed better card can't be cast at same "speed" than the worse card. (Instant / Flash)</li>
+			<li>The supposed better card can't be cast at same "speed" than the worse card. (Instant, Flash or other instant-speed ability)</li>
 
 			<li>The supposed better card doesn't have immediate effect like the worse Instant or Sorcery.<br>
-				(This can be achieved via "Enters the Battlefield" or self sacrifice effects)</li>
+				(This can be achieved via "Enters the Battlefield", self sacrifice or cycling effects)</li>
 
 			<li>The cards belong to same functionality group. (Ie. <i>Llanowar Elves</i> vs <i>Elvish Mystic</i>)</li>
 		</ul>

@@ -43,6 +43,12 @@
 @section('content')
 	<div class="container">
 		<h1>Add Suggestion</h1>
+		<p>
+			New suggestions are always welcome.<br>
+			<br>
+			Additions have to pass a few automated checks. Details can be found on <a href="{{ route('about') }}">About -page</a>.
+		</p>
+		<hr>
 		{{ Form::open(['route' => 'card.store']) }}
 
 			<div class="row" style="min-height:220px"> 
@@ -59,16 +65,18 @@
 					<label for="superior" style="font-size:x-large;">Superior Card</label>
 					{{ Form::select('superior', [], null, ['id' => 'superior', 'required', 'class' => 'selectpicker form-control input-lg', 'data-live-search' => 'true']) }}
 				</div>
-			
 
-			<div class="form-group col-lg-1" style="margin: auto">
-				{{ Form::submit('Add', ['class' => 'btn btn-primary btn-lg']) }}
-			</div>
+				<div class="form-group col-lg-1" style="margin: auto">
+					{{ Form::submit('Add', ['id' => 'add-suggestion-btn', 'class' => 'btn btn-primary btn-lg']) }}
+				</div>
 			</div>
 		{{ Form::close() }}
-		<div>
-			<br>
+
+		<div id="test-result-box" class="alert alert-danger" role="alert" style="display: none;">
+			<span id="test-result-text"></span> 
+			<span><a href="mailto:henri.kulotie@gmail.com" title="If you believe this is a mistake or otherwise not how it should be, email me with more info about the case">Is this a mistake?</a></span>
 		</div>
+		
 	</div>
 
 	<div class="container collapse-inferior" id="upgrade_view_container">
@@ -88,6 +96,40 @@ var inferiors = {!! json_encode($inferiors) !!};
 var superiors = {!! json_encode($superiors) !!};
 
 var window_width = $(window).width();
+
+function test_suggestion() {
+
+	var superior_id = $('#superior').find(':selected').val();
+	var inferior_id = $('#inferior').find(':selected').val();
+
+	if (!superior_id || !inferior_id) {
+		$("#test-result-box").hide();
+		$("#add-suggestion-btn").prop("disabled", false);
+		return;
+	}
+
+	$.ajax({
+		type: "GET",
+		url: "{{ route('card.test-suggestion') }}",
+		data: {
+			'superior_id': superior_id,
+			'inferior_id': inferior_id
+		},
+		dataType: "json",
+		success: function(response) {
+			let is_ok = response['reason'] === null;
+			$("#test-result-text").text(is_ok ? "" : response['reason']);
+			if (is_ok) {
+				$("#test-result-box").hide();
+				$("#add-suggestion-btn").prop("disabled", false);
+			}
+			else {
+				$("#test-result-box").show();
+				$("#add-suggestion-btn").prop("disabled", true);
+			}
+		}
+	});
+}
 
 $(document).ready(function() { 
 
@@ -158,22 +200,27 @@ $(document).ready(function() {
 
 	select2_options.data = inferiors;
 	select2_options.placeholder = "Select inferior card";
-	$("#inferior").select2(select2_options).on('select2:select', function (e) {
+	$("#inferior").select2(select2_options).on('select2:select', function(e) {
 
 		$.ajax({
 			type: "GET",
 			url: "{{ route('index') }}/upgradeview/" + e.params.data.id,
+			data: {'superior_id': $('#superior').find(':selected').val()},
 			dataType: "html",
 			success: function(response) {
 				$("#upgrade_view").html(response);
 				register_card_image_handlers('#upgrade_view');
 			}
 		});
+	}).on('change', function(e) {
+		test_suggestion();
 	});
 	
 	select2_options.data = superiors;
 	select2_options.placeholder = "Select superior card";
-	$("#superior").select2(select2_options);
+	$("#superior").select2(select2_options).on('change', function(e) {
+		test_suggestion();
+	});
 
 	// Rebuild on resize for responsive design
 	window.addEventListener('resize', function(event){
@@ -199,6 +246,8 @@ $(document).ready(function() {
 		event.preventDefault();
 		$("#superior").select2('open');
 	});
+
+	test_suggestion();
 });
 </script>
 @stop

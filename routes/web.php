@@ -36,6 +36,7 @@ Route::get('/quicksearch', [CardController::class, 'quicksearch'])->name('card.q
 Route::get('/card_autocomplete', [CardController::class, 'cardAutocomplete'])->name('card.autocomplete');
 Route::post('/card/search', [CardController::class, 'search'])->name('card.search');
 Route::get('/upgradeview/{card}', [CardController::class, 'upgradeview'])->name('card.upgradeview');
+Route::get('/upgradeview/test-suggestion', [CardController::class, 'testSuggestion'])->name('card.test-suggestion');
 
 Route::get('/card/{card?}', [CardController::class, 'create'])->name('card.create');
 Route::post('/card', [CardController::class, 'store'])->name('card.store');

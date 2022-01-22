@@ -18,7 +18,7 @@
 	<h1>Changelog</h1>
 
 	<p>This page lists usage affecting changes on the site.</p>
-
+	<hr>
 	<h4>01/21/22</h4>
 	<ul>
 		<li>Added voting categories to Help Voting page and adjusted which cards are listed there

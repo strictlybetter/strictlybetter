@@ -38,13 +38,13 @@
 				<div class="collapse navbar-collapse" id="navbarSupportedContent">
 					<ul class="navbar-nav mr-auto">
 						<li class="nav-item {{ Request::is('/') ? 'active' : '' }}">
-							<a class="nav-link" href="{{ route('index') }}">Browse</a>
+							<a title="Browse" class="nav-link" href="{{ route('index') }}">Browse</a>
 						</li>
 						<li class="nav-item {{ Request::is('deck') ? 'active' : '' }}">
-							<a class="nav-link" href="{{ route('deck.index') }}">Upgrade Deck</a>
+							<a title="Find upgrade suggestions for all the cards in your deck" class="nav-link" href="{{ route('deck.index') }}">Upgrade Deck</a>
 						</li>
 						<li class="nav-item {{ Request::is('card', 'card/*') ? 'active' : '' }}">
-							<a class="nav-link" href="{{ route('card.create') }}">Add Suggestion</a>
+							<a title="New suggestions are always welcome" class="nav-link" href="{{ route('card.create') }}">Add Suggestion</a>
 						</li>
 						<li class="nav-item {{ Request::is('votehelp/*') ? 'active' : '' }} dropdown" id="nav-helpvoting">
 							<a class="nav-link dropdown-toggle" href="{{ route('votehelp.low-on-votes') }}" role="button" aria-haspopup="true" aria-expanded="false">
@@ -60,13 +60,13 @@
 							</div>
 						</li>
 						<li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">
-							<a class="nav-link" href="{{ route('api.guide') }}">API Guide</a>
+							<a title="API Guide provides information how to use this site for other progams" class="nav-link" href="{{ route('api.guide') }}">API Guide</a>
 						</li>
 						<li class="nav-item {{ Request::is('about') ? 'active' : '' }}">
-							<a class="nav-link" href="{{ route('about') }}">About</a>
+							<a title="About" class="nav-link" href="{{ route('about') }}">About</a>
 						</li>
 						<li class="nav-item {{ Request::is('changelog') ? 'active' : '' }}">
-							<a class="nav-link" href="{{ route('changelog') }}">Changelog</a>
+							<a title="Changes the website has gone through over time" class="nav-link" href="{{ route('changelog') }}">Changelog</a>
 						</li>
 						<li class="nav-item">
 							<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">

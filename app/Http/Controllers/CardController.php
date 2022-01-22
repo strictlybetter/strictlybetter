@@ -574,4 +574,28 @@ class CardController extends Controller
 		return response()->json(['status' => 'ok']);
 		
 	}
+
+	public function testSuggestion(Request $request) {
+
+		$request->validate([
+			'inferior_id' => 'required',
+			'superior_id' => 'required',
+		]);
+
+		$superior = Card::where('id', $request->input('superior_id'))->whereNull('main_card_id')->first();
+		$inferior = Card::where('id', $request->input('inferior_id'))->whereNull('main_card_id')->first();
+
+		$reason = null; 
+
+		if (!$inferior || !$superior)
+			$reason = Lang::get('card.validation.not-found');
+
+		else {
+			$result = $superior->isEqualOrBetterThan($inferior, true);
+			if ($result !== true)
+				$reason = \Lang::get($result, ['superior' => $superior->name, 'inferior' => $inferior->name]);
+		}
+
+		return response()->json(['reason' => $reason]);
+	}
 }

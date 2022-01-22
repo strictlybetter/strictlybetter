@@ -56,5 +56,11 @@ return [
     	'name' => 'Sort by name',
     	'updated_at' => 'Sort by newest',
     	'upvotes' => 'Sort by upvotes'
+    ],
+    'validation' => [
+    	'not-found' => 'Selected cards are missing',
+    	'duplicate' => ':superior is in the same functionality group with :inferior.',
+    	'not-instant' => ':superior can\'t be cast at instant speed like :inferior.', 
+    	'costs-more' => ':superior costs more or other colored mana than :inferior.',
     ]
 ];

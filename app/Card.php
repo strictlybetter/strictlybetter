@@ -351,33 +351,38 @@ class Card extends Model
 	 * 
 	 * @param  Card - other card to compare to
 	 * @return boolean - Costs more than the compared card
+	 * @return boolean/string - if $with_errors == true, returns true or a language string describing the error 
 	 */
-	public function isEqualOrBetterThan(Card $other)
+	public function isEqualOrBetterThan(Card $other, $with_errors = false)
 	{
 		// Must not be a duplicate
 		if ($this->id === $other->id || ($this->main_card_id === null && $other->main_card_id === null && $this->functionality->group_id === $other->functionality->group_id))
-			return false;
+			return $with_errors ? 'card.validation.duplicate' : false;
 
 		// If this a multifaced card, check card faces against the other card
 		// One of this cards faces must be better
 		if (count($this->cardFaces) > 0) {
 
-			if ($this->flip)
-				return $this->cardFaces->first()->isEqualOrBetterThan($other) ? $this->cardFaces->first() : false;
-
-			foreach ($this->cardFaces as $face) {
-				if ($face->isEqualOrBetterThan($other))
-					return $face;
+			if ($this->flip) {
+				return $this->cardFaces->first()->isEqualOrBetterThan($other, $with_errors);
 			}
-			return false;
+
+			$result = '';
+			foreach ($this->cardFaces as $face) {
+				$result = $face->isEqualOrBetterThan($other, $with_errors);
+				if ($result === true)
+					return true;
+			}
+			return $with_errors ? $result : false;
 		}
 
 		// This card must not be worse than either of the other cards faces (in order to be truly superior)
 		if (count($other->cardFaces) > 0) {
 
 			foreach ($other->cardFaces as $other_face) {
-				if (!$this->isEqualOrBetterThan($other_face))
-					return false;
+				$result = $this->isEqualOrBetterThan($other_face, $with_errors);
+				if ($result !== true)
+					return $result;
 			}
 			return true;
 		}
@@ -385,7 +390,7 @@ class Card extends Model
 		// This card must not be slower than the other card
 		if ((in_array("Instant", $other->types) || preg_match('/\b(Flash|Cycling)\b/', $other->substituted_rules)) &&
 			!(in_array("Instant", $this->types) || preg_match('/\b(Flash|Cycling)\b/', $this->substituted_rules)))
-			return false;
+			return $with_errors ? 'card.validation.not-instant' : false;
 
 
 		// This card must not be a permanent, if the other is a non-permenent...
@@ -398,12 +403,12 @@ class Card extends Model
 			if (!preg_match('/\bWhen (?!another)[^\.]* enters the battlefield/', $this->substituted_rules) &&
 				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules) &&
 				!preg_match('/\bWhen(?:ever)? you cycle @@@/', $this->substituted_rules))
-				return false;
+				return $with_errors ? 'validation.not-immediate' : false;
 		}
 
 		// This card must not cost more mana, but may cost more of the existing colors.
 		if ($this->costsMoreThan($other, true, true))
-			return false;
+			return $with_errors ? 'card.validation.costs-more' : false;
 
 		return true;
 	}
