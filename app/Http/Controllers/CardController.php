@@ -582,8 +582,8 @@ class CardController extends Controller
 			'superior_id' => 'required',
 		]);
 
-		$superior = Card::with(['superiors'])->where('id', $request->input('superior_id'))->whereNull('main_card_id')->first();
-		$inferior = Card::with(['superiors', 'inferiors'])->where('id', $request->input('inferior_id'))->whereNull('main_card_id')->first();
+		$superior = Card::with(['functionality', 'superiors'])->where('id', $request->input('superior_id'))->whereNull('main_card_id')->first();
+		$inferior = Card::with(['functionality', 'superiors', 'inferiors'])->where('id', $request->input('inferior_id'))->whereNull('main_card_id')->first();
 
 		$status = [
 			'reason' => null,

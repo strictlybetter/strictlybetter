@@ -26,6 +26,18 @@ class Suggestion extends Model
 		// Remove first superior from the list
 		$new_list = $this->superiors;
 		array_shift($new_list);
+		
+		$this->saveSuperiors($new_list);
+	}
+
+	public function removeSuperiorNames(array $superior_names) {
+
+		$this->saveSuperiors(array_diff($this->superiors, $superior_names));
+	}
+
+	public function saveSuperiors(array $new_list) {
+
+		$current_list = $this->superiors;
 
 		// Once no superiors are left, delete suggestion
 		if (empty($new_list)) {
@@ -34,7 +46,7 @@ class Suggestion extends Model
 		}
 
 		// Otherwise save the new list
-		else {
+		else if (count($new_list) != count($current_list)) {
 			$this->Superior = implode(",", $new_list);
 			$this->save();
 		}

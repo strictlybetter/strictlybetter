@@ -561,13 +561,7 @@ Artisan::command('filter-external-suggestions', function () {
 				return false;
 			});
 
-			if ($new_to_db->isEmpty()) {
-				$suggestion->delete();
-				continue;
-			}
-
-			$suggestion->Superior = implode(",", $new_to_db->pluck('name')->all());
-			$suggestion->save();
+			$suggestion->saveSuperiors($new_to_db->pluck('name')->all());
 		}
 	});
 });

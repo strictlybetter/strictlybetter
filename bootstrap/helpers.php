@@ -378,6 +378,8 @@ function create_labeling($inferior, $superior, $obsolete = null, $cascade_to_gro
 		$inferior_list = $inferior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
 		$superior_list = $superior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
 
+		remove_functionalities_from_external_suggestions($inferior_list, $superior_list);
+
 		// Add all inferior duplicates to all superiors
 		foreach ($superior_list as $superior_item) {
 
@@ -394,7 +396,33 @@ function create_labeling($inferior, $superior, $obsolete = null, $cascade_to_gro
 		}
 
 	}
+	else
+		remove_cards_from_external_suggestions([$inferior->name], [$superior->name]);
 
+}
+
+function remove_functionalities_from_external_suggestions($inferior_functionalities, $superior_functionalities) {
+
+	$superior_names = [];
+	foreach ($superior_functionalities as $functionality) {
+		$superior_names = array_merge($superior_names, $functionality->cards->pluck('name')->all());
+	}
+
+	$inferior_names = [];
+	foreach ($inferior_functionalities as $functionality) {
+		$inferior_names = array_merge($inferior_names, $functionality->cards->pluck('name')->all());
+	}
+
+	remove_cards_from_external_suggestions($inferior_names, $superior_names);
+
+}
+
+function remove_cards_from_external_suggestions($inferior_names, $superior_names) {
+
+	$suggestions = App\Suggestion::whereIn('Inferior', $inferior_names)->get();
+	foreach ($suggestions as $suggestion) {
+		$suggestion->removeSuperiorNames($superior_names);
+	}
 }
 
 function get_line_count($filename) {
