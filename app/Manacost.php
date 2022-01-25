@@ -25,6 +25,18 @@ class Manacost {
 		return $instance;
 	}
 
+	public static function createFromExcerptValueArray(array $value) : Manacost {
+
+		$instance = new self();
+
+		$instance->manacost = $value['manacost'];
+		$instance->manacost_sorted = $value['manacost_sorted'];
+		$instance->cmc = $value['cmc'];
+		$instance->hybridless_cmc = $value['hybridless_cmc'];
+
+		return $instance;
+	}
+
 	public static function createFromManacostString($manacost, $override_cmc = null) : Manacost {
 
 		$instance = new self();
@@ -39,6 +51,16 @@ class Manacost {
 		$instance->hybridless_cmc = $instance->calculateHybridlessCmcFromCost();
 
 		return $instance;
+	}
+
+	public function toExcerptValueArray()
+	{
+		return [
+			'manacost' => $this->manacost, 
+			'cmc' => $this->cmc, 
+			'hybridless_cmc' => $this->hybridless_cmc, 
+			'manacost_sorted' => $this->manacost_sorted
+		];
 	}
 
 	/*
@@ -125,18 +147,26 @@ class Manacost {
 		return $cmc;
 	}
 
-	public function costsMoreThan(Manacost $other, $may_cost_more_of_same = false)
+	public function compareCost(Manacost $other, $may_cost_more_of_same = false)
 	{
-		if (($other->cmc === null || 
-			($this->cmc <= $other->cmc && $this->hybridless_cmc <= $other->hybridless_cmc)) && 
-			!$this->costsMoreColoredThan($other, $may_cost_more_of_same))
-			return false;
+		if ($other->cmc === null)
+			return $this->cmc === null ? 0 : 1;
 
-		return true;
+		if ($this->cmc === null)
+			return -1;
+
+		if ($this->cmc > $other->cmc || $this->hybridless_cmc > $other->hybridless_cmc)
+			return 1;
+
+		$comparison = $this->compareColoredCost($other, $may_cost_more_of_same);
+		if ($comparison > 0)
+			return 1;
+
+		return ($this->cmc < $other->cmc || $this->hybridless_cmc < $other->hybridless_cmc) ? -1 : $comparison;
 	}
 
 
-	public function costsMoreColoredThan(Manacost $other, $may_cost_more_of_same = false)
+	public function compareColoredCost(Manacost $other, $may_cost_more_of_same = false)
 	{
 		$mana = $this->manacost_sorted;
 		$mana_left = $other->manacost_sorted;
@@ -150,14 +180,6 @@ class Manacost {
 		$cmc = $other->cmc ? $other->cmc : 0;
 		$anytype_left = $cmc - (array_sum(array_values($mana_left)));
 		
-		// If this costs nothing colored, it can't cost more
-		if (empty($mana))
-			return false;
-
-		// If the other costs nothing colored, then this must cost more
-		if (empty($mana_left))
-			return true;
-
 		foreach ($mana as $symbol => $cost) {
 
 			if (!isset($mana_left[$symbol])) {
@@ -165,7 +187,7 @@ class Manacost {
 				// Is it hybrid mana?
 				$pos = mb_strpos($symbol, '/');
 				if ($pos === false || $pos < 1)
-					return true;
+					return 1;
 
 				// Translate Phyrexian mana to the base color
 				// Phyrexian red > red
@@ -187,14 +209,14 @@ class Manacost {
 				}
 
 				if (!isset($mana_left[$symbol]))
-					return true;
+					return 1;
 
 			}
 
 			// Reduce usable mana for next iteration, unless we alredy ran out
 			if ($cost > $mana_left[$symbol]) {
 				if (!$may_cost_more_of_same || $cost > ($anytype_left + $mana_left[$symbol]))
-					return true;
+					return 1;
 				else {
 					$anytype_left -= ($cost - $mana_left[$symbol]);
 					$mana_left[$symbol] = 0;
@@ -204,6 +226,7 @@ class Manacost {
 				$mana_left[$symbol] -= $cost;
 		}
 
-		return false;
+		// Return -1 if mana still left, if all spent return 0
+		return (array_sum(array_values($mana_left)) > 0 || ($may_cost_more_of_same && $anytype_left > 0)) ? -1 : 0;
 	}
 }

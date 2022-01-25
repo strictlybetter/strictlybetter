@@ -57,32 +57,6 @@ class MakeExcerptsTable extends Migration
             $table->dropIndex(['price']);
             $table->index(['cmc', 'hybridless_cmc', 'power', 'toughness', 'loyalty']); 
         });
-        /*
-        Schema::create('excerpt_variables', function (Blueprint $table) {
-            $table->increments('id');
-            $table->unsignedInteger('excerpt_id');
-            $table->unsignedInteger('capture_id');
-            $table->string('capture_type');
-            $table->tinyInteger('more_is_better')->nullable();
-
-            //$table->integer('points_for_more')->default(0);
-            //$table->integer('points_for_less')->default(0);
-
-            $table->foreign('excerpt_id')->references('id')->on('excerpts')->onUpdate('cascade')->onDelete('cascade');
-            //$table->index('more_is_better');
-        });
-
-        Schema::create('excerpt_variable_values', function (Blueprint $table) {
-            $table->increments('id');
-            $table->unsignedInteger('excerpt_group_id');
-            $table->unsignedInteger('variable_id');
-            $table->string('value');
-            $table->integer('integer_value')->index();
-
-            $table->foreign('excerpt_group_id')->references('id')->on('excerpt_group')->onUpdate('cascade')->onDelete('cascade');
-            $table->foreign('variable_id')->references('id')->on('excerpt_variables')->onUpdate('cascade')->onDelete('cascade');
-        });
-        */
     }
 
     /**
@@ -92,8 +66,6 @@ class MakeExcerptsTable extends Migration
      */
     public function down()
     {
-        //Schema::dropIfExists('excerpt_variable_values');
-        //Schema::dropIfExists('excerpt_variables');
         Schema::dropIfExists('excerpt_group');
         Schema::dropIfExists('excerpts');
 

@@ -304,7 +304,7 @@ class Card extends Model
 		$substitute_rules = preg_replace('/;/u', ',', $substitute_rules);		// Some older cards separate keywords with ; replace to ,
 
 		// Lands have their tap ability in parenthesis, remove the parenthesis
-		$substitute_rules = preg_replace('/\(([^\)]*{T}: Add (?:\{[^\}]+\})+(?: or (?:\{[^\}]+\})+)*\."?)\)/u', '\1', $substitute_rules);
+		$substitute_rules = preg_replace('/\(([^\)]*{T}: Add [^\)]*\.)\)/u', '\1', $substitute_rules);
 
 		// Remove all reminder texts
 		$substitute_rules = preg_replace('/\s*?\([^\)]*\)/u', '', $substitute_rules);
@@ -314,29 +314,29 @@ class Card extends Model
 		return $substitute_rules;
 	}
 
-	public function costsMoreThan(Card $other, $may_cost_more_of_same = false, $consider_alternatives = false)
+	public function compareCost(Card $other, $may_cost_more_of_same = false, $consider_alternatives = false)
 	{
 
 		if ($consider_alternatives) {
-			if (!$this->alternativeCostsMoreColoredThan($other, $may_cost_more_of_same))
-				return false;
+			if ($this->compareAlternativeCosts($other, $may_cost_more_of_same) < 0)
+				return -1;
 		}
 
-		$costs_more = Manacost::createFromCard($this)->costsMoreThan(Manacost::createFromCard($other), $may_cost_more_of_same);
-		if ($consider_alternatives && $costs_more) {
+		$comparison = Manacost::createFromCard($this)->compareCost(Manacost::createFromCard($other), $may_cost_more_of_same);
+		if ($consider_alternatives && $comparison > 0) {
 
 			// Check for a special case, where mana cost is less based on target
-			$result = preg_match('/this spell costs (?:\{[^\}]+\})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
+			$result = preg_match('/this spell costs (\{[^\}]+\})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
 			if ($result == 1 && stripos($other->substituted_rules, "Target " . $match[1]) !== false)
-				return false;
+				return -1;
 		}
 
-		return $costs_more;
+		return $comparison;
 	}
 
-	public function costsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
+	public function compareColoredCost(Card $other, $may_cost_more_of_same = false)
 	{
-		return Manacost::createFromCard($this)->costsMoreColoredThan(Manacost::createFromCard($other), $may_cost_more_of_same);
+		return Manacost::createFromCard($this)->compareColoredCost(Manacost::createFromCard($other), $may_cost_more_of_same);
 	}
 
 	/**
@@ -407,7 +407,7 @@ class Card extends Model
 		}
 
 		// This card must not cost more mana, but may cost more of the existing colors.
-		if ($this->costsMoreThan($other, true, true))
+		if ($this->compareCost($other, true, true) > 0)
 			return $with_errors ? 'card.validation.costs-more' : false;
 
 		return true;
@@ -472,22 +472,47 @@ class Card extends Model
 		$superior_excerpts_org = $this->functionality->excerpts->keyBy('id');
 		$inferior_excerpts_org = $other->functionality->excerpts->keyBy('id');
 
-		$superior_excerpts = $superior_excerpts_org->diffKeys($inferior_excerpts_org);
-		$inferior_excerpts = $inferior_excerpts_org->diffKeys($superior_excerpts_org);
+		$has_superior_variable_values = false;
 
-		// Either inferior or superior must have excerpts remaining
+		$common_excerpts = $superior_excerpts_org->intersectByKeys($inferior_excerpts_org);
+		foreach ($common_excerpts as $key => $excerpt) {
+			foreach ($excerpt->variables as $variable) {
+
+				$search = function($item, $key) use ($variable) { 
+					return $item->variable_id === $variable->id; 
+				};
+
+				$result = $variable->valueComparisonDb(
+					$this->functionality->variablevalues->first($search), 
+					$other->functionality->variablevalues->first($search)
+				);
+
+				if ($result < 0)
+					return false;
+
+				else if ($result > 0)
+					$has_superior_variable_values = true;
+			}
+		}
+
+		var_dump($has_superior_variable_values);
+
+		$superior_excerpts = $superior_excerpts_org->diffKeys($common_excerpts)->values();
+		$inferior_excerpts = $inferior_excerpts_org->diffKeys($common_excerpts)->values();
+
+		// If no differing excerpts are present, use presence of superior variable values to determine betterness
 		if ($superior_excerpts->count() == 0 && $inferior_excerpts->count() == 0)
-			return false;
+			return $has_superior_variable_values;
 
-		// Remaining superior excerpts must all be positive
-		foreach ($superior_excerpts as $id => $excerpt) {
-			if ($excerpt->positive !== 1)
+		// Remaining superior excerpts must all be positive or better than an inferior excerpt
+		foreach ($superior_excerpts as $excerpt) {
+			if ($excerpt->positive !== 1 && !$excerpt->isBetterThan($inferior_excerpts))
 				return false;
 		}
 
-		// Remaining inferior excerpts must all be negative
-		foreach ($inferior_excerpts as $id => $excerpt) {
-			if ($excerpt->positive !== 0)
+		// Remaining inferior excerpts must all be negative or worse than a superior excerpt
+		foreach ($inferior_excerpts as $excerpt) {
+			if ($excerpt->positive !== 0 && !$excerpt->isWorseThan($superior_excerpts))
 				return false;
 		}
 
@@ -501,7 +526,7 @@ class Card extends Model
 	 * @param  boolean - can the original card cost more of same color. {W}{W} vs {1}{W} and still be better?
 	 * @return boolean - Costs more than the compared card
 	 */
-	public function alternativeCostsMoreColoredThan(Card $other, $may_cost_more_of_same = false)
+	public function compareAlternativeCosts(Card $other, $may_cost_more_of_same = false)
 	{
 		$alt = $this->getAlternativeCosts();
 		$alt2 = $other->getAlternativeCosts();
@@ -510,10 +535,11 @@ class Card extends Model
 
 			$compare_to = $alt2[$keyword] ?? Manacost::createFromCard($other);
 
-			if (!$cost->costsMoreThan($compare_to, $may_cost_more_of_same))
-				return false;
+			$result = $cost->compareCost($compare_to, $may_cost_more_of_same);
+			if ($result < 0)
+				return -1;
 		}
-		return true;
+		return 1;
 
 	}
 

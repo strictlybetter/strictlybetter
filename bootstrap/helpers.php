@@ -315,7 +315,7 @@ function create_labels(App\Card $inferior, App\Card $superior, App\Obsolete $obs
 
 	$labels = [
 		'more_colors' => (count($superior->colors) > count($inferior->colors)),
-		'more_colored_mana' => $superior->costsMoreColoredThan($inferior) && $superior->alternativeCostsMoreColoredThan($inferior),
+		'more_colored_mana' => $superior->compareColoredCost($inferior) > 0 && $superior->compareAlternativeCosts($inferior) > 0,
 		'supertypes_differ' => (count($superior->supertypes) != count($inferior->supertypes) || array_diff($superior->supertypes, $inferior->supertypes)),
 		'types_differ' => (count($superior->types) != count($inferior->types) || array_diff($superior->types, $inferior->types)),
 		'subtypes_differ' => (count($superior->subtypes) != count($inferior->subtypes) || array_diff($superior->subtypes, $inferior->subtypes)),
@@ -445,7 +445,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 	DB::transaction(function () use ($progress_callback, &$count, $using_analysis) {
 
 	$obsoletion_attributes = [
-	//	'name',
+		'name',
 		'cards.id',
 		'supertypes',
 		'types',
@@ -465,10 +465,15 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		'functionality_id'
 	];
 
-	$queryAll = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
+	$queryAll = App\Card::select($obsoletion_attributes)->with(['functionality'])
 		->whereNull('main_card_id')
 		->whereDoesntHave('cardFaces')
 		->orderBy('cards.id', 'asc');
+
+	if ($using_analysis)
+		$queryAll->with(['functionality.variablevalues', 'functionality.excerpts' => function($q) {
+			$q->select(['excerpts.id', 'positive'])->with(['variables', 'superiors', 'inferiors']);
+		}]);
 
 	$cardcount = $queryAll->count();
 	$progress = 0;
@@ -480,11 +485,11 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 
 	//$allexcerpts = $using_analysis ? App\Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all() : null;
 
-	$queryAll->chunk(1000, function($cards) use ($using_analysis, $cardcount, $progress_callback, &$count, &$progress, $obsoletion_attributes) {
+	$queryAll->chunk(100, function($cards) use ($using_analysis, $cardcount, $progress_callback, &$count, &$progress, $obsoletion_attributes) {
 
 	foreach ($cards as $card) {
 
-		$q = App\Card::select($obsoletion_attributes)->with(['functionality.excerpts'])
+		$q = App\Card::select($obsoletion_attributes)->with(['functionality'])
 		//	->whereJsonContains('supertypes', $card->supertypes)
 		//	->whereJsonLength('supertypes', count($card->supertypes))
 		//	->where('id', "!=", $card->id)
@@ -505,6 +510,9 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 	
 	
 		else {
+			$q->with(['functionality.variablevalues', 'functionality.excerpts' => function($q) {
+				$q->select(['excerpts.id', 'positive'])->with(['variables', 'superiors', 'inferiors']);
+			}]);
 
 			$excerpts = $card->functionality->excerpts;
 
@@ -512,17 +520,27 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 			$q = $q->where('substituted_rules', '!=', $card->substituted_rules);
 
 			// Must have all non-negative excerpts the inferior has
+			// ... or the non-negative excerpt must be an inferior
 			foreach ($excerpts as $excerpt) {
-				if ($excerpt->positive !== 0)
-					$q->whereHas('functionality.excerpts',  function($q) use ($excerpt) {
-						$q->where('excerpts.id', $excerpt->id);
+				if ($excerpt->positive !== 0) {
+					$q->where(function ($q) use ($excerpt) {
+						$q->whereHas('functionality.excerpts',  function($q) use ($excerpt) {
+							$q->where('excerpts.id', $excerpt->id);
+						})->orWhereHas('functionality.excerpts.inferiors', function($q) use ($excerpt) {
+							$q->where('excerpts.id', $excerpt->id);
+						});
 					});
+				}
 			}
 
 			// Doesnt have excerpts that are non-positive and not part of inferior card
+			// ... and not superior to 
 			$q->whereDoesntHave('functionality.excerpts', function($q) use ($excerpts) {
 				$q->whereNotIn('excerpts.id', $excerpts->pluck('id'))
-					->where('positive', '!=', 1);
+					->where('positive', '!=', 1)
+					->whereHas('superiors', function($q) use ($excerpts) {
+						$q->whereIn('excerpts.id', $excerpts->pluck('id'));
+					});
 			});
 
 			/*
@@ -620,7 +638,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 			$q = $q->whereJsonLength('manacost_sorted', 0);
 
 
-		$q->orderBy('cards.id', 'asc')->chunk(1000, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
+		$q->orderBy('cards.id', 'asc')->chunk(500, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
 
 			// Filter out any better cards that cost more colored mana
 			if (count($betters) > 0 && $card->cmc !== null) {
@@ -628,7 +646,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 				// echo "Found betters: " . count($betters) . PHP_EOL; // for debugging
 
 				$betters = $betters->filter(function($better) use ($card, $using_analysis) {
-					return (!$better->costsMoreThan($card, true, $using_analysis));
+					return ($better->compareCost($card, true, $using_analysis) <= 0);
 				})->values();
 
 				if ($using_analysis) {
@@ -647,7 +665,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 						if ($card->main_card_id === null && $better->main_card_id !== null)
 							return true;
 
-						if ($card->costsMoreThan($better, false, $using_analysis))
+						if ($card->compareCost($better, false, $using_analysis) > 0)
 							return true;
 
 						if ($card->hasStats()) {

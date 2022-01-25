@@ -63,7 +63,12 @@ class Functionality extends Model
 
 	public function excerpts()
 	{
-		return $this->belongsToMany(Excerpt::class, 'excerpt_group', 'group_id', 'excerpt_id', 'group_id');
+		return $this->belongsToMany(Excerpt::class, 'excerpt_group', 'group_id', 'excerpt_id', 'group_id')->withPivot(['amount']);
+	}
+
+	public function variablevalues()
+	{
+		return $this->hasMany(ExcerptVariableValue::class, 'group_id', 'group_id');
 	}
 
 	public function scopeAnalyzedExcerpts($query)

@@ -3,8 +3,10 @@
 namespace App;
 
 use App\FunctionalityGroup;
+use App\ExcerptVariable;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Excerpt extends Model
 {
@@ -16,38 +18,23 @@ class Excerpt extends Model
 	// These boolean -> integer casts are needed for groupBy(), 
 	// since associative array keys can't be boolean
 	public $casts = [
-		'positive' => 'integer',
-		'regex' => 'integer'
+		'positive' => 'integer'
 	];
 
 	protected static $exception_patterns = [
-		'/this spell costs (?:\{[^\}]+\})+ less to cast\b/ui' => true,	// Casting less is a positive effect (Might not need with scoring system)
-		'/^(?:\{[^\}]+\})+$/u' => null, 	// Text only contains manacost and nothing else? Can't deduce anything from it
-		'/\bSurge \{/u' => true 	// Surge may be evaluated as negative, since some spells are cheaper even without Surge
+		'/this spell costs @mc@ less to cast\b/ui' => true,	// Casting less is a positive effect (Might not need with scoring system)
+	//	'/^(?:\{[^\}]+\})+$/u' => null, 	// Text only contains manacost and nothing else? Can't deduce anything from it
 	];
 
-	// We need to find patterns from escaped source
-	protected static $variable_patterns = [
-		// Digits
-		'/\b\d+\b/u' => [				
-			'escaped' => '/\b\d+\b/u',
-			'replacement' => '(\d+)',
-			'type' => 'digits'
-		],
-		// Manacost
-		'/(?:\{[^\}]+\})+/u' => [			
-			'escaped' => '/(?:\\\\\{[^\}]+\\\\\})+/u',
-			'replacement' => '((?:\{[^\}]+\})+)',
-			'type' => 'manacost'
-		],
-		
-		// Number words
-		'/\b(one|two|three|four|five|six|seven|eight|nine|ten|elven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/u' => [
-			'escaped' => '/\b(one|two|three|four|five|six|seven|eight|nine|ten|elven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/u',
-			'replacement' => '(one|two|three|four|five|six|seven|eight|nine|ten|elven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)',
-			'type' => 'numberword'
-		]								
-	];
+	public function getTmpAttribute() 
+	{
+		return $this->tmp;
+	}
+
+	public function setTmpAttribute($value)
+	{
+		$this->attributes['tmp'] = $value;
+	}
 
 	public function scopePositive($query) 
 	{
@@ -61,199 +48,131 @@ class Excerpt extends Model
 
 	public function groups()
 	{
-		return $this->belongsToMany(FunctionalityGroup::class, 'excerpt_group', 'excerpt_id', 'group_id');
+		return $this->belongsToMany(FunctionalityGroup::class, 'excerpt_group', 'excerpt_id', 'group_id')->withPivot(['amount']);
+	}
+
+	public function variables()
+	{
+		return $this->hasMany(ExcerptVariable::class, 'excerpt_id');
+	}
+
+	public function inferiors()
+	{
+		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'superior_excerpt_id', 'inferior_excerpt_id')->withPivot(['reliability_points']);
+	}
+
+	public function superiors()
+	{
+		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'inferior_excerpt_id', 'superior_excerpt_id')->withPivot(['reliability_points']);;
 	}
 
 	public static function cardToRawExcerpts(Card $card)
 	{
-		return array_filter(array_map(function($value) {
-			return trim($value, " \n\r\t\v\0.");
-		}, preg_split('/(\n|\.(?!\"))/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY))); // (?<!\}),|
-	}
 
-	public static function cardToExcerpts(Card $card)
-	{
-		$raws = self::cardToRawExcerpts($card);
-		$collection = [];
+		// • == \x{2022} (Used in cards with choices)
+		// Split by lines and dotted sentences
+		$raws = preg_split('/(\n|(?<=\.)\s*)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
+		$excerpts = [];
 
 		foreach ($raws as $raw) {
-			$collection[] = new Excerpt([
-				'text' => $raw,
-				'positive' => null,
-				'regex' => 1
-			]);
+
+			// Further split dotless lines by commas. Those lines contain keyword lists.
+			// Uppercase first letter for each excerpt
+			if (substr($raw, -1) !== '.' && substr($raw, -1) !== '—')
+				$excerpts = array_merge($excerpts, array_map('ucfirst', preg_split('/(,\s+)/u', $raw, -1, PREG_SPLIT_NO_EMPTY)));
+			else
+				array_push($excerpts, ltrim($raw, '• '));
 		}
-		return collect($collection);
+
+		return $excerpts;
+	}
+
+	public static function cardToExcerpts(Card $card, $parse_values = true)
+	{
+		$raws = collect(self::cardToRawExcerpts($card));
+
+		return $raws->map(function($raw) use ($parse_values) {
+			$excerpt = new Excerpt([
+				'text' => ExcerptVariable::substituteVariablesInRules($raw),
+				'positive' => null,
+				'positivity_points' => 0,
+				'negativity_points' => 0
+			]);
+			$excerpt->setRelation('variables', ExcerptVariable::getVariablesFromRaw($raw, $parse_values));
+			return $excerpt;
+		});
 	}
 
 	public static function compare_by_text($a, $b) { return $a->text <=> $b->text; }
-	public static function compare_by_regex_text($a, $b) { return self::rawToRegex($a) <=> self::rawToRegex($b); }
-
-	public static function getNewExcerptsV2(Card $inferior, Card $superior, $make_regex = true)
-	{
-		$excerpts = collect([]);
-/*
-		$superior_substitute = new Excerpt([
-			'text' => self::substituteVariablesInRules($superior->substituted_rules),
-			'positive' => 1,
-			'regex' => 1
-		]);
-		$superior_substitute->toRegex();
-
-		$inferior_substitute = new Excerpt([
-			'text' => self::substituteVariablesInRules($inferior->substituted_rules),
-			'positive' => 1,
-			'regex' => 0
-		]);*/
-
-
-		if ($inferior->substituted_rules == "") {
-			$excerpts->push(new Excerpt([
-				'text' => $superior->substituted_rules,
-				'positive' => 1,
-				'regex' => 0
-			]));
-		}
-			
-		else if ($superior->substituted_rules == "") {
-
-			$excerpts->push(new Excerpt([
-				'text' => $inferior->substituted_rules,
-				'positive' => 0,
-				'regex' => 0
-			]));
-		}
-
-		else {
-
-			if (($pos = mb_strpos($superior->substituted_rules, $inferior->substituted_rules)) !== false) {
-
-				$second_start = $pos + mb_strlen($inferior->substituted_rules);
-				if ($pos > 0)
-					$excerpts->push(new Excerpt([
-						'text' => mb_substr($superior->substituted_rules, 0, $pos),
-						'positive' => 1,
-						'regex' => 0
-					]));
-
-				if ($second_start < mb_strlen($superior->substituted_rules))	// strlen() optimization
-					$excerpts->push(new Excerpt([
-						'text' => mb_substr($superior->substituted_rules, $second_start),
-						'positive' => 1,
-						'regex' => 0
-					]));
-
-				/*
-				$excerpts->push(new Excerpt([
-					'text' => substr_replace($superior->substituted_rules, "", $pos, strlen($inferior->substituted_rules)),
-					'positive' => 1,
-					'regex' => 0
-				]));*/
-			}
-
-			if (($pos = mb_strpos($inferior->substituted_rules, $superior->substituted_rules)) !== false) {
-
-				$second_start = $pos + mb_strlen($superior->substituted_rules);
-				if ($pos > 0)
-					$excerpts->push(new Excerpt([
-						'text' => mb_substr($inferior->substituted_rules, 0, $pos),
-						'positive' => 0,
-						'regex' => 0
-					]));
-
-				if ($second_start < mb_strlen($inferior->substituted_rules))
-					$excerpts->push(new Excerpt([
-						'text' => mb_substr($inferior->substituted_rules, $second_start),
-						'positive' => 0,
-						'regex' => 0
-					]));
-
-				/*
-				$excerpts->push(new Excerpt([
-					'text' => substr_replace($inferior->substituted_rules, "", $pos, strlen($superior->substituted_rules)),
-					'positive' => 0,
-					'regex' => 0
-				]));
-				*/
-			}
-		}
-
-		foreach ($excerpts as $key => $e) {
-
-			//	$text = preg_replace('/\s*?(?:\{.+?\})+$/u', '', $text); 	// Remove manacosts of some keyword abilities
-			//	$text = preg_replace('/^.*?:/um', ':', $text);			// Remove costs of abilities, but leave : to indicate ability
-
-			$e->text = trim($e->text, " \n\r\t\v\0,.");
-			if ($e->text == "") {
-				unset($excerpts[$key]);
-				continue;
-			}
-
-			foreach (self::$exception_patterns as $pattern => $override_value) {
-				if (preg_match($pattern, $e->text) == 1) {
-					if ($override_value === null) {
-						unset($excerpts[$key]);
-						continue 2;
-					}
-					else 
-						$e->positive = $override_value;
-				}
-			}
-
-			$e->positivity_points = $e->positive ? 1 : 0;
-			$e->negativity_points = $e->positive ? 0 : 1;
-
-			$e->regex = $e->hasRegex();
-
-			if ($make_regex && $e->regex) {
-				$e->toRegex();
-			}
-		}
-		return $excerpts;
+	public static function compare_by_text_pluralized($a, $b) 
+	{ 
+		$ret = $a->text <=> $b->text; 
+		return ($ret != 0 && Excerpt::matchWithPluralOrSingular($a, $b)) ? 0 : $ret;
 	}
 
 	public static function getNewExcerpts(Card $inferior, Card $superior)
 	{
 		$excerpts = collect([]);
 
+		$inferior_excerpts = collect(Excerpt::cardToExcerpts($inferior, false))->keyBy('text');
+		$superior_excerpts = collect(Excerpt::cardToExcerpts($superior, false))->keyBy('text');
 
-		$inferior_excerpts = self::cardToRawExcerpts($inferior);
-		$superior_excerpts = self::cardToRawExcerpts($superior);
+		$common_excerpts = $superior_excerpts->intersectByKeys($inferior_excerpts);
+		foreach ($common_excerpts as $text => $excerpt) {
 
-/*
-		foreach ($inferior_excerpts as $excerpt) {
-			ExcerptVariable::getVariablesFromText($excerpt);
+			//foreach ($excerpts as $excerpt) {
+
+				// Establish which number/manacost is better, higher or lower?
+				foreach ($excerpt->variables as $variable) {
+					$search = function($item, $key) use ($variable) { return $item->isSameVariable($variable); };
+
+					$variable->establishLowOrHighBetterness(
+						$superior_excerpts[$text]->variables->first($search), 
+						$inferior_excerpts[$text]->variables->first($search)
+					);
+				}
+		//	}
 		}
-*/		
+		$excerpts = $excerpts->merge($common_excerpts->values());
 
-//		$intesecting_excerpts = array_uintersect($inferior_excerpts, $superior_excerpts, self::compare_by_regex_text);
-		$diff_inferior_excerpts = array_udiff($inferior_excerpts, $superior_excerpts, [Excerpt::class, 'compare_by_regex_text']);
-		$diff_superior_excerpts = array_udiff($superior_excerpts, $inferior_excerpts, [Excerpt::class, 'compare_by_regex_text']);
+		$diff_superior_excerpts = $superior_excerpts->diffKeys($common_excerpts)->values();
+		$diff_inferior_excerpts = $inferior_excerpts->diffKeys($common_excerpts)->values();
 
-		if (count($diff_inferior_excerpts) == 0) {
-			foreach ($diff_superior_excerpts as $raw) {
-				$excerpts->push(new Excerpt([
-					'text' => $raw,
-					'positive' => 1,
-					'regex' => 0,
-					'negativity_points' => 0,
-					'positivity_points' => 1
-				]));
+		$count_inferior = $diff_inferior_excerpts->count();
+		$count_superior = $diff_superior_excerpts->count();
+
+		// Nothing on inferior -> All of superior are positive effects
+		if ($count_inferior == 0) {
+			foreach ($diff_superior_excerpts as $excerpt) {
+				$excerpt->positivity_points++;
+				$excerpt->positive = 1;
 			}
+			$excerpts = $excerpts->merge($diff_superior_excerpts);
 		}
 
-		if (count($diff_superior_excerpts) == 0) {
-			foreach ($diff_inferior_excerpts as $raw) {
-				$excerpts->push(new Excerpt([
-					'text' => $raw,
-					'positive' => 0,
-					'regex' => 0,
-					'negativity_points' => 1,
-					'positivity_points' => 0
-				]));
+		// Nothing on superior -> All of inferior are negative effects
+		else if ($count_superior == 0) {
+			foreach ($diff_inferior_excerpts as $excerpt) {
+				$excerpt->negativity_points++;
+				$excerpt->positive = 0;
 			}
+			$excerpts = $excerpts->merge($diff_inferior_excerpts);
 		}
 
+		// Exactly one on both -> The one superior is superior to the one inferior
+		else if ($count_inferior == 1 && $count_superior == 1) {
+			$diff_superior_excerpts->first()->setRelation('inferiors', $diff_inferior_excerpts);
+			$diff_inferior_excerpts->first()->setRelation('superiors', $diff_superior_excerpts);
+
+			$excerpts = $excerpts->merge($diff_superior_excerpts)->merge($diff_inferior_excerpts);
+		}
+
+		// Rest of the excerpts don't provide meaningful data for decision making, so ignore them
+		else {
+			
+		}
+
+		// Override some values
 		foreach ($excerpts as $key => $e) {
 			foreach (self::$exception_patterns as $pattern => $override_value) {
 				if (preg_match($pattern, $e->text) == 1) {
@@ -261,41 +180,68 @@ class Excerpt extends Model
 						unset($excerpts[$key]);
 						continue 2;
 					}
-					else 
+					else {
 						$e->positive = $override_value;
+					//	$e->positivity_points = ($override_value === true) ? 1 : 0;
+					//	$e->negativity_points = ($override_value === false) ? 1 : 0;
+					}
 				}
 			}
 		}
 
+		// return
 		return $excerpts;
 	}
 
-	public function hasRegex()
+	public function sumPoints(Excerpt $other)
 	{
-		foreach (self::$variable_patterns as $variable_pattern => $extra) {
-			if (preg_match($variable_pattern, $this->text) == 1)
-				return true;
+		$this->positivity_points += $other->positivity_points;
+		$this->negativity_points += $other->negativity_points;
+		$this->positive = ($this->positivity_points == $this->negativity_points) ? null : ($this->positivity_points > $this->negativity_points);
+
+		return $this;
+	}
+
+	/*
+		Attempts to match excerpt texts by replacing some words with plural/singular vesion of the word
+		Caller is assumed to have already verified the texts don't match
+
+		Return true if the texts match, otherwise false
+	 */
+	public static function matchWithPluralOrSingular(Excerpt $a, Excerpt $b) {
+
+		// No variables? Don't think there will be anything to pluralize/singularize
+		if (!$a->variables->isEmpty() && !$b->variables->isEmpty())
+			return false;
+
+		$word_pattern = '/\w+/u';
+		preg_match_all($word_pattern, $a->text, $words_a);
+		preg_match_all($word_pattern, $b->text, $words_b);
+
+		// Different amount of words? This is not going to work
+		if (count($words_a[0]) != count($words_b[0]))
+			return false;
+
+		// We can compare case-sensitively, since the variable word is at the same spot in both.
+		// diff_a and diff_b will have atleast one element
+		$diff_a = array_diff($words_a[0], $words_b[0]);
+		$diff_b = array_diff($words_b[0], $words_a[0]);
+
+		foreach ($diff_a as $key => $value) {
+			if (Str::singular($value) !== $diff_b[$key] && 
+				Str::plural($value) !== $diff_b[$key])
+
+				return false;
 		}
-		return false;
+
+		return true;
 	}
 
-	public static function rawToRegex($text)
-	{
-		$pattern = preg_quote($text, '/');
-		$pattern = self::substituteVariablesInRules($pattern, true);
-		return '/' . $pattern . '/u';
+	public function isBetterThan($excerpts) {
+		return $this->inferiors->whereIn('id', $excerpts->pluck('id')->all())->count() > 0;
 	}
 
-	public function toRegex()
-	{
-		$this->text = self::rawToRegex($this->text);
-	}
-
-	public static function substituteVariablesInRules($rules, $escaped = false)
-	{
-		foreach (self::$variable_patterns as $variable_pattern => $extra) {
-			$rules = preg_replace($escaped ? $extra['escaped'] : $variable_pattern, $extra['replacement'], $rules);
-		}
-		return $rules;
+	public function isWorseThan($excerpts) {
+		return $this->superiors->whereIn('id', $excerpts->pluck('id')->all())->count() > 0;
 	}
 }

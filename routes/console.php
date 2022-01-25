@@ -329,11 +329,11 @@ Artisan::command('create-obsoletes-by-analysis', function () {
 		else if ($at >= $cardcount)
 			$bar->finish();
 		
-		/*
+		
 		foreach ($betters as $better) {
 			$this->comment("#" . $card->id . " " . $card->name . " -> #" . $better->id . " " . $better->name);
 		}
-		*/
+		
 	};
 
 	$old_obsolete_count = App\Obsolete::count();
@@ -579,7 +579,7 @@ Artisan::command('analyze-rules', function () {
 
 	$q = Obsolete::with(['inferiors', 'superiors'])
 		->whereRaw('inferior_functionality_group_id != superior_functionality_group_id')
-		->where('upvotes', '>', 5)->whereRaw('downvotes / upvotes < 0.3');
+		->where('upvotes', '>=', 5)->whereRaw('downvotes / upvotes < 0.45');
 
 	$bar = $this->output->createProgressBar($q->count());
 
@@ -621,30 +621,62 @@ Artisan::command('analyze-rules', function () {
 						continue;
 				}
 			}
-			
+
+			$superior_id = null;
+			$inferior_id = null;	
 
 			$excerpts = Excerpt::getNewExcerpts($inferior, $superior);
 			foreach ($excerpts as $e) {
 
-				$existing = Excerpt::where('text', $e->text)->first();
+				$has_inferiors = !$e->inferiors->isEmpty();
+				$has_superiors = !$e->superiors->isEmpty();
+
+				// Can't push these relations before they exist, so unset for now
+				// We will find them again with $inferior_id / $superior_id
+				unset($e['superiors']);
+				unset($e['inferiors']);
+
+				$existing = Excerpt::with(['variables'])->where('text', $e->text)->first();
 				if ($existing) {
 
 					// Update ratings. 
 					// Point system attempts to verify we haven't made misjudgements about rule being positive/negative
-					$existing->positivity_points += $e->positivity_points;
-					$existing->negativity_points += $e->negativity_points;
-					$existing->positive = $existing->positivity_points == $existing->negativity_points ? null : ($existing->positivity_points > $existing->negativity_points);
-					$existing->save();
-					$existing->groups()->syncWithoutDetaching([$e->positive ? $obsolete->superior_functionality_group_id : $obsolete->inferior_functionality_group_id]);
+					$existing->sumPoints($e)->save();
+
+					// Save variables
+					foreach ($e->variables as $variable) {
+
+						$id = $existing->variables->search(function($item, $key) use ($variable) { return $item->isSameVariable($variable); });
+						$existing->variables[$id]->sumPoints($variable)->save();
+					}
 				}
 				else {
-					$e->push();
 
-					$id = $e->positive ? $obsolete->superior_functionality_group_id : $obsolete->inferior_functionality_group_id;
-					$e->groups()->syncWithoutDetaching($id);
+					$e->push();
 					$new_excerpts++;
+
+					$e->variables()->saveMany($e->variables);
+					$existing = $e;
 				}
+	
+				if ($has_superiors)
+					$inferior_id = $existing->id;
+				if ($has_inferiors)
+					$superior_id = $existing->id;
 			}
+
+			if ($superior_id !== null) {
+
+				$superior = Excerpt::with(['inferiors' => function($q) use ($inferior_id) { 
+					$q->where('inferior_excerpt_id', $inferior_id); 
+				}])->find($superior_id);
+
+				$existing = $superior->inferiors->first();
+				$reliability_points = ($existing ? $existing->pivot->reliability_points : 0) + 1;
+
+				$superior->inferiors()->syncWithoutDetaching([$inferior_id => ['reliability_points' => $reliability_points]]);
+			}
+
 			$bar->advance();
 		}
 	});
@@ -663,17 +695,35 @@ Artisan::command('analyze-rules', function () {
 	$q->chunk(1000, function($groups) use (&$new_excerpts, $bar) {
 	
 		foreach ($groups as $group) {
-			$raws = Excerpt::cardToRawExcerpts($group->examplecard);
-			foreach ($raws as $text) {
+			$excerpts = Excerpt::cardToExcerpts($group->examplecard);
+			
+			$variablevalues = collect([]);
+			foreach ($excerpts as $excerpt) {
 
-				$excerpt = Excerpt::firstOrCreate(['text' => $text], ['regex' => 1]);
-				$excerpt->groups()->syncWithoutDetaching($group->id);
+				$existing = Excerpt::with(['variables'])->firstOrCreate(['text' => $excerpt->text], $excerpt->getAttributes());
+				$existing->groups()->syncWithoutDetaching($group->id);
 
-				if ($excerpt->wasRecentlyCreated) {
-					//ExcerptVariable::getVariablesFromText($text);
+				if ($existing->wasRecentlyCreated) {
 					$new_excerpts++;
+					if (!$excerpt->variables->isEmpty()) {
+						$existing->variables()->saveMany($excerpt->variables);
+						$existing->refresh();	// refresh to get variable ids later
+					}
+				}
+
+				foreach ($excerpt->variables as $variable) {
+
+					$id = $existing->variables->search(function($item, $key) use ($variable) { return $item->isSameVariable($variable); });
+
+					$variablevalues->push(new App\ExcerptVariableValue([
+						'value' => $variable->valueToArray(),
+						'variable_id' => $existing->variables[$id]->id,
+						'group_id' => $group->id
+					]));
 				}
 			}
+			$group->variablevalues()->saveMany($variablevalues);
+			
 			$bar->advance();
 		}
 	});
