@@ -716,7 +716,7 @@ Artisan::command('analyze-rules', function () {
 					$id = $existing->variables->search(function($item, $key) use ($variable) { return $item->isSameVariable($variable); });
 
 					$variablevalues->push(new App\ExcerptVariableValue([
-						'value' => $variable->valueToArray(),
+						'value' => $variable->valueToJsonable(),
 						'variable_id' => $existing->variables[$id]->id,
 						'group_id' => $group->id
 					]));

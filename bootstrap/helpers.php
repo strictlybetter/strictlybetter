@@ -442,6 +442,9 @@ function get_line_count($filename) {
 
 function create_obsoletes($using_analysis = false, $progress_callback = null, &$count) {
 
+	if ($progress_callback === null)
+		$progress_callback = function($cardcount, $at, $card = null, $betters = null) { };
+
 	DB::transaction(function () use ($progress_callback, &$count, $using_analysis) {
 
 	$obsoletion_attributes = [
@@ -478,8 +481,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 	$cardcount = $queryAll->count();
 	$progress = 0;
 
-	if ($progress_callback !== null)
-		$progress_callback($cardcount, $progress);
+	$progress_callback($cardcount, $progress);
 
 	// $allcolors = ["W","B","U","R","G"];
 
@@ -514,61 +516,54 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 				$q->select(['excerpts.id', 'positive'])->with(['variables', 'superiors', 'inferiors']);
 			}]);
 
-			$excerpts = $card->functionality->excerpts;
-
 			// Must have differing rules text
 			$q = $q->where('substituted_rules', '!=', $card->substituted_rules);
 
-			// Must have all non-negative excerpts the inferior has
-			// ... or the non-negative excerpt must be an inferior
-			foreach ($excerpts as $excerpt) {
-				if ($excerpt->positive !== 0) {
-					$q->where(function ($q) use ($excerpt) {
-						$q->whereHas('functionality.excerpts',  function($q) use ($excerpt) {
-							$q->where('excerpts.id', $excerpt->id);
-						})->orWhereHas('functionality.excerpts.inferiors', function($q) use ($excerpt) {
-							$q->where('excerpts.id', $excerpt->id);
-						});
-					});
-				}
-			}
+			$excerpts = $card->functionality->excerpts;
 
-			// Doesnt have excerpts that are non-positive and not part of inferior card
-			// ... and not superior to 
-			$q->whereDoesntHave('functionality.excerpts', function($q) use ($excerpts) {
-				$q->whereNotIn('excerpts.id', $excerpts->pluck('id'))
-					->where('positive', '!=', 1)
-					->whereHas('superiors', function($q) use ($excerpts) {
-						$q->whereIn('excerpts.id', $excerpts->pluck('id'));
-					});
-			});
-
-			/*
 			$q = $q->whereHas('functionality', function($q) use ($excerpts) {
 
-				$count = count($excerpts);
-
 				// If the inferior doesn't have any excerpts, superior must have some excerpts
-				if ($count == 0)
+				if ($excerpts->isEmpty())
 					$q->has('excerpts');
-
-				// Must have all non-negative excerpts the inferior has
 				else {
-					$must_haves = $excerpts->where('positive', '!=', 0)->all();
-					foreach ($must_haves as $must_have) {
-						$q->whereHas('excerpts',  function($q) use ($must_have) {
-							$q->where('excerpts.id', $must_have->id);
-						});
-					}
-				}
 
-				// Doesnt have excerpts that aren't either positive or part of inferior card
-				$q->whereDoesntHave('excerpts', function($q) use ($excerpts, $count) {
-					$q->whereNotIn('excerpts.id', $excerpts->pluck('id'))
-						->orWhere('positive', '!=', 1);
-				});
+					// Must have all non-negative excerpts the inferior has
+					// ... or the non-negative excerpt must be an inferior
+					$non_negative_ids = $excerpts->whereStrict('positive', '!==', 0)->pluck('id');
+
+					if ($non_negative_ids->count() > 0) {
+
+						$q->whereHas('excerpts',  function($q) use ($non_negative_ids) {
+
+							$q->whereIn('excerpts.id', $non_negative_ids)
+							->orWhereHas('inferiors', function($q) use ($non_negative_ids) {
+								$q->whereÍn('excerpts.id', $non_negative_ids);
+							});
+
+						}, '>=', $non_negative_ids->count());
+					}
+
+					// Doesnt have excerpts that are non-positive and not part of inferior card
+					// ... and not superior to 
+					/*
+					$q->whereDoesntHave('excerpts', function($q) use ($excerpts) {
+
+						$q->where('positive', '!=', 1)
+						->where(function($q) use ($excerpts) {
+							$q->whereNotIn('excerpts.id', $excerpts->pluck('id'));
+
+							if ($excerpts->count() > 0) {
+								$q->orWhereHas('superiors', function($q) use ($excerpts) {
+									$q->whereIn('excerpts.id', $excerpts->pluck('id'));
+								});
+							}
+						});
+						
+					});*/
+				}	
+
 			});
-			*/
 		}
 
 		// Sorcery may be substituted by an Instant
@@ -638,58 +633,56 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 			$q = $q->whereJsonLength('manacost_sorted', 0);
 
 
-		$q->orderBy('cards.id', 'asc')->chunk(500, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
+		$q->orderBy('cards.id', 'asc')->chunk(1000, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
 
 			// Filter out any better cards that cost more colored mana
-			if (count($betters) > 0 && $card->cmc !== null) {
 
-				// echo "Found betters: " . count($betters) . PHP_EOL; // for debugging
+			// echo "Found betters: " . count($betters) . PHP_EOL; // for debugging
 
-				$betters = $betters->filter(function($better) use ($card, $using_analysis) {
-					return ($better->compareCost($card, true, $using_analysis) <= 0);
-				})->values();
+			if ($using_analysis)
+				$betters = $betters->filter(function($better) use ($card) {
+					return ($better->compareCost($card, true, false) <= 0 && 
+							$better->isBetterByRuleAnalysisThan($card));
+				});
 
-				if ($using_analysis) {
-					$betters = $betters->filter(function($better) use ($card) {
-						return $better->isBetterByRuleAnalysisThan($card);
-					})->values();
-				}
+			// No rule analysis (default), 
+			// $better must prove to be better in some defined category (it's already atleast eqaul at this point)
+			else {
 
-				// No rule analysis (default), 
-				// $better must prove to be better in some defined category (it's already atleast eqaul at this point)
-				else {
+				$betters = $betters->filter(function($better) use ($card) {
 
-					$betters = $betters->filter(function($better) use ($card, $using_analysis) {
-
-						// Split card is better, even if everything else matches
-						if ($card->main_card_id === null && $better->main_card_id !== null)
-							return true;
-
-						if ($card->compareCost($better, false, $using_analysis) > 0)
-							return true;
-
-						if ($card->hasStats()) {
-
-							// Power and toughness are quaranteed to be atleast equal by this point, so just check for greatness
-							$more_power = is_numeric($better->power) ? ((double)$card->power) < ((double)$better->power) : false;
-							$more_toughness = is_numeric($better->toughness) ? ((double)$card->toughness) < ((double)$better->toughness) : false;
-
-							return ($more_power || $more_toughness);
-						}
-
-						if ($card->hasLoyalty()) {
-							return ($card->loyalty < $better->loyalty);
-						}
-
-						if (in_array("Instant", $better->types) && in_array("Sorcery", $card->types)) {
-							return true;
-						}
-
-						// $this->comment("#" . $card->id . " " . $card->name . " is not better than #" . $better->id . " " . $better->name);
-
+					$mana_comparison = $better->compareCost($card, true, false);
+					if ($mana_comparison > 0)
 						return false;
-					})->values();
-				}
+
+					// Split card is better, even if everything else matches
+					if ($card->main_card_id === null && $better->main_card_id !== null)
+						return true;
+
+					if ($mana_comparison < 0)
+						return true;
+
+					if ($card->hasStats()) {
+
+						// Power and toughness are quaranteed to be atleast equal by this point, so just check for greatness
+						$more_power = is_numeric($better->power) ? ((double)$card->power) < ((double)$better->power) : false;
+						$more_toughness = is_numeric($better->toughness) ? ((double)$card->toughness) < ((double)$better->toughness) : false;
+
+						return ($more_power || $more_toughness);
+					}
+
+					if ($card->hasLoyalty()) {
+						return ($card->loyalty < $better->loyalty);
+					}
+
+					if (in_array("Instant", $better->types) && in_array("Sorcery", $card->types)) {
+						return true;
+					}
+
+					// $this->comment("#" . $card->id . " " . $card->name . " is not better than #" . $better->id . " " . $better->name);
+
+					return false;
+				});
 			}
 
 			foreach ($betters as $better) {
@@ -703,14 +696,13 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 				$count++;
 			}
 			
-			if ($progress_callback !== null) {
-				$progress_callback($cardcount, $progress, $card, $betters);
-			}
+			$progress_callback($cardcount, $progress, $card, $betters);
+
 		});
-		if ($progress_callback !== null) {
-			$progress++;
-			$progress_callback($cardcount, $progress, $card);
-		}
+
+		$progress++;
+		$progress_callback($cardcount, $progress, $card);
+
 	}
 	});
 	});

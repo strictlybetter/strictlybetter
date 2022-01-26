@@ -11,7 +11,7 @@ class ExcerptVariableValue extends Model
 
 	public $timestamps = false;
 
-	protected $casts = ['value' => 'array'];
+	//protected $casts = ['value' => 'array'];
 
 	public function variable() 
 	{
@@ -22,4 +22,7 @@ class ExcerptVariableValue extends Model
 	{
 		return $this->belongsTo(FunctionalityGroup::class, 'group_id');
 	}
+
+	public function setValueAttribute($value) { $this->attributes['value'] = json_encode($value); }
+	public function getValueAttribute() { return json_decode($this->attributes['value'], true); }
 }

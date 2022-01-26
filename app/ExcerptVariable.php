@@ -13,15 +13,20 @@ class DigitHandler {
 
 	public static function parser($value) { return (int)$value; }
 	public static function comparator(int $a, int $b) { return $a <=> $b; }
-	public static function toArrayFn(int $digit) { return [$digit]; }
-	public static function toValueFn(array $array) { return $array[0]; }
+	public static function toJsonableFn(int $digit) { return $digit; }
+	public static function toValueFn(int $digit) { return $digit; }
 }
 
 class ManacostHandler {
 
 	public static function parser($string) { return Manacost::createFromManacostString($string); }
-	public static function comparator(Manacost $a, Manacost $b) { return $a->compareCost($b, false); }
-	public static function toArrayFn(Manacost $mc) { return $mc->toExcerptValueArray(); }
+	public static function comparator(Manacost $a, Manacost $b) { 
+		$result = $a->compareCost($b, false);
+		// $result 2 or -2 tells us both manacosts contain colored mana the other doesn't have,
+		// So both are considered "larger" than the other. By flipping the values all checks for < or > will fail.
+		return ($result > 1 || $result < -1) ? ($result * -1) : $result;
+	}
+	public static function toJsonableFn(Manacost $mc) { return $mc->toExcerptValueArray(); }
 	public static function toValueFn(array $array) { return Manacost::createFromExcerptValueArray($array); }
 }
 
@@ -79,7 +84,7 @@ class ExcerptVariable extends Model
 
 		// Manacost
 		'manacost' => [			
-			'pattern' => '/(?:\{[^\}TQ∞]+\})+/u',
+			'pattern' => '/(?:\{[^\}TQ]+\})+/u',
 			'placeholder' => '@mc@',
 			'handler' => ManacostHandler::class
 		],
@@ -156,26 +161,21 @@ class ExcerptVariable extends Model
 		return self::$variable_patterns[$this->capture_type]['handler'];
 	}
 
+	/*
+		ValueComparison(a,b) 
+		Returns 1 if the outcome is positive according to $more_is_better
+		Return 0 if the values are equal
+		Returns -1 if the outcome is negative according to $more_is_better, or indeterminate ($more_is_better === null).
+	 */
 	public function valueComparison($a, $b) 
 	{
-
-		//$comparator = self::$variable_patterns[$this->capture_type]['comparator'];
 		$result = $this->more_is_better ? $this->handler()::comparator($a, $b) : $this->handler()::comparator($b, $a);
-
-		// If we don't which is supposed to be better, only allow equivalency or fail
 		return ($this->more_is_better === null && $result != 0) ? -1 : $result;	
 	}
 
 	public function valueComparisonDb(ExcerptVariableValue $a, ExcerptVariableValue $b) 
 	{
-		$val_a = $this->arrayToValue($a->value);
-		$val_b = $this->arrayToValue($b->value);
-
-		// $comparator = self::$variable_patterns[$this->capture_type]['comparator'];
-		$result = $this->more_is_better ? $this->handler()::comparator($val_a, $val_b) : $this->handler()::comparator($val_b, $val_a);
-
-		// If we don't which is supposed to be better, only allow equivalency or fail
-		return ($this->more_is_better === null && $result != 0) ? -1 : $result;	
+		return $this->valueComparison($this->jsonableToValue($a->value), $this->jsonableToValue($b->value));
 	}
 
 	public function establishLowOrHighBetterness(ExcerptVariable $superior, ExcerptVariable $inferior) 
@@ -183,7 +183,7 @@ class ExcerptVariable extends Model
 		//$comparator = self::$variable_patterns[$this->capture_type]['comparator'];
 
 		$result = $this->handler()::comparator($this->parseValue($superior->value), $this->parseValue($inferior->value));
-		$this->more_is_better = ($result == 0) ? null : ($result > 0 ? 1 : 0);
+		$this->more_is_better = ($result == 1 || $result == -1) ? ($result > 0 ? 1 : 0) : null;
 
 		$this->points_for_more = ($this->more_is_better === 1) ? 1 : 0;
 		$this->points_for_less = ($this->more_is_better === 0) ? 1 : 0;
@@ -203,13 +203,13 @@ class ExcerptVariable extends Model
 		return $this->handler()::parser($value === null ? $this->value : $value);
 	}
 
-	public function valueToArray($value = null) 
+	public function valueToJsonable($value = null) 
 	{
-		return $this->handler()::toArrayFn($value === null ? $this->value : $value);
+		return $this->handler()::toJsonableFn($value === null ? $this->value : $value);
 	}
 
-	public function arrayToValue(array $array) 
+	public function jsonableToValue($jsonable) 
 	{
-		return  $this->handler()::toValueFn($array); //self::$variable_patterns[$this->capture_type]['toValueFn']($value);
+		return  $this->handler()::toValueFn($jsonable); //self::$variable_patterns[$this->capture_type]['toValueFn']($value);
 	}
 }

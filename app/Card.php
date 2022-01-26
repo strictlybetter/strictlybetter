@@ -304,7 +304,7 @@ class Card extends Model
 		$substitute_rules = preg_replace('/;/u', ',', $substitute_rules);		// Some older cards separate keywords with ; replace to ,
 
 		// Lands have their tap ability in parenthesis, remove the parenthesis
-		$substitute_rules = preg_replace('/\(([^\)]*{T}: Add [^\)]*\.)\)/u', '\1', $substitute_rules);
+		$substitute_rules = preg_replace('/\(([^\)]*{T}: Add [^\)]*\.\"?)\)/u', '\1', $substitute_rules);
 
 		// Remove all reminder texts
 		$substitute_rules = preg_replace('/\s*?\([^\)]*\)/u', '', $substitute_rules);
@@ -318,8 +318,9 @@ class Card extends Model
 	{
 
 		if ($consider_alternatives) {
-			if ($this->compareAlternativeCosts($other, $may_cost_more_of_same) < 0)
-				return -1;
+			$comparison = $this->compareAlternativeCosts($other, $may_cost_more_of_same);
+			if ($comparison < 0)
+				return $comparison;
 		}
 
 		$comparison = Manacost::createFromCard($this)->compareCost(Manacost::createFromCard($other), $may_cost_more_of_same);
@@ -423,52 +424,8 @@ class Card extends Model
 		return ($this->loyalty !== null);
 	}
 
-	public function isBetterByRuleAnalysisThanV2(Card $other, $excerpts = null)
-	{
-		$card_excerpts = Excerpt::getNewExcerptsV2($other, $this, false);
-
-		// No text, no analysis
-		if ($card_excerpts->count() == 0)
-			return false;
-
-		// If doing batch job, please provide $excerpts as parameter for performance
-		if ($excerpts === null)
-			$excerpts = Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all();
-
-		foreach ($card_excerpts as $card_excerpt) {
-
-			// Check if we have any excerpts we could even try to use
-			if (!isset($excerpts[$card_excerpt->positive][$card_excerpt->regex]))
-				return false;
-
-			$edited = false;
-			do {
-				$edited = false;
-
-				foreach ($excerpts[$card_excerpt->positive][$card_excerpt->regex] as $excerpt) {
-
-					$changecount = 0;
-					$card_excerpt->text = $card_excerpt->regex ? 
-						preg_replace($excerpt->text, '', $card_excerpt->text, $changecount) :
-						str_replace($excerpt->text, '', $card_excerpt->text, $changecount);
-
-					if ($changecount > 0) {
-						$edited = true;
-						$card_excerpt->text = trim($card_excerpt->text, " \n\r\t\v\0,.");
-					}
-				}
-			} while ($edited);
-
-			if ($card_excerpt->text != "")
-				return false;
-		}
-
-		return true;
-	}
-
 	public function isBetterByRuleAnalysisThan(Card $other)
 	{
-		
 		$superior_excerpts_org = $this->functionality->excerpts->keyBy('id');
 		$inferior_excerpts_org = $other->functionality->excerpts->keyBy('id');
 
@@ -490,12 +447,10 @@ class Card extends Model
 				if ($result < 0)
 					return false;
 
-				else if ($result > 0)
+				else if ($result == 1)
 					$has_superior_variable_values = true;
 			}
 		}
-
-		var_dump($has_superior_variable_values);
 
 		$superior_excerpts = $superior_excerpts_org->diffKeys($common_excerpts)->values();
 		$inferior_excerpts = $inferior_excerpts_org->diffKeys($common_excerpts)->values();
@@ -537,7 +492,7 @@ class Card extends Model
 
 			$result = $cost->compareCost($compare_to, $may_cost_more_of_same);
 			if ($result < 0)
-				return -1;
+				return $result;
 		}
 		return 1;
 

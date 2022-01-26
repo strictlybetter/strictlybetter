@@ -150,21 +150,26 @@ class Manacost {
 	public function compareCost(Manacost $other, $may_cost_more_of_same = false)
 	{
 		if ($other->cmc === null)
-			return $this->cmc === null ? 0 : 1;
+			return ($this->cmc === null) ? 0 : 1;
 
 		if ($this->cmc === null)
 			return -1;
 
-		if ($this->cmc > $other->cmc || $this->hybridless_cmc > $other->hybridless_cmc)
-			return 1;
-
+		// Compare colored costs first, we can get the possible value: 2 (or -2)
+		// indicating both cost more (or less) than the other. In such case caller might want to bail.
 		$comparison = $this->compareColoredCost($other, $may_cost_more_of_same);
-		if ($comparison > 0)
-			return 1;
+		if ($comparison != 0) {
+			if ($comparison == $other->compareColoredCost($this, $may_cost_more_of_same))
+				return $comparison * 2;
+			else if ($comparison > 0)
+				return $comparison;
+		}
+
+		if ($this->cmc > $other->cmc || $this->hybridless_cmc > $other->hybridless_cmc)
+			return  1 + (($this->cmc > $this->cmc || $other->hybridless_cmc > $this->hybridless_cmc) ? 1 : 0);
 
 		return ($this->cmc < $other->cmc || $this->hybridless_cmc < $other->hybridless_cmc) ? -1 : $comparison;
 	}
-
 
 	public function compareColoredCost(Manacost $other, $may_cost_more_of_same = false)
 	{
@@ -227,6 +232,6 @@ class Manacost {
 		}
 
 		// Return -1 if mana still left, if all spent return 0
-		return (array_sum(array_values($mana_left)) > 0 || ($may_cost_more_of_same && $anytype_left > 0)) ? -1 : 0;
+		return (array_sum(array_values($mana_left)) > 0) ? -1 : 0;
 	}
 }

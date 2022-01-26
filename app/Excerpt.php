@@ -26,16 +26,6 @@ class Excerpt extends Model
 	//	'/^(?:\{[^\}]+\})+$/u' => null, 	// Text only contains manacost and nothing else? Can't deduce anything from it
 	];
 
-	public function getTmpAttribute() 
-	{
-		return $this->tmp;
-	}
-
-	public function setTmpAttribute($value)
-	{
-		$this->attributes['tmp'] = $value;
-	}
-
 	public function scopePositive($query) 
 	{
 		return $query->where('positive', 1);
