@@ -215,12 +215,16 @@ $(document).ready(function() {
 		});
 	}).on('change', function(e) {
 		test_suggestion();
+	}).on('select2:open', function(e)  {
+		$(".select2-search__field[aria-controls='select2-inferior-results']")[0].focus();
 	});
 	
 	select2_options.data = superiors;
 	select2_options.placeholder = "Select superior card";
 	$("#superior").select2(select2_options).on('change', function(e) {
 		test_suggestion();
+	}).on('select2:open', function(e)  {
+		$(".select2-search__field[aria-controls='select2-superior-results']")[0].focus();
 	});
 
 	// Rebuild on resize for responsive design

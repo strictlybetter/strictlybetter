@@ -24,7 +24,8 @@
 		<link rel="manifest" href="{{ URL::to('site.webmanifest') }}">
 
 		<link media="all" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-		<link media="all" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css" integrity="sha384-zCbKRCUGaJDkqS1kPbPd7TveP5iyJE0EjAuZQTgFLD2ylzuqKfdKlfG/eSrtxUkn" crossorigin="anonymous">
+
 		<link media="all" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
 		<link media="all" href="{{ URL::to('css/select2.min.css') }}" rel="stylesheet">
 		<link media="all" href="{{ URL::to('css/jquery.multiselect.css') }}" rel="stylesheet">
@@ -55,11 +56,11 @@
 							</a>
 							<div class="dropdown-menu" aria-labelledby="nav-helpvoting">
 								<a class="dropdown-item {{ Request::is('votehelp/low-on-votes') ? 'active' : '' }}" href="{{ route('votehelp.low-on-votes') }}" 
-									title="Help determine if fresh suggestions with low vote count are valid or not">Low on Votes</a>
+									title="Help determine if fresh suggestions with low vote count are valid or not">📉 Low on Votes</a>
 								<a class="dropdown-item {{ Request::is('votehelp/disputed') ? 'active' : '' }}" href="{{ route('votehelp.disputed') }}" 
-									title="Help find a final verdict for disputed suggestions with similar amount of upvotes and downvotes">Disputed</a>
+									title="Help find a final verdict for disputed suggestions with similar amount of upvotes and downvotes">&#x2694; Disputed</a>
 								<a class="dropdown-item {{ Request::is('votehelp/spreadsheets') ? 'active' : '' }}" href="{{ route('votehelp.spreadsheets') }}"
-									title="Help validate suggestions people have listed elsewhere">External Sources</a>
+									title="Help validate suggestions people have listed elsewhere">&#127760; External Sources</a>
 							</div>
 						</li>
 						<li class="nav-item {{ Request::is('api-guide') ? 'active' : '' }}">
@@ -109,9 +110,10 @@
 			@yield('content')
 		</div>
 
-		<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
-		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-fQybjgWLrvvRgtW6bFlB7jaZrFsaBXjsOMm/tB9LTS58ONXgqbR9W8oWht/amnpF" crossorigin="anonymous"></script>
+
 		<script src="{{ URL::to('js/select2/select2.min.js') }}"></script>
 		<script src="{{ URL::to('js/jquery.multiselect.js') }}"></script>
 	

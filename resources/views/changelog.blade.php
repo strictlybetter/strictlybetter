@@ -20,6 +20,18 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
+	<h4>01/27/22</h4>
+	<ul>
+		<li>New UI
+			<ul>
+				<li>Superiors and inferiors are now tabs. One tab can be viewed at a time, but this give a lot space for viewing cards</li>
+				<li>Cards only shrink at 1020px width</li>
+				<li>Hovering over cards shows even bigger picture (400px height) and vote buttons stay under while zooming</li>
+				<li>Few icons</li>
+			</ul>
+		</li>
+	</ul>
+
 	<h4>01/22/22</h4>
 	<ul>
 		<li>Minor UI tweaks and info texts.</li>
