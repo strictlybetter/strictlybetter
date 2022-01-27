@@ -55,7 +55,7 @@
 					No upgrade needed.<br>
 					Unless you'd like to <a class="tell_superior" href="{{ route('card.create', [$card->id]) }}">tell us about it</a>?<br>
 					<br>
-					@if(count($card->inferiors) > 0)
+					@if($card->relationLoaded('inferiors') && count($card->inferiors) > 0)
 						There are <a data-bs-toggle="tab" href="#inferiors-{{ $card->id }}" role="tab" aria-controls="inferiors-{{ $card->id }}" aria-selected="true" title="Inferior cards">{{ $card->inferiors->count() }} inferiors</a> available though.
 					@endif
 					</p>
