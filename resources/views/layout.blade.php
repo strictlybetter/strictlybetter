@@ -206,6 +206,24 @@
 				});
 			}
 
+			function register_tabs(selector, callback) {
+				$(selector).on('click', '.cardlist-tabs a', function (event) {
+					event.preventDefault();
+					$(this).tab('show');
+
+					if (callback !== undefined)
+						callback(this, event);
+
+				}).on('click', '.cardpanel-not-found a[role="tab"]', function (event) {
+					event.preventDefault();
+					let target = $(this).attr('href');
+					$('.cardlist-tabs a[href="' + target + '"]').tab('show');
+
+					if (callback !== undefined)
+						callback(this, event);
+				});
+			}
+
 			function register_card_image_handlers(selector = '') {
 
 				selector = (selector == '') ? '' : (selector + ' ');
