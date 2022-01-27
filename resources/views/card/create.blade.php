@@ -44,11 +44,11 @@
 	<div class="container">
 		<h1>Add Suggestion</h1>
 		<p>
-			New suggestions are always welcome.<br>
-			<br>
-			Additions have to pass a few automated checks. Details can be found on <a href="{{ route('about') }}">About -page</a>.
+			New suggestions are always welcome.</p>
+			<hr>
+		<p>	Additions have to pass a few automated checks. Details can be found on <a href="{{ route('about') }}">About -page</a>.
 		</p>
-		<hr>
+		
 		{{ Form::open(['route' => 'card.store']) }}
 
 			<div class="row" style="min-height:220px"> 
@@ -133,6 +133,8 @@ function test_suggestion() {
 }
 
 $(document).ready(function() { 
+
+	register_tabs("#upgrade_view_container");
 
 	function select2_template(data, append_trophy) {
 

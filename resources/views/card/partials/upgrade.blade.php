@@ -24,13 +24,21 @@
 				Inferiors ({{ $card->inferiors->count() }})
 			</a>
 		</li>
+		@endif
+		@if($card->relationLoaded('functionality'))
+		<li class="nav-item">
+			<a disabled class="nav-link functionalitygroup-toggle" id="functionalitygroup-tab-{{ $card->id }}" data-bs-toggle="tab" href="#functionalitygroup-{{ $card->id }}" role="tab" aria-controls="functionalitygroup-{{ $card->id }}" aria-selected="false" title="Type variants">
+				<i class="nav-item-functionalitygroup">&thickapprox;</i>
+				Type variants ({{ $card->functionality->similiarcards->count() }}) 
+			</a>
+		</li>
+		@endif
 		<li class="nav-item">
 			<a disabled class="nav-link alternatives-toggle" id="alternatives-tab-{{ $card->id }}" data-bs-toggle="tab" href="#alternatives-{{ $card->id }}" role="tab" aria-controls="alternatives-{{ $card->id }}" aria-selected="false" title="Alternatives are not yet available">
 				<i class="nav-item-alternative">&thickapprox;</i>
 				Alternatives
 			</a>
 		</li>
-		@endif
 	</ul>
 
 	<div class="tab-content" id="tab-content-{{ $card->id }}">
@@ -65,7 +73,7 @@
 
 		@if($card->relationLoaded('inferiors'))
 		<div class="tab-pane fade" id="inferiors-{{ $card->id }}" role="tabpanel" aria-labelledby="inferior-tab-{{ $card->id }}">
-			<div class="cardpanel cardpanel cardpanel-inferior">
+			<div class="cardpanel cardpanel-inferior">
 				@foreach($card->inferiors as $i => $inferior)
 					@include('card.partials.relatedcard', ['related' => $inferior, 'type' => 'inferior'])
 				@endforeach
@@ -92,8 +100,25 @@
 			</div>
 		</div>
 		@endif
+		@if($card->relationLoaded('functionality'))
+		<div class="tab-pane fade" id="functionalitygroup-{{ $card->id }}" role="tabpanel" aria-labelledby="functionalitygroup-tab-{{ $card->id }}">
+			<div class="cardpanel cardpanel-functionalitygroup">
+				@if(count($card->functionality->similiarcards) == 0)
+					<p class="cardpanel-not-found">
+						No type variants found.
+					</p>
+				@else
+					@foreach($card->functionality->similiarcards as $i => $related)
+						@include('card.partials.relatedcard', ['related' => $related, 'type' => 'functionalitygroup'])
+					@endforeach
+				@endif
+			</div>
+		</div>
+		@endif
 		<div class="tab-pane fade" id="alternatives-{{ $card->id }}" role="tabpanel" aria-labelledby="alternatives-tab-{{ $card->id }}">
-			<p class="cardpanel-not-found">Alternatives are not yet available.</p>
+			<div class="cardpanel cardpanel-alternative">
+				<p class="cardpanel-not-found">Alternatives are not yet available.</p>
+			</div>
 		</div>
 
 	</div>

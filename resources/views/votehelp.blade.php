@@ -49,6 +49,7 @@
 		<h1>Help Voting</h1>
 
 		<p>Voting helps determine validity of the suggestions for users and AI alike.</p>
+		<hr>
 
 		<ul class="categorylist">
 			<li><a class="{{ Request::is('votehelp/low-on-votes') ? 'active' : '' }}" href="{{ route('votehelp.low-on-votes') }}" 

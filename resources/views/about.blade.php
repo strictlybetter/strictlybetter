@@ -20,6 +20,7 @@
 	<p>
 		Strictly Better offers information about Magic: The Gathering cards that are functionally superior to other cards.
 	</p>
+	<hr>
 
 	<p>
 		Using the the site a MTG player may search for better card alternatives for their older deck or cards that may have been printed without putting in too much effort.

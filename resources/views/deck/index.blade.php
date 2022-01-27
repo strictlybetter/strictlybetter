@@ -67,6 +67,7 @@
 
 @section('js')
 <script>
+	register_tabs("#upgrade_view_container");
 	$("#tribes").select2({
 		allowClear: true, 
 		placeholder: "Any Tribe",

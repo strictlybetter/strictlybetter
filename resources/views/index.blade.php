@@ -236,16 +236,16 @@
 			$("#quicksearch").val(search);
 			quicksearch(1, true, 0);
 
-		}).on('click', '.cardlist-tabs a, .cardpanel-not-found a[role="tab"]', function (event) {
-			event.preventDefault();
-			$(this).tab('show');
-
-		}).on('click', '.cardpanel-not-found a[role="tab"]', function (event) {
-			event.preventDefault();
-			let target = $(this).attr('href');
-			$('.cardlist-tabs a[href="' + target + '"]').tab('show');
 		});
-		
+
+		register_tabs("#cards");
+
+/*
+		register_tabs("#cards", function(el, event) {
+			let anchor = $(el).attr('href');
+			save_state(get_search_params(), false, undefined, anchor);
+		});
+*/
 		quicksearch(initial_page);
 
 		card_autocomplete("#quicksearch", 5, function(event, ui) {

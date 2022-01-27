@@ -28,6 +28,10 @@
 				<li>Cards only shrink at 1020px width</li>
 				<li>Hovering over cards shows even bigger picture (400px height) and vote buttons stay under while zooming</li>
 				<li>Few icons</li>
+				<li>Added tab for functionality groups (Referred to as "type variants") on many pages. 
+					Lists otherwise identical cards, but different types like <i>Suntail Hawk</i> vs <i>Kitesail Scout</i>. 
+					Not to be mixed with functional reprints that share types like <i>Llanowar Elves</i> vs <i>Fyndhorn Elves</i>.
+				</li>
 			</ul>
 		</li>
 	</ul>

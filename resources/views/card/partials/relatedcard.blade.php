@@ -11,6 +11,7 @@
 		</div>
 		<span class="mtgcard-text">{{ $related->name }}</span>
 	</a>
+	@if($related->pivot)
 	<div class="card-label-container">
 		@if(is_array($related->pivot->labels))
 		@foreach($related->pivot->labels as $label => $value)
@@ -66,6 +67,7 @@
 		{{ Form::close() }}
 
 	</div>
+	@endif
 	@endif
 	<div class="row card-external-links">
 		@if($related->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $related->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
