@@ -53,7 +53,11 @@
 				@if(count($card->superiors) == 0)
 					<p class="cardpanel-not-found">
 					No upgrade needed.<br>
-					Unless you'd like to <a class="tell_superior" href="{{ route('card.create', [$card->id]) }}">tell us about it</a>?
+					Unless you'd like to <a class="tell_superior" href="{{ route('card.create', [$card->id]) }}">tell us about it</a>?<br>
+					<br>
+					@if(count($card->inferiors) > 0)
+						There are <a data-bs-toggle="tab" href="#inferiors-{{ $card->id }}" role="tab" aria-controls="inferiors-{{ $card->id }}" aria-selected="true" title="Inferior cards">{{ $card->inferiors->count() }} inferiors</a> available though.
+					@endif
 					</p>
 				@endif
 			</div>
@@ -77,7 +81,13 @@
 				@endif
 			
 				@if(count($card->inferiors) == 0)
-					<p class="cardpanel-not-found">No budget options found.</p>
+					<p class="cardpanel-not-found">
+						No budget options found.<br>
+						<br>
+						@if(count($card->superiors) > 0)
+							There are <a data-bs-toggle="tab" href="#superiors-{{ $card->id }}" role="tab" aria-controls="superiors-{{ $card->id }}" aria-selected="true" title="Superior cards">{{ $card->superiors->count() }} superiors</a> available though.
+						@endif
+					</p>
 				@endif
 			</div>
 		</div>

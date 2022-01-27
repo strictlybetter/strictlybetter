@@ -181,24 +181,23 @@
 		$("#format").select2({
 			allowClear: true, 
 			placeholder: "Any Format",
+
+		}).on('change', function(event) {
+			quicksearch(initial_page, true);
 		});
+
 		$("#tribe").select2({
 			allowClear: true, 
 			placeholder: "Any Tribe",
+
+		}).on('change', function(event) {
+			quicksearch(initial_page, true);
 		});
 
 		$("#quicksearch").on('input', function(event) {
 
 			clearTimeout(quicksearch_timer);
 			quicksearch_timer = setTimeout(function() { quicksearch(1); }, 200); 
-		});
-
-		$("#tribe").on('change', function(event) {
-			quicksearch(initial_page, true);
-		});
-
-		$("#format").on('change', function(event) {
-			quicksearch(initial_page, true);
 		});
 
 		$('#filters').multiselect({
@@ -227,9 +226,8 @@
 			var page = url.searchParams.get('page');
 
 			quicksearch(page ? page : 1, true, 0);
-		});
 
-		$("#cards").on('click', 'a.card-link', function(e) {
+		}).on('click', 'a.card-link', function(e) {
 			e.preventDefault();
 
 			var url = new URL(this.href);
@@ -237,13 +235,17 @@
 
 			$("#quicksearch").val(search);
 			quicksearch(1, true, 0);
-		});
 
-		$('#cards').on('click', '.cardlist-tabs a', function (event) {
+		}).on('click', '.cardlist-tabs a, .cardpanel-not-found a[role="tab"]', function (event) {
 			event.preventDefault();
 			$(this).tab('show');
-		});
 
+		}).on('click', '.cardpanel-not-found a[role="tab"]', function (event) {
+			event.preventDefault();
+			let target = $(this).attr('href');
+			$('.cardlist-tabs a[href="' + target + '"]').tab('show');
+		});
+		
 		quicksearch(initial_page);
 
 		card_autocomplete("#quicksearch", 5, function(event, ui) {
