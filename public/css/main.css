@@ -341,21 +341,17 @@ select {
 	padding: 10px;
 	/*position: relative;*/
 	min-height: 420px;
-	transition: max-width 0.40s, visibility 0.10s;
 	padding-top: 52px;
 }
 #cards {
-	transition: max-width 0.20s;
 }
 .cardpanel {
 	display: grid;
 	grid-gap: 0px;
 	grid-template-columns: repeat(auto-fill, 280px);
 	margin: 10px 0px 25px 15px;
-	transition: max-width 0.40s, visibility 0.10s;
 }
 .cardpanel-main {
-	transition: max-width 0.40s, visibility 0.10s;
 }
 .cardrow {
 	border-bottom: 1px dotted black;
@@ -455,7 +451,8 @@ select {
 		grid-template-columns: repeat(auto-fill, 213px);
 	}
 	.cardpanel-current .mtgcard-wrapper {
-		margin: auto;
+		margin-left: auto;
+		margin-right: auto;
 	}
 	.flipper {
 		min-height: 260px;

@@ -2,13 +2,13 @@
 	// No lazy loading. Also prevent reprints listing, if it wasn't intended.
 	$reprint_count = $card->relationLoaded('functionalReprints') ? count($card->functionalReprints) : 0; 
 ?>
-<div class="col-sm-3 cardpanel-current" style="min-height: {{ 420 + $reprint_count * 35}}px">
+<div class="col-12 col-sm-4 col-md-4 col-lg-3 col-xl-3 cardpanel-current" style="min-height: {{ 420 + $reprint_count * 35}}px">
 	<div class="row" style="position:relative">
 		@include('card.partials.maincard', ['card' => $card])
 	</div>
 </div>
 
-<div class="col-sm-9 cardpanel-tabs">
+<div class="col-12 col-sm-8 col-md-8 col-lg-9 col-xl-9 cardpanel-tabs">
 
 	<ul class="nav nav-tabs panel-toggles cardlist-tabs">
 		<li class="nav-item">
