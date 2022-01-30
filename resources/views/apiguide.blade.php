@@ -20,7 +20,8 @@
 
 	<p>
 		The strictly better cards on this site can be retrieved and searched with API requests.
-	</p><br>
+	</p>
+	<hr>
 
 	<h3>General stuff</h3>
 

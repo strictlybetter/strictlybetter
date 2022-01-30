@@ -49,14 +49,15 @@
 		<h1>Help Voting</h1>
 
 		<p>Voting helps determine validity of the suggestions for users and AI alike.</p>
+		<hr>
 
 		<ul class="categorylist">
 			<li><a class="{{ Request::is('votehelp/low-on-votes') ? 'active' : '' }}" href="{{ route('votehelp.low-on-votes') }}" 
-				title="Help determine if fresh suggestions with low vote count are valid or not">Low on Votes</a></li>
+				title="Help determine if fresh suggestions with low vote count are valid or not">📉 Low on Votes</a></li>
 			<li><a class="{{ Request::is('votehelp/disputed') ? 'active' : '' }}" href="{{ route('votehelp.disputed') }}" 
-				title="Help find a final verdict for disputed suggestions with similar amount of upvotes and downvotes">Disputed</a></li>
+				title="Help find a final verdict for disputed suggestions with similar amount of upvotes and downvotes">&#x2694; Disputed</a></li>
 			<li><a class="{{ Request::is('votehelp/spreadsheets') ? 'active' : '' }}" href="{{ route('votehelp.spreadsheets') }}"
-				title="Help validate suggestions people have listed elsewhere">External Sources</a></li>
+				title="Help validate suggestions people have listed elsewhere">&#127760; External Sources</a></li>
 			<li>
 				<a class="btn btn-light btn-gatherer btn-refresh" href="javascript:location.reload();">
 					<i class="fa fa-refresh"></i>

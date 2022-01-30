@@ -19,67 +19,16 @@
 </div>
 
 @if(count($cards) == 0)
-	<!--<div class="row cardrow">
-		<div class="col-lg-4 cardpanel-inferior"></div>
-		<div class="row col-lg-8" style="margin:0;padding:0">
-			<div class="col-lg-4 cardpanel-current">
-				<p>Sorry, can't find "{{ $search }}"</p>
-			</div>
-			<div class="col-lg-8 cardpanel-superior"></div>
-		</div>
 
-	</div>-->
 	<div class="container"><br>
 		<p>Sorry, can't find "{{ $search }}"</p>
 	</div>
 
-	<!--<br><p>
-			@if(isset($search) && $search)
-				There are no upgrades for "{{ $search }}" in 
-				{{ (isset($format) && $format) ? ucfirst($format) : 'any format' }}
-				<br>
-			@else
-				No upgrades found.<br>
-			@endif
-			Perhaps you'd like to <a href="{{ route('card.create') }}">tell us otherwise</a>?
-
-		</p>-->
 @else
 	@foreach($cards as $card)
 	
-	<div class="row cardrow">
-
-		@if($card->relationLoaded('inferiors'))
-		<div class="col-sm-4 cardpanel-inferior">
-			<h4>Inferiors</h4>
-			<div class="row">
-
-					
-					
-					@foreach($card->inferiors as $i => $inferior)
-						@include('card.partials.relatedcard', ['related' => $inferior, 'type' => 'inferior'])
-					@endforeach
-
-					@if(Request::is('quicksearch'))
-					<div class="mtgcard-wrapper newcard">
-						<a class="card-create-link" href="{{ route('card.create', [$card->id, 'inferior' => 1]) }}" title="New inferior card for {{ $card->name }}">
-							{{ Html::image(asset('image/card-back.jpg'), 'New inferior card', ['class' => 'mtgcard']) }}
-							<span class="mtgcard-text">New inferior card</span>
-							<span class="plus-sign"><b>+</b></span>
-						</a>
-					</div>
-					@endif
-				
-					@if(count($card->inferiors) == 0)
-						<p style="margin-right: 25px;">No budget options found.</p>
-					@endif
-			</div>
-		</div>
-		@endif
-	
-		<div class="row col-sm-8 cardpanel-main" style="margin:0;padding:0;">
-			@include('card.partials.upgrade')
-		</div>
+	<div class="row cardrow cardpanel-main">
+		@include('card.partials.upgrade')
 	</div>
 	@endforeach
 

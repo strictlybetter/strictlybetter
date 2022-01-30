@@ -65,11 +65,30 @@ class DeckController extends Controller
 			$q->orderBy('upvotes', 'desc');
 		};
 
+		$card_restrictions_similar = function($q) use ($format, $un_color_identity, $cards) {
+
+			$q->guiOnly(['subtypes']);
+
+			if ($format !== "")
+				$q->where('legalities->' . $format, 'legal');
+
+			// Don't suggest cards that are already in the deck
+			$q->whereNotIn('name', $cards->pluck('name'));
+
+			foreach ($un_color_identity as $un_color) {
+				$q->whereJsonDoesntContain('color_identity', $un_color);
+			}
+		};
+
 		// Find replacements
-		$upgrades = Card::guiOnly(['subtypes'])->with(['superiors' => $card_restrictions])
+		$upgrades = Card::guiOnly(['subtypes'])->with(['superiors' => $card_restrictions, 'functionality.similiarcards' => $card_restrictions_similar])
 			->whereIn('name', $cards->pluck('name'))
 			->whereNull('main_card_id')
-			->whereHas('superiors', $card_restrictions)
+			->where(function($q) use ($card_restrictions, $card_restrictions_similar) {
+				$q->whereHas('superiors', $card_restrictions)
+				->orWhereHas('functionality.similiarcards', $card_restrictions_similar);
+			})
+			
 			->get();
 
 		// Additional sorting if tribes are selected
@@ -81,6 +100,9 @@ class DeckController extends Controller
 				if (!empty(array_intersect($tribes, $card->subtypes))) {
 					$card->superiors = $card->superiors->reject(function($superior) use ($tribes) {
 						return empty(array_intersect($superior->subtypes, $tribes));
+					})->values();
+					$card->functionality->similiarcards = $card->functionality->similiarcards->reject(function($similar) use ($tribes) {
+						return empty(array_intersect($similar->subtypes, $tribes));
 					})->values();
 				}
 
@@ -100,12 +122,19 @@ class DeckController extends Controller
 						return -($a->pivot->upvotes <=> $b->pivot->upvotes);
 
 					})->values();
+
+					$card->functionality->similiarcards = $card->functionality->similiarcards->sort(function($a, $b) use ($tribes) {
+						$a_tribe = count(array_intersect($a->subtypes, $tribes));
+						$b_tribe = count(array_intersect($b->subtypes, $tribes));
+
+						return -($a_tribe <=> $b_tribe);	
+					});
 				}
 			}
 
 			// If no suggestions are left for a upgradable card, remove it from the list 
 			$upgrades = $upgrades->reject(function($card) {
-				return (count($card->superiors) == 0);
+				return (count($card->superiors) == 0 && count($card->functionality->similiarcards) == 0);
 			})->values();
 		}
 

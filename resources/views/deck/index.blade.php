@@ -40,21 +40,25 @@
 
 		{{ Form::close() }}
 	</div>
-	<div class="container collapse-inferior" id="upgrade_view_container">
+	<div id="upgrade_view_container">
 
 		@if(isset($deckupgrades))
 
-			<h2>Results</h2>
+			<div class="container">
+				<h2>Results</h2>
 
-			@if(count($deckupgrades) === 0)
-				<p>Congratulations! No upgrades needed.</p>
-			@else
-				@foreach($deckupgrades as $card)
-					<div class="row cardrow">
-						@include('card.partials.upgrade')
-					</div>
-				@endforeach
-			@endif
+				@if(count($deckupgrades) === 0)
+					<p>Congratulations! No upgrades needed.</p>
+				@endif
+				<br>
+			</div>
+
+			@foreach($deckupgrades as $card)
+				<div class="row cardrow">
+					@include('card.partials.upgrade')
+				</div>
+			@endforeach
+
 		@endif
 		<br><br>
 	</div>
@@ -63,6 +67,7 @@
 
 @section('js')
 <script>
+	register_tabs("#upgrade_view_container");
 	$("#tribes").select2({
 		allowClear: true, 
 		placeholder: "Any Tribe",

@@ -44,11 +44,11 @@
 	<div class="container">
 		<h1>Add Suggestion</h1>
 		<p>
-			New suggestions are always welcome.<br>
-			<br>
-			Additions have to pass a few automated checks. Details can be found on <a href="{{ route('about') }}">About -page</a>.
+			New suggestions are always welcome.</p>
+			<hr>
+		<p>	Additions have to pass a few automated checks. Details can be found on <a href="{{ route('about') }}">About -page</a>.
 		</p>
-		<hr>
+		
 		{{ Form::open(['route' => 'card.store']) }}
 
 			<div class="row" style="min-height:220px"> 
@@ -134,6 +134,8 @@ function test_suggestion() {
 
 $(document).ready(function() { 
 
+	register_tabs("#upgrade_view_container");
+
 	function select2_template(data, append_trophy) {
 
 		var template = $('<span class="row">');
@@ -215,12 +217,16 @@ $(document).ready(function() {
 		});
 	}).on('change', function(e) {
 		test_suggestion();
+	}).on('select2:open', function(e)  {
+		$(".select2-search__field[aria-controls='select2-inferior-results']")[0].focus();
 	});
 	
 	select2_options.data = superiors;
 	select2_options.placeholder = "Select superior card";
 	$("#superior").select2(select2_options).on('change', function(e) {
 		test_suggestion();
+	}).on('select2:open', function(e)  {
+		$(".select2-search__field[aria-controls='select2-superior-results']")[0].focus();
 	});
 
 	// Rebuild on resize for responsive design

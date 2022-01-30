@@ -11,6 +11,7 @@
 		</div>
 		<span class="mtgcard-text">{{ $related->name }}</span>
 	</a>
+	@if($related->pivot)
 	<div class="card-label-container">
 		@if(is_array($related->pivot->labels))
 		@foreach($related->pivot->labels as $label => $value)
@@ -28,17 +29,17 @@
 	<div class="row card-votes" data-obsolete-id="{{ $related->pivot->obsolete_id }}">
 
 		{{ Form::open(['route' => ['upvote', $related->pivot->obsolete_id], 'class' => 'form-inline vote-form']) }}
-			<button type="submit" class="btn vote" style="color:green;">
+			<button type="submit" class="btn vote vote-up">
 				<span class="vote-text">{{ (isset($type) && $type == 'inferior') ? "Strictly Worse" : "Strictly Better" }}</span>
-				<i class="fa fa-thumbs-up" style="font-size:24px;"></i>
+				<i class="fa fa-thumbs-up"></i>
 				<span class="upvote-count">{{ $related->upvotes }}</span>
 			</button>
 		{{ Form::close() }}
 
 		{{ Form::open(['route' => ['downvote', $related->pivot->obsolete_id], 'class' => 'form-inline vote-form']) }}
-			<button type="submit" class="btn vote" style="color:red;">
+			<button type="submit" class="btn vote vote-down">
 				<span class="vote-text">Not</span>
-				<i class="fa fa-thumbs-down" style="font-size:24px;"></i>
+				<i class="fa fa-thumbs-down"></i>
 				<span class="downvote-count">{{ $related->downvotes }}</span>
 			</button>
 		{{ Form::close() }}
@@ -48,24 +49,25 @@
 	<div class="row card-votes">
 
 		{{ Form::open(['route' => ['votehelp.add-suggestion', $related->pivot->suggestion_id], 'class' => 'form-inline vote-form']) }}
-			<button type="submit" class="btn vote" style="color:green;">
+			<button type="submit" class="btn vote vote-up">
 				<span class="vote-text">{{ (isset($type) && $type == 'inferior') ? "Strictly Worse" : "Strictly Better" }}</span>
-				<i class="fa fa-thumbs-up" style="font-size:24px;"></i>
+				<i class="fa fa-thumbs-up"></i>
 				<span class="upvote-count">0</span>
 			</button>
 			{{ Form::hidden('superior_id', $related->id) }}
 		{{ Form::close() }}
 
 		{{ Form::open(['route' => ['votehelp.ignore-suggestion', $related->pivot->suggestion_id], 'class' => 'form-inline vote-form']) }}
-			<button type="submit" class="btn vote" style="color:red;">
+			<button type="submit" class="btn vote vote-down">
 				<span class="vote-text">Not</span>
-				<i class="fa fa-thumbs-down" style="font-size:24px;"></i>
+				<i class="fa fa-thumbs-down"></i>
 				<span class="downvote-count">0</span>
 			</button>
 			{{ Form::hidden('superior_id', $related->id) }}
 		{{ Form::close() }}
 
 	</div>
+	@endif
 	@endif
 	<div class="row card-external-links">
 		@if($related->scryfall_link)<a class="btn btn-light btn-gatherer" href="{{ $related->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif

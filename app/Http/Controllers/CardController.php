@@ -123,15 +123,17 @@ class CardController extends Controller
 	{
 		$order = $this->card_orders[$order_key];
 
-		$card_filters = function($q) use ($format, $tribe, $filters, $order) {
-
-			$q->relatedGuiOnly();
-
+		$card_filters = function($q) use ($format, $tribe) {
 			if ($format !== "")
 				$q->where('legalities->' . $format, 'legal');
 
 			if ($tribe !== "")
 				$q->whereJsonContains('subtypes', $tribe);
+		};
+
+		$card_filters_related = function($q) use ($format, $tribe, $filters, $order, $card_filters) {
+
+			$q->where($card_filters)->relatedGuiOnly();
 
 			// Apply filters
 			if (is_array($filters)) {
@@ -140,24 +142,24 @@ class CardController extends Controller
 						$q->where('labelings.labels->' . $filter, false);
 				}
 			}
-
 			$q->orderBy($order['obsolete'], $order['direction']);
 		};
 
-		$cards = Card::guiOnly()->with(['superiors' => $card_filters, 'inferiors' => $card_filters, 'functionalReprints' => function ($q) use ($format) {
-			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
-		}]);
+		$card_filters_other = function($q) use ($format, $tribe, $order, $card_filters) {
+			$q->where($card_filters)->guiOnly();
+		};
+
+		$cards = Card::guiOnly()->with(['superiors' => $card_filters_related, 'inferiors' => $card_filters_related, 'functionality.similiarcards' => $card_filters_other, 'functionalReprints' => $card_filters_other]);
 
 		if ($has_obsoletes) {
-			$cards = $cards->where(function($q) use ($card_filters, $term) {
+			$cards = $cards->where(function($q) use ($card_filters_related, $term) {
 
 				if ($term !== "")
 					$q->where('name', $term)
-					->orWhereHas('superiors', $card_filters)
-					->orWhereHas('inferiors', $card_filters);
+					->orWhereHas('superiors', $card_filters_related)
+					->orWhereHas('inferiors', $card_filters_related);
 				else
-					$q->whereHas('superiors', $card_filters);
+					$q->whereHas('superiors', $card_filters_related);
 				//	->orWhereHas('inferiors', $card_filters);
 			});
 		}
@@ -177,6 +179,11 @@ class CardController extends Controller
 			if (count($card->functionalReprints) > 0) {
 				$cards[$i]->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
 					return ($card->id === $item->id);
+				})->values();
+			}
+			if (count($card->functionality->similiarcards) > 0) {
+				$cards[$i]->functionality->similiarcards = $card->functionality->similiarcards->reject(function($item) use ($card) {
+					return ($item->functionality_id === $card->functionality_id);
 				})->values();
 			}
 		}
@@ -207,7 +214,8 @@ class CardController extends Controller
 
 				$card->load([
 					'functionalReprints' => function($q) { $q->guiOnly(); }, 
-					'superiors' => function($q) { $q->relatedGuiOnly(); }
+					'superiors' => function($q) { $q->relatedGuiOnly(); },
+					'functionality.similiarcards' => function($q) { $q->guiOnly(); }
 				]);
 
 				$inferiors = $card->functionalReprints;
@@ -221,6 +229,10 @@ class CardController extends Controller
 				$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
 					return ($card->id === $item->id);
 				})->values();
+
+				$card->functionality->similiarcards = $card->functionality->similiarcards->reject(function($item) use ($card) {
+					return ($card->functionality_id === $item->functionality_id);
+				})->values();
 			}
 		}
 
@@ -231,11 +243,16 @@ class CardController extends Controller
 	{
 		$card->load([
 			'functionalReprints' => function($q) { $q->guiOnly(); }, 
-			'superiors' => function($q) { $q->relatedGuiOnly(); }]);
+			'superiors' => function($q) { $q->relatedGuiOnly(); },
+			'functionality.similiarcards' => function($q) { $q->guiOnly(); }]);
 
 		// Remove self from reprints
 		$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
 			return ($card->id === $item->id);
+		})->values();
+
+		$card->functionality->similiarcards = $card->functionality->similiarcards->reject(function($item) use ($card) {
+			return ($card->functionality_id === $item->functionality_id);
 		})->values();
 
 	    return view('card.partials.upgrade')->with(['card' => $card]);
