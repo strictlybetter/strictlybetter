@@ -83,7 +83,7 @@
 
 		<div class="row">
 			
-			<div class="col-6 col-md-4 col-xl-3">
+			<div class="col-6 col-md-4 col-xl-3 cardpanel-votemain">
 				@include('card.partials.maincard', ['card' => $inferior])
 			</div>
 			<div class="col-6 col-md-4 col-xl-4">

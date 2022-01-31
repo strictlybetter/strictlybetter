@@ -270,6 +270,9 @@ select {
 .cardpanel-current:hover {
 	z-index: 300;
 }
+.cardpanel-votemain:hover {
+	z-index: 300;
+}
 .reprint-stack .flipper:hover {
 	z-index: 201;
 }
