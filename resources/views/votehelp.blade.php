@@ -83,15 +83,11 @@
 
 		<div class="row">
 			
-			<div class="col-sm-3">
-				<div class="row" style="position:relative">
-					@include('card.partials.maincard', ['card' => $inferior])
-				</div>
+			<div class="col-6 col-md-4 col-xl-3">
+				@include('card.partials.maincard', ['card' => $inferior])
 			</div>
-			<div class="col-sm-9">
-				<div class="row" style="position:relative">
-					@include('card.partials.relatedcard', ['related' => $superior, 'type' => 'superior'])
-				</div>
+			<div class="col-6 col-md-4 col-xl-4">
+				@include('card.partials.relatedcard', ['related' => $superior, 'type' => 'superior'])
 			</div>
 			
 		</div>

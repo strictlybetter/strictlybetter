@@ -1,3 +1,4 @@
+<div class="scroller">
 @if(isset($reprint_count) && $reprint_count > 0)
 	@foreach($card->functionalReprints as $i => $reprint_card)
 
@@ -35,4 +36,5 @@
 		@if($card->scryfall_link)<a class="btn btn-gatherer" href="{{ $card->scryfall_link }}" rel="noopener nofollow">Scryfall</a>@endif
 		@if($card->multiverse_id)<a class="btn btn-gatherer" href="{{ $card->gathererUrl }}" rel="noopener nofollow">Gatherer</a>@endif
 	</div>
+</div>
 </div>

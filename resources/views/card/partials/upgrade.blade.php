@@ -3,9 +3,7 @@
 	$reprint_count = $card->relationLoaded('functionalReprints') ? count($card->functionalReprints) : 0; 
 ?>
 <div class="col-12 col-sm-4 col-md-4 col-lg-3 col-xl-3 cardpanel-current" style="min-height: {{ 420 + $reprint_count * 35}}px">
-	<div class="row" style="position:relative">
-		@include('card.partials.maincard', ['card' => $card])
-	</div>
+	@include('card.partials.maincard', ['card' => $card])
 </div>
 
 <div class="col-12 col-sm-8 col-md-8 col-lg-9 col-xl-9 cardpanel-tabs">
