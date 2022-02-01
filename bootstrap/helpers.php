@@ -501,7 +501,7 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 			->where('functionality_id', "!=", $card->functionality_id)
 			->whereDoesntHave('cardFaces')
 			->where(function($q) {
-				$q->where('flip', false)->orWhereNotNull('cmc');
+				$q->where('flip', 0)->orWhereNotNull('cmc');
 			});
 
 		if (!$using_analysis)
@@ -526,44 +526,53 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 
 			$q = $q->whereHas('functionality', function($q) use ($excerpts) {
 
-				// If the inferior doesn't have any excerpts, superior must have some excerpts
+				// If the inferior doesn't have any excerpts, superior must have some excerpts (that are all positive)
 				if ($excerpts->isEmpty())
-					$q->has('excerpts');
+					$q->has('excerpts')
+					->whereDoesntHave('excerpts', function($q) use ($excerpts) {
+						$q->where('positive', '=', 0)->orWhereNull('positive');
+					});
 				else {
 
 					// Must have all non-negative excerpts the inferior has
 					// ... or the non-negative excerpt must be an inferior
-					$non_negative_ids = $excerpts->whereStrict('positive', '!==', 0)->pluck('id');
+					$non_negative_ids = $excerpts->where('positive', '!==', 0)->pluck('id')->toArray();
 
-					if ($non_negative_ids->count() > 0) {
+					$non_positives = $excerpts->where('positive', '!==', 1);
+					$non_positive_ids =  $non_positives->pluck('id')->toArray();
+					foreach ($non_positives as $excerpt) {
+						$non_positive_ids = array_merge($non_positive_ids, $excerpt->superiors->pluck('id')->toArray());
+					}
+
+					if (count($non_negative_ids) > 0) {
 
 						$q->whereHas('excerpts',  function($q) use ($non_negative_ids) {
 
 							$q->whereIn('excerpts.id', $non_negative_ids)
 							->orWhereHas('inferiors', function($q) use ($non_negative_ids) {
-								$q->whereÍn('excerpts.id', $non_negative_ids);
+								$q->whereIn('excerpts.id', $non_negative_ids);
 							});
 
-						}, '>=', $non_negative_ids->count());
+						}, '>=', count($non_negative_ids));
 					}
 
 					// Doesnt have excerpts that are non-positive and not part of inferior card
 					// ... and not superior to 
-					/*
-					$q->whereDoesntHave('excerpts', function($q) use ($excerpts) {
+					
+					$q->whereDoesntHave('excerpts', function($q) use ($non_positive_ids) {
 
-						$q->where('positive', '!=', 1)
-						->where(function($q) use ($excerpts) {
-							$q->whereNotIn('excerpts.id', $excerpts->pluck('id'));
-
-							if ($excerpts->count() > 0) {
-								$q->orWhereHas('superiors', function($q) use ($excerpts) {
-									$q->whereIn('excerpts.id', $excerpts->pluck('id'));
-								});
-							}
+						$q->where(function($q) {
+							$q->where('positive', '=', 0)
+							->orWhereNull('positive');
 						});
-						
-					});*/
+
+						if (count($non_positive_ids) > 0) {
+
+							$q->where(function($q) use ($non_positive_ids) {
+								$q->whereIn('excerpts.id', $non_positive_ids);
+							}, null, null, 'AND NOT');
+						}
+					});
 				}	
 
 			});
@@ -649,6 +658,8 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		}
 		else
 			$q = $q->whereJsonLength('manacost_sorted', 0);
+
+		// dd(\Str::replaceArray('?', $q->getBindings(), $q->toSql()));
 
 
 		$q->orderBy('cards.id', 'asc')->chunk(1000, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
