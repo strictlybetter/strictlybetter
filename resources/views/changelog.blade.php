@@ -20,6 +20,12 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
+	<h4>01/31/22</h4>
+	<ul>
+		<li>Compared main card now sticky scrolls for easier comparing</li>
+		<li>Minor UI tweaks for navbar and votehelp page</li>
+	</ul>
+
 	<h4>01/27/22</h4>
 	<ul>
 		<li>New UI

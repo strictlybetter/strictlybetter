@@ -463,8 +463,11 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		'substituted_rules',
 		'manacost',
 		'power',
+		'power_numeric',
 		'toughness',
+		'toughness_numeric',
 		'loyalty',
+		'loyalty_numeric',
 		'functionality_id'
 	];
 
@@ -609,18 +612,33 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 		if ($card->power !== null) {
 
 			if (is_numeric($card->power))
-				$q = $q->whereRaw('power >= CAST(? as DECIMAL(8,1))', [(double)$card->power]);
+				$q = $q->where('power_numeric', '>=', $card->power_numeric);
 			else
 				$q = $q->where('power', '=', $card->power);
+		}
+		else
+			$q = $q->whereNull('power');
 
+		if ($card->toughness !== null) {
 			if (is_numeric($card->toughness))
-				$q = $q->whereRaw('toughness >= CAST(? as DECIMAL(8,1))', [(double)$card->toughness]);
+				$q = $q->where('toughness_numeric', '>=', $card->toughness_numeric);
 			else
 				$q = $q->where('toughness', '=', $card->toughness);
 		}
 		else
-			$q = $q->whereNull('power')->whereNull('toughness');
+			$q = $q->whereNull('toughness');
 
+		// Loyalty
+		if ($card->loaylty !== null) {
+			if (is_numeric($card->loyalty))
+				$q = $q->where('loyalty_numeric', '>=', $card->loyalty_numeric);
+			else
+				$q = $q->where('loyalty', '=', $card->loyalty);
+		}
+		else
+			$q = $q->whereNull('loyalty');
+
+		// Manacost
 		if (!empty($card->manacost_sorted)) {
 			foreach ($card->manacost_sorted as $symbol => $amount) {
 				$q = $q->where(function($q) use ($symbol, $amount){
@@ -665,14 +683,14 @@ function create_obsoletes($using_analysis = false, $progress_callback = null, &$
 					if ($card->hasStats()) {
 
 						// Power and toughness are quaranteed to be atleast equal by this point, so just check for greatness
-						$more_power = is_numeric($better->power) ? ((double)$card->power) < ((double)$better->power) : false;
-						$more_toughness = is_numeric($better->toughness) ? ((double)$card->toughness) < ((double)$better->toughness) : false;
+						$more_power = is_numeric($better->power) ? ($card->power_numeric < $better->power_numeric) : false;
+						$more_toughness = is_numeric($better->toughness) ? ($card->toughness_numeric < $better->toughness_numeric) : false;
 
 						return ($more_power || $more_toughness);
 					}
 
 					if ($card->hasLoyalty()) {
-						return ($card->loyalty < $better->loyalty);
+						return is_numeric($card->loyalty) ? ($card->loyalty_numeric < $better->loyalty_numeric) : false;
 					}
 
 					if (in_array("Instant", $better->types) && in_array("Sorcery", $card->types)) {

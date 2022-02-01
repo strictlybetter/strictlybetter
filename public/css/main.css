@@ -22,6 +22,7 @@ button,input[disabled] {
 }
 a.card-link {
 	/*position: relative;*/
+	display: inline-block;
 }
 .mtgcard-wrapper a.card-link:hover {
 	z-index: 300;
@@ -266,6 +267,12 @@ select {
 .reprint-stack img.mtgcard {
 	transition: transform 0.20s;
 }
+.cardpanel-current:hover {
+	z-index: 300;
+}
+.cardpanel-votemain:hover {
+	z-index: 300;
+}
 .reprint-stack .flipper:hover {
 	z-index: 201;
 }
@@ -442,6 +449,9 @@ select {
 		max-height: 260px;
 		border-radius: 7px;
 	}
+	.scroller {
+		height: 309px;
+	}
 	.mtgcard-wrapper {
 		width: 187px;
 		min-height: 260px;
@@ -467,4 +477,13 @@ select {
 		top: 0;
 		margin-bottom: 0.5rem;
 	}
+}
+#card-search {
+	width: 100%;
+}
+.scroller {
+	height: 360px;
+	position: sticky;
+	top: 102px;
+	margin-bottom: 77px;
 }
