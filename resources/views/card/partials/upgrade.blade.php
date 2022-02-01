@@ -26,7 +26,7 @@
 		@if($card->relationLoaded('functionality'))
 		<li class="nav-item">
 			<a disabled class="nav-link functionalitygroup-toggle" id="functionalitygroup-tab-{{ $card->id }}" data-bs-toggle="tab" href="#functionalitygroup-{{ $card->id }}" role="tab" aria-controls="functionalitygroup-{{ $card->id }}" aria-selected="false" title="Type variants">
-				<i class="nav-item-functionalitygroup">&thickapprox;</i>
+				<i class="nav-item-functionalitygroup">=</i>
 				Type variants ({{ $card->functionality->similiarcards->count() }}) 
 			</a>
 		</li>
