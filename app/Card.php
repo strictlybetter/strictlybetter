@@ -415,7 +415,7 @@ class Card extends Model
 
 	public function hasStats()
 	{
-		return ($this->power !== null && $this->toughness !== null);
+		return ($this->power !== null || $this->toughness !== null);
 	}
 
 	public function hasLoyalty() 
