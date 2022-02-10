@@ -389,8 +389,8 @@ class Card extends Model
 		}
 
 		// This card must not be slower than the other card
-		if ((in_array("Instant", $other->types) || preg_match('/\b(Flash|Cycling)\b/', $other->substituted_rules)) &&
-			!(in_array("Instant", $this->types) || preg_match('/\b(Flash|Cycling)\b/', $this->substituted_rules)))
+		if ((in_array("Instant", $other->types) || preg_match('/\b(Flash|\w*Cycling)\b/i', $other->substituted_rules)) &&
+			!(in_array("Instant", $this->types) || preg_match('/\b(Flash|\w*Cycling)\b/i', $this->substituted_rules)))
 			return $with_errors ? 'card.validation.not-instant' : false;
 
 
@@ -403,8 +403,9 @@ class Card extends Model
 			// or triggers when cycled
 			if (!preg_match('/\bWhen (?!another)[^\.]* enters the battlefield/', $this->substituted_rules) &&
 				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules) &&
-				!preg_match('/\bWhen(?:ever)? you cycle @@@/', $this->substituted_rules))
-				return $with_errors ? 'validation.not-immediate' : false;
+				!preg_match('/\bWhen(?:ever)? you cycle @@@/', $this->substituted_rules) &&
+				!preg_match('/\b\w+cycling\b/', $this->substituted_rules))
+				return $with_errors ? 'card.validation.not-immediate' : false;
 		}
 
 		// This card must not cost more mana, but may cost more of the existing colors.
