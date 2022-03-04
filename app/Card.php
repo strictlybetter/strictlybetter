@@ -388,8 +388,8 @@ class Card extends Model
 		}
 
 		// This card must not be slower than the other card
-		if ((in_array("Instant", $other->types) || preg_match('/\b(Flash|\w*Cycling)\b/i', $other->substituted_rules)) &&
-			!(in_array("Instant", $this->types) || preg_match('/\b(Flash|\w*Cycling)\b/i', $this->substituted_rules)))
+		if ((in_array("Instant", $other->types) || preg_match('/\b(Flash|\w*Cycling|Channel)\b/i', $other->substituted_rules)) &&
+			!(in_array("Instant", $this->types) || preg_match('/\b(Flash|\w*Cycling|Channel)\b/i', $this->substituted_rules)))
 			return $with_errors ? 'card.validation.not-instant' : false;
 
 
@@ -403,7 +403,8 @@ class Card extends Model
 			if (!preg_match('/\bWhen (?!another)[^\.]* enters the battlefield/', $this->substituted_rules) &&
 				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules) &&
 				!preg_match('/\bWhen(?:ever)? you cycle @@@/', $this->substituted_rules) &&
-				!preg_match('/\b\w+cycling\b/', $this->substituted_rules))
+				!preg_match('/\b\w+cycling\b/', $this->substituted_rules) &&
+				!preg_match('/\bChannel\b/', $this->substituted_rules))
 				return $with_errors ? 'card.validation.not-immediate' : false;
 		}
 
@@ -555,6 +556,7 @@ class Card extends Model
 			"Overload", // — a spell affects all possible targets instead of just one
 
 			"Cycling",
+			"Channel"
 		/*
 			"Foretell",
 		*/
@@ -567,7 +569,7 @@ class Card extends Model
 		];
 
 		$words = implode("|", $alt_keywords);
-		$pattern = '/\b('.$words.') ((?:\{[^\}]+\})+)/u';
+		$pattern = '/\b('.$words.') (?:\d*— ?)?((?:\{[^\}]+\})+)/u';
 
 		preg_match_all($pattern, $this->substituted_rules, $matches, PREG_SET_ORDER);
 
