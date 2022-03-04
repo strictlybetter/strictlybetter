@@ -20,6 +20,11 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
+	<h4>03/04/22</h4>
+	<ul>
+		<li>Added support for <i>Channel</i>. Ie. <i>Ironhoof Boar</i> is now better than <i>Brute Strength<i></li>
+	</ul>
+
 	<h4>01/31/22</h4>
 	<ul>
 		<li>Compared main card now sticky scrolls for easier comparing</li>
