@@ -304,7 +304,7 @@ class Card extends Model
 		$substitute_rules = preg_replace('/;/u', ',', $substitute_rules);		// Some older cards separate keywords with ; replace to ,
 
 		// Lands have their tap ability in parenthesis, remove the parenthesis
-		$substitute_rules = preg_replace('/\(([^\)]*{T}: Add (?:\{[^\}]+\})+(?: or (?:\{[^\}]+\})+)*\."?)\)/u', '\1', $substitute_rules);
+		$substitute_rules = preg_replace('/\(([^\)]*{T}: Add [^\)]*\.\"?)\)/u', '\1', $substitute_rules);
 
 		// Remove all reminder texts
 		$substitute_rules = preg_replace('/\s*?\([^\)]*\)/u', '', $substitute_rules);
