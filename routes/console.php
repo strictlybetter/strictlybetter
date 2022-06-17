@@ -304,7 +304,7 @@ Artisan::command('create-obsoletes', function () {
 
 	$old_obsolete_count = App\Obsolete::count();
 
-	create_obsoletes(false, $progress_callback, $count);
+	create_obsoletes($count, false, $progress_callback);
 	
 	$this->comment($count . " better cards found. " . (Obsolete::count() - $old_obsolete_count) . "  new records created for database. ");
 
@@ -338,7 +338,7 @@ Artisan::command('create-obsoletes-by-analysis', function () {
 
 	$old_obsolete_count = App\Obsolete::count();
 
-	create_obsoletes(true, $progress_callback, $count);
+	create_obsoletes($count, true, $progress_callback);
 	
 	$this->comment($count . " better cards found. " . (Obsolete::count() - $old_obsolete_count) . "  new records created for database. ");
 

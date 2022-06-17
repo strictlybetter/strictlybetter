@@ -440,7 +440,7 @@ function get_line_count($filename) {
 	return $count;
 }
 
-function create_obsoletes($using_analysis = false, $progress_callback = null, &$count) {
+function create_obsoletes(&$count, $using_analysis = false, $progress_callback = null) {
 
 	DB::transaction(function () use ($progress_callback, &$count, $using_analysis) {
 
