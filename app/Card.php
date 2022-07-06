@@ -185,7 +185,7 @@ class Card extends Model
 
 		return $line;
 	}
-
+	/*
 	public function findCardByFunctionality()
 	{
 		$face = $this;
@@ -197,7 +197,7 @@ class Card extends Model
 		};
 
 		// Try finding a card with identical characteristics and a set functionality_id
-		$q = Card::with(['functionality'])//->select(['cards.id', 'functionality_id'])
+		$q = Card::with(['functionality.group'])//->select(['cards.id', 'functionality_id'])
 			->where($functionality_rules);
 
 		foreach ($this->cardFaces as $cardface) {
@@ -228,7 +228,7 @@ class Card extends Model
 		};
 
 		// Try finding a card with similar characteristics and a set functionality_id (for group_id)
-		$q = Card::with(['functionality'])->where($group_rules);
+		$q = Card::with(['functionality.group'])->where($group_rules);
 
 		foreach ($this->cardFaces as $cardface) {
 			$face = $cardface;
@@ -239,6 +239,7 @@ class Card extends Model
 
 		return $q->orderBy('id')->first();
 	}
+	*/
 
 	public function linkToFunctionality()
 	{
@@ -246,36 +247,11 @@ class Card extends Model
 		if ($this->main_card_id)
 			return null;
 
-		$migrate_from_orphan_functionality = null;
-		$new_functionality = null;
+		$migrate_from_orphan_functionality = $this->functionality_id ? $this->functionality : null;
 
-		// If this card already has a functionality (that we are re-establishing) 
-		// and this card is the only card in this functionality, migrate assets from the functionality to new one
-		if ($this->functionality_id) {
-			if ($this->functional_reprints_count <= 1)
-				$migrate_from_orphan_functionality = $this->functionality;
-		}
-
-		$card = $this->findCardByFunctionality();
-		
-		if ($card)
-			$new_functionality = $card->functionality;
-
-		else {
-
-			$group_id = null;
-			$similiar = $this->findCardByFunctionalityGroup();
-
-			if ($similiar) {
-				$group_id  = $similiar->functionality->group_id;
-			}
-			else {
-				$group = FunctionalityGroup::create([]);
-				$group_id = $group->id;
-			}
-
-			$new_functionality = Functionality::create(['group_id' => $group_id]);
-		}
+		$algo = config('hashing.functionality_algorithm');
+		$new_group = FunctionalityGroup::firstOrCreate(['hash' => hash($algo, $this->functionality_group_line)]);
+		$new_functionality = Functionality::with('group')->firstOrCreate(['hash' => hash($algo, $this->functionality_line)], ['group_id' => $new_group->id]);
 
 		if ($this->functionality_id != $new_functionality->id) {
 			$this->functionality()->associate($new_functionality);
@@ -283,10 +259,42 @@ class Card extends Model
 		}
 
 		// Move better-worse relations and voting data to new functionality if leaving orhpans
-		if ($migrate_from_orphan_functionality && $migrate_from_orphan_functionality->id != $new_functionality->id) {
-			$migrate_from_orphan_functionality->migrateTo($new_functionality);
-			$migrate_from_orphan_functionality->delete();
+		if ($migrate_from_orphan_functionality && 
+			($migrate_from_orphan_functionality->id != $new_functionality->id || 
+			$migrate_from_orphan_functionality->group_id != $new_group->id)) {
+
+			$migrate_from_orphan_functionality->migrateTo($new_functionality, $new_group);
+
+			if ($migrate_from_orphan_functionality->id != $new_functionality->id && $migrate_from_orphan_functionality->cards()->count() == 0) {
+				if ($migrate_from_orphan_functionality->group->functionalities()->count() <= 1)
+					$migrate_from_orphan_functionality->group->delete();
+				else
+					$migrate_from_orphan_functionality->delete();
+			}
 		}
+
+		// Change group_id only after migrating associated entities, 
+		// because changing it will cause cascade update, which might run in to duplicates in unique columns in obsoletes table.
+		if ($new_functionality->group_id != $new_group->id) {
+			$new_functionality->group_id = $new_group->id;
+			$new_functionality->save();
+		}
+
+		/*
+		// TODO: Create labelings for our new relation
+		if (!$new_group->wasRecentlyCreated && ($new_functionality->wasRecentlyCreated || $new_functionality->group_id != $new_group->id) ) {
+
+			$superiors = Obsolete::with(['labelings'])->where('superior_functionality_group_id', $new_group->id);
+			$inferiors = Obsolete::with(['labelings'])->where('inferior_functionality_group_id', $new_group->id);
+			foreach ($superiors as $superior) {
+				create_labeling()
+			}
+
+			foreach ($inferiors as $inferior) {
+				create_labeling()
+			}
+		}
+		*/
 
 		return $this->functionality_id;
 	}
@@ -294,6 +302,15 @@ class Card extends Model
 	/*
 		Should only be used to generate/populate substituted_rules field,
 		in other cases use substituted_rules attribute
+
+		TODO: Think about adding implicit rules here. Such as:
+
+		Instant => Flash
+		Land => Play one per turn
+		Legendary => Sacrifice all but one duplicate
+
+		This way machine learning could learn new things from rules. 
+		Also grouping cards by functionality group could be easier, sicne we wouldn't need to care about types anymore.
 	*/
 	public function substituteRules() 
 	{

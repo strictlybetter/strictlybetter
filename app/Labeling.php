@@ -31,4 +31,14 @@ class Labeling extends Pivot
 	{
 		return $this->belongsTo(Obsolete::class);
 	}
+
+	public function inferior() 
+	{
+		return $this->belongsTo(Functionality::class, 'inferior_functionality_id');
+	}
+
+	public function superior() 
+	{
+		return $this->belongsTo(Functionality::class, 'superior_functionality_id');
+	}
 }

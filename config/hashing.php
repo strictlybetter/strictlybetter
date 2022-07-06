@@ -49,4 +49,18 @@ return [
         'time' => 2,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Functionality Hash Algorithm
+    |--------------------------------------------------------------------------
+    |
+    | Functionalities and functionality groups characteristics are hashed using 
+    | a PHP native algorithm. No need to be cryptographically secure, but a quick 
+    | algorithm with space for some ~25k functionalities is desired.
+    |
+    | Performance test results showed 'xxh3' is a good option.
+    | 
+     */
+    'functionality_algorithm' => 'xxh3'
+
 ];
