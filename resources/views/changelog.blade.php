@@ -20,6 +20,12 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
+	<h4>07/06/22</h4>
+	<ul>
+		<li>Fixed some card misgroupings causing votes to be shared incorrectly.</li>
+		<li>Moved some older suggestions from inferior/superior tabs to type variants (Add suggestions page also rejects adding type variants).</li>
+	</ul>
+
 	<h4>03/04/22</h4>
 	<ul>
 		<li>Added support for <i>Channel</i>. Ie. <i>Ironhoof Boar</i> is now better than <i>Brute Strength<i></li>
