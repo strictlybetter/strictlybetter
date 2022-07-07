@@ -77,47 +77,50 @@ class Functionality extends Model
 			->whereHas('excerpts', function($e) { return $e->whereNotNull('positive'); });
 	}
 
-	public function migrateTo(Functionality $new_functionality)
+	public function migrateTo(Functionality $new_functionality, FunctionalityGroup $new_group)
 	{
-		$inferiors = Labeling::with(['obsolete'])->where('inferior_functionality_id', $this->id)->get();
-		$superiors = Labeling::with(['obsolete'])->where('superior_functionality_id', $this->id)->get();
+		$inferiors = Labeling::with(['obsolete'])->where('superior_functionality_id', $this->id)->get();
+		$superiors = Labeling::with(['obsolete'])->where('inferior_functionality_id', $this->id)->get();
 
 		// Inferiors
 		foreach ($inferiors as $labeling) {
 			$labeling->timestamps = false;
-			if ($labeling->obsolete && $this->group_id !== $new_functionality->group_id) {
+			if ($labeling->obsolete && $this->group_id !== $new_group->id) {
 
-				$existing_obsolete = Obsolete::where('inferior_functionality_group_id', $new_functionality->group_id)
-					->where('superior_functionality_group_id', $labeling->obsolete->superior_functionality_group_id)
+				$existing_obsolete = Obsolete::with(['votes'])->where('superior_functionality_group_id', $new_group->id)
+					->where('inferior_functionality_group_id', $labeling->obsolete->inferior_functionality_group_id)
 					->first();
 
 				if ($existing_obsolete) {
-					$copy_only = ($labeling->obsolete->labelings()->count() > 1);
-					$existing_obsolete->migrateVotesTo($existing_obsolete, $copy_only);
+					$labeling->obsolete->migrateVotesTo($existing_obsolete);
+
+					$to_delete = $labeling->obsolete;
 
 					$labeling->obsolete_id = $existing_obsolete->id;
 					$labeling->save();
 
-					if (!$copy_only) 
-						$labeling->obsolete->delete();
-				}
+					$to_delete->delete();
+				}/* Handled by cascade update later on functionalities table
 				else {
 					$labeling->obsolete->timestamps = false;
-					$labeling->obsolete->inferior_functionality_group_id = $new_functionality->group_id;
+					$labeling->obsolete->superior_functionality_group_id = $new_group->id;
 					$labeling->obsolete->save();
+				}*/
+			}
+
+			if ($this->id != $new_functionality->id) {
+
+				$existing_labeling = Labeling::where('superior_functionality_id', $new_functionality->id)
+					->where('inferior_functionality_id', $labeling->inferior_functionality_id)
+					->first();
+
+				if ($existing_labeling) {
+					$labeling->delete();
 				}
-			}
-
-			$existing_labeling = Labeling::where('inferior_functionality_id', $new_functionality->id)
-				->where('superior_functionality_id', $labeling->superior_functionality_id)
-				->first();
-
-			if ($existing_labeling) {
-				$labeling->delete();
-			}
-			else {
-				$labeling->inferior_functionality_id = $new_functionality->id;
-				$labeling->save();
+				else {
+					$labeling->superior_functionality_id = $new_functionality->id;
+					$labeling->save();
+				}
 			}
 		}
 
@@ -126,44 +129,40 @@ class Functionality extends Model
 			$labeling->timestamps = false;
 			if ($labeling->obsolete && $this->group_id !== $new_functionality->group_id) {
 
-				$existing_obsolete = Obsolete::where('superior_functionality_group_id', $new_functionality->group_id)
-					->where('inferior_functionality_group_id', $labeling->obsolete->inferior_functionality_group_id)
+				$existing_obsolete = Obsolete::with(['votes'])->where('inferior_functionality_group_id', $new_functionality->group_id)
+					->where('superior_functionality_group_id', $labeling->obsolete->superior_functionality_group_id)
 					->first();
 
 				if ($existing_obsolete) {
-					$copy_only = ($labeling->obsolete->labelings()->count() > 1);
-					$existing_obsolete->migrateVotesTo($existing_obsolete, $copy_only);
+					$labeling->obsolete->migrateVotesTo($existing_obsolete);
+
+					$to_delete = $labeling->obsolete;
 
 					$labeling->obsolete_id = $existing_obsolete->id;
 					$labeling->save();
 
-					if (!$copy_only) 
-						$labeling->obsolete->delete();
-				}
+					$to_delete->delete();
+				}/* Handled by cascade update later on functionalities table
 				else {
 					$labeling->obsolete->timestamps = false;
-					$labeling->obsolete->superior_functionality_group_id = $new_functionality->group_id;
+					$labeling->obsolete->inferior_functionality_group_id = $new_group->id;
 					$labeling->obsolete->save();
+				}*/
+			}
+
+			if ($this->id != $new_functionality->id) {
+
+				$existing_labeling = Labeling::where('inferior_functionality_id', $new_functionality->id)
+					->where('superior_functionality_id', $labeling->superior_functionality_id)
+					->first();
+
+				if ($existing_labeling) {
+					$labeling->delete();
 				}
-			}
-
-			$existing_labeling = Labeling::where('superior_functionality_id', $new_functionality->id)
-				->where('inferior_functionality_id', $labeling->inferior_functionality_id)
-				->first();
-
-			if ($existing_labeling) {
-				$labeling->delete();
-			}
-			else {
-				$labeling->superior_functionality_id = $new_functionality->id;
-				$labeling->save();
-			};
-		}
-
-		if ($this->group_id && $this->group_id !== $new_functionality->group_id) {
-
-			if (count($this->similiars) <= 1) {
-				FunctionalityGroup::where('id', $this->group_id)->delete();
+				else {
+					$labeling->inferior_functionality_id = $new_functionality->id;
+					$labeling->save();
+				};
 			}
 		}
 	}

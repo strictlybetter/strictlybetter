@@ -6,6 +6,7 @@ use App\FunctionalReprint;
 use App\Cardtype;
 use App\Labeling;
 use App\Excerpt;
+use App\Functionality;
 use App\FunctionalityGroup;
 
 /*
@@ -304,7 +305,7 @@ Artisan::command('create-obsoletes', function () {
 
 	$old_obsolete_count = App\Obsolete::count();
 
-	create_obsoletes(false, $progress_callback, $count);
+	create_obsoletes($count, false, $progress_callback);
 	
 	$this->comment($count . " better cards found. " . (Obsolete::count() - $old_obsolete_count) . "  new records created for database. ");
 
@@ -338,7 +339,7 @@ Artisan::command('create-obsoletes-by-analysis', function () {
 
 	$old_obsolete_count = App\Obsolete::count();
 
-	create_obsoletes(true, $progress_callback, $count);
+	create_obsoletes($count, true, $progress_callback);
 	
 	$this->comment($count . " better cards found. " . (Obsolete::count() - $old_obsolete_count) . "  new records created for database. ");
 
@@ -475,20 +476,109 @@ Artisan::command('regroup-cards', function () {
 
 	$this->comment("Regrouping cards...");
 
-	$q = Card::with(['functionality'])->withCount('functionalReprints')->whereNull('main_card_id');
-	$bar = $this->output->createProgressBar($q->count());
+	{
+		$duplicate_groups = DB::table(app(FunctionalityGroup::class)->getTable())
+			->selectRaw('count(id) as duplicates, hash')
+	        ->groupBy('hash')
+	        ->having('duplicates', '>', 1)
+	        ->get();
 
-	DB::transaction(function () use ($q, $bar) {
-		$q->chunk(1000, function($cards) use ($bar) {
-			foreach ($cards as $card) {
-				$card->timestamps = false;
-				$card->linkToFunctionality();
-				$bar->advance();
+	    if ($duplicate_groups->count() > 0)
+	    	$this->comment("Combining " . $duplicate_groups->count() . " duplicate groups...");
+
+	    foreach ($duplicate_groups as $group) {
+	    	$duplicates = FunctionalityGroup::with('functionalities')->where('hash', $group->hash)->orderBy('id', 'asc')->get();
+	    	$first = $duplicates->first();
+	    	foreach ($duplicates as $duplicate) {
+
+	    		if ($first->id === $duplicate->id)
+	    			continue;
+
+	    		$duplicate->migrateTo($first);
+
+	    		foreach ($duplicate->functionalities as $functionality) {
+	    			$functionality->group_id = $first->id;
+	    			$functionality->save();
+	    		}
+	    		$duplicate->delete();
+	    	}
+	    }
+
+	    $duplicate_functionalities = DB::table(app(Functionality::class)->getTable())
+			->selectRaw('count(id) as duplicates, hash')
+	        ->groupBy('hash')
+	        ->having('duplicates', '>', 1)
+	        ->get();
+
+	    if ($duplicate_functionalities->count() > 0)
+	    	$this->comment("Combining " . $duplicate_functionalities->count() . " duplicate functionalities...");
+
+	    foreach ($duplicate_functionalities as $functionality) {
+	    	$duplicates = Functionality::with(['group', 'cards'])->where('hash', $functionality->hash)->orderBy('id', 'asc')->get();
+	    	$first = $duplicates->first();
+	    	foreach ($duplicates as $duplicate) {
+
+	    		if ($first->id === $duplicate->id)
+	    			continue;
+
+	    		$duplicate->migrateTo($first, $first->group);
+
+	    		foreach ($duplicate->cards as $card) {
+	    			$card->timestamps = false;
+	    			$card->functionality_id = $first->id;
+	    			$card->save();
+	    		}
+	    		$duplicate->delete();
+	    	}
+	    }
+	}
+
+	{
+		$this->comment("Linking cards to functionalities and groups...");
+
+		$q = Card::with(['functionality.group'])->whereNull('main_card_id');
+		$bar = $this->output->createProgressBar($q->count());
+
+		DB::transaction(function () use ($q, $bar) {
+			$q->chunkById(1000, function($cards) use ($bar) {
+				foreach ($cards as $card) {
+					$card->timestamps = false;
+					$card->linkToFunctionality();
+					$bar->advance();
+				}
+			});
+		});
+
+		$bar->finish();
+	}
+
+	{
+		$this->comment("Removing invalid obsolete <=> labeling relations...");
+		$count = Labeling::count();
+
+		// Delete invalid obsolete<->labeling relations
+		Obsolete::with(['labelings.superior', 'labelings.inferior'])->chunkById(1000, function($obsoletes) {
+
+			foreach ($obsoletes as $obsolete) {
+
+				// Remove better-worse relations from type variants
+				if ($obsolete->superior_functionality_group_id === $obsolete->inferior_functionality_group_id) {
+					$obsolete->delete();
+					continue;
+				}
+
+				foreach ($obsolete->labelings as $labeling) {
+					if ($labeling->superior->group_id !== $obsolete->superior_functionality_group_id || 
+						$labeling->inferior->group_id !== $obsolete->inferior_functionality_group_id)
+						$labeling->delete();
+				}
 			}
 		});
-	});
+		$removed_count = $count - Labeling::count();
+		$this->comment("Removed ".$removed_count." invalid obsolete <=> labeling relations.");
+	}
 
-	$bar->finish();
+	Artisan::call('relabel-obsoletes', [], $this->getOutput());
 });
 
 /*

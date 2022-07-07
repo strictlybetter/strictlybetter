@@ -149,7 +149,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 
 	// ... Or use oracle_id. Unless it's a split card, in which case find using card name and parent_id
 	else {
-		$q = App\Card::with(['functionality'])->withCount('functionalReprints');
+		$q = App\Card::with(['functionality.group'])->withCount('functionalReprints');
 
 		if ($parent)
 			$q = $q->where('main_card_id', $parent->id)->where('name', $obj->name);
@@ -217,7 +217,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 
 	// Create a few helper columns using existing data
 	$new_rules = $card->substituteRules();
-	$regroup = !$card->functionality_id || ($new_rules !== $card->substituted_rules);
+	$regroup = !$parent && (!$card->functionality_id || ($new_rules !== $card->substituted_rules));
 	$card->substituted_rules = $new_rules;
 
 	$manacost = App\Manacost::createFromManacostString($card->manacost, $card->cmc);
@@ -260,7 +260,7 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 			App\Card::where('main_card_id', $card->id)->whereNotIn('name', $names)->delete();
 	}
 
-	if (!$parent && $regroup) {
+	if ($regroup) {
 		$card->linkToFunctionality();
 	}
 
@@ -440,7 +440,7 @@ function get_line_count($filename) {
 	return $count;
 }
 
-function create_obsoletes($using_analysis = false, $progress_callback = null, &$count) {
+function create_obsoletes(&$count, $using_analysis = false, $progress_callback = null) {
 
 	if ($progress_callback === null)
 		$progress_callback = function($cardcount, $at, $card = null, $betters = null) { };
