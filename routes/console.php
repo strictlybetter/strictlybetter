@@ -133,45 +133,54 @@ Artisan::command('populate-functional-reprints', function () {
 
 	$this->comment("Looking for duplicate families...");
 
-	$results = Card::whereNull('main_card_id')->get()->groupBy('functionality_line')->reject(function($item) {
-		return (count($item) <= 1);
-	})->values();
-
-	$this->comment(count($results) . " duplicate families found. Populating...");
+	$q = Functionality::with('cards')->has('cards', '>', 1);
+	$this->comment($q->count() . " duplicate families found. Populating...");
 
 	$count = FunctionalReprint::count();
 	$card_count = 0;
 
-	DB::transaction(function () use ($results, &$card_count) {
-		foreach ($results as $reprint_group) {
+	$old_ids = FunctionalReprint::orderBy('id')->pluck('id', 'id');
 
-			$sample = $reprint_group[0];
+	DB::transaction(function () use ($q, &$old_ids, &$card_count) {
 
-			$group = FunctionalReprint::FirstOrCreate([
-				'typeline' => $sample->typeline,
-				'manacost' => $sample->manacost, 
-				'power' => $sample->power, 
-				'toughness' => $sample->toughness, 
-				'loyalty' => $sample->loyalty, 
-				'rules' => $sample->substituted_rules,
-			]);
+		$q->chunk(1000, function($results) use (&$old_ids, &$card_count) {		
+			foreach ($results as $reprint_group) {
 
-			//$group->cards()->associate($reprint_group->pluck('id'));
-			foreach ($reprint_group as $card) {
-				if ($card->functional_reprints_id != $group->id) {
-					$card->timestamps = false;
-					$card->functional_reprints_id = $group->id;
-					$card->save();
-					$card_count++;
+				//$sample = $reprint_group[0];
+				$sample = $reprint_group->cards->first();
+
+				$group = FunctionalReprint::FirstOrCreate([
+					'typeline' => $sample->typeline,
+					'manacost' => $sample->manacost, 
+					'power' => $sample->power, 
+					'toughness' => $sample->toughness, 
+					'loyalty' => $sample->loyalty, 
+					'rules' => $sample->substituted_rules,
+				]);
+
+				unset($old_ids[$group->id]);
+
+				//$group->cards()->associate($reprint_group->pluck('id'));
+				foreach ($reprint_group->cards as $card) {
+					if ($card->functional_reprints_id != $group->id) {
+						$card->timestamps = false;
+						$card->functional_reprints_id = $group->id;
+						$card->save();
+						$card_count++;
+					}
 				}
 			}
-		}
+		});
 	});
 
 	$new_count = FunctionalReprint::count();
 	$results = $new_count - $count;
 
+	if (count($old_ids) > 0)
+		$this->comment("left ids: " . implode(", ", $old_ids->keys()->toArray()));
+
 	// Delete any orphaned functional reprints
+	FunctionalReprint::whereIn('id', $old_ids->keys()->toArray())->delete();
 	FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
 
 	$deleted = $new_count - FunctionalReprint::count();
