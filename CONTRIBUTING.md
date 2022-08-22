@@ -16,8 +16,8 @@ If setting up your pull requires more than merging the code, such as migrating d
 
 ### Core Requirements
  - HTTP Server (Apache or Nginx)
- - PHP >= 7.3
- - MySQL or MariaDB
+ - PHP >= 8.1
+ - MySQL (recommend >= v8.x) or MariaDB
  - Composer
 
 
@@ -33,7 +33,7 @@ If setting up your pull requires more than merging the code, such as migrating d
 
 Create your development environment by downloading, installing, and setting up the applications defined in the **Core Requirements** section above.
 
-Create an empty MySQL database container and provide user(s) with basic Table Privilages
+Create an empty MySQL database and provide user(s) with basic Table Privilages
 
 Fork the strictlybetter/strictlybetter repository to your own GitHub account and clone to your local development environment
  - [GitHub Docs: Fork a repository](https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo)
