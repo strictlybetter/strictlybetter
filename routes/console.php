@@ -176,11 +176,12 @@ Artisan::command('populate-functional-reprints', function () {
 	$new_count = FunctionalReprint::count();
 	$results = $new_count - $count;
 
-	if (count($old_ids) > 0)
+	if (count($old_ids) > 0) {
 		$this->comment("left ids: " . implode(", ", $old_ids->keys()->toArray()));
+		FunctionalReprint::whereIn('id', $old_ids->keys()->toArray())->delete();
+	}
 
 	// Delete any orphaned functional reprints
-	FunctionalReprint::whereIn('id', $old_ids->keys()->toArray())->delete();
 	FunctionalReprint::whereHas('cards', null, '<=', 1)->delete();
 
 	$deleted = $new_count - FunctionalReprint::count();
