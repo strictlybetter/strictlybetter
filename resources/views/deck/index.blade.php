@@ -47,6 +47,8 @@
 			<div class="container">
 				<h2>Results</h2>
 
+				<p>Found suggestions for {{ count($deckupgrades) }} / {{ $total }} cards.</p>
+
 				@if(count($deckupgrades) === 0)
 					<p>Congratulations! No upgrades needed.</p>
 				@endif

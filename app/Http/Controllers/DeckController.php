@@ -14,7 +14,7 @@ class DeckController extends Controller
 	 */
 	public function index()
 	{
-		return view('deck.index')->with(['tribelist' => make_tribe_list(false), 'formatlist' => make_format_list(), 'deck' => session('deck'), 'deckupgrades' => session('deckupgrades')]);
+		return view('deck.index')->with(['tribelist' => make_tribe_list(false), 'formatlist' => make_format_list(), 'deck' => session('deck'), 'deckupgrades' => session('deckupgrades'), 'total' => session('total')]);
 	}
 
 	public function upgrade(Request $request)
@@ -27,7 +27,7 @@ class DeckController extends Controller
 
 		// Verify we parsed something
 		if (count($deck) === 0) {
-			return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => []])->withInput();
+			return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => [], 'total' => 0])->withInput();
 		}
 
 		// Only pick 10 first tribes
@@ -138,7 +138,7 @@ class DeckController extends Controller
 			})->values();
 		}
 
-		return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => $upgrades])->withInput();
+		return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => $upgrades, 'total' => $cards->count()])->withInput();
     }
 
 	public function getDeckColors($cards)
