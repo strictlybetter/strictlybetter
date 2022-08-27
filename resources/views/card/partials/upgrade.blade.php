@@ -10,14 +10,14 @@
 
 	<ul class="nav nav-tabs panel-toggles cardlist-tabs">
 		<li class="nav-item">
-			<a class="nav-link superior-toggle active" id="superior-tab-{{ $card->id }}" data-bs-toggle="tab" href="#superiors-{{ $card->id }}" role="tab" aria-controls="superiors-{{ $card->id }}" aria-selected="true" title="Superior cards">
+			<a class="nav-link superior-toggle active {{ $card->superiors->count() ? '' : 'no-items' }}" id="superior-tab-{{ $card->id }}" data-bs-toggle="tab" href="#superiors-{{ $card->id }}" role="tab" aria-controls="superiors-{{ $card->id }}" aria-selected="true" title="Superior cards">
 				<i class="fa fa-thumbs-up"></i>
 				Superiors ({{ $card->superiors->count() }})
 			</a>
 		</li>
 		@if($card->relationLoaded('inferiors'))
 		<li class="nav-item">
-			<a class="nav-link inferior-toggle" id="inferior-tab-{{ $card->id }}" data-bs-toggle="tab" href="#inferiors-{{ $card->id }}" role="tab" aria-controls="inferiors-{{ $card->id }}" aria-selected="false" title="Inferior cards">
+			<a class="nav-link inferior-toggle {{ $card->inferiors->count() ? '' : 'no-items' }}" id="inferior-tab-{{ $card->id }}" data-bs-toggle="tab" href="#inferiors-{{ $card->id }}" role="tab" aria-controls="inferiors-{{ $card->id }}" aria-selected="false" title="Inferior cards">
 				<i class="fa fa-thumbs-down"></i>
 				Inferiors ({{ $card->inferiors->count() }})
 			</a>
@@ -25,14 +25,14 @@
 		@endif
 		@if($card->relationLoaded('functionality'))
 		<li class="nav-item">
-			<a disabled class="nav-link functionalitygroup-toggle" id="functionalitygroup-tab-{{ $card->id }}" data-bs-toggle="tab" href="#functionalitygroup-{{ $card->id }}" role="tab" aria-controls="functionalitygroup-{{ $card->id }}" aria-selected="false" title="Type variants">
+			<a class="nav-link functionalitygroup-toggle {{ $card->functionality->similiarcards->count() ? '' : 'no-items' }}" id="functionalitygroup-tab-{{ $card->id }}" data-bs-toggle="tab" href="#functionalitygroup-{{ $card->id }}" role="tab" aria-controls="functionalitygroup-{{ $card->id }}" aria-selected="false" title="Type variants">
 				<i class="nav-item-functionalitygroup">=</i>
 				Type variants ({{ $card->functionality->similiarcards->count() }}) 
 			</a>
 		</li>
 		@endif
 		<li class="nav-item">
-			<a disabled class="nav-link alternatives-toggle" id="alternatives-tab-{{ $card->id }}" data-bs-toggle="tab" href="#alternatives-{{ $card->id }}" role="tab" aria-controls="alternatives-{{ $card->id }}" aria-selected="false" title="Alternatives are not yet available">
+			<a class="nav-link alternatives-toggle no-items" id="alternatives-tab-{{ $card->id }}" data-bs-toggle="tab" href="#alternatives-{{ $card->id }}" role="tab" aria-controls="alternatives-{{ $card->id }}" aria-selected="false" title="Alternatives are not yet available">
 				<i class="nav-item-alternative">&thickapprox;</i>
 				Alternatives
 			</a>

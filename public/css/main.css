@@ -360,6 +360,15 @@ select {
 }
 .cardpanel-main {
 }
+.superior-toggle {
+	color: green !important;
+}
+.inferior-toggle {
+	color: red !important;
+}
+.no-items {
+	color: grey !important;
+}
 .cardrow {
 	border-bottom: 1px dotted black;
 	min-height: 405px;
