@@ -53,7 +53,7 @@ class DeckController extends Controller
 			$q->relatedGuiOnly(['subtypes']);
 
 			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
+				$q->where(function($q) use ($format) { $q->where('legalities->' . $format, 'legal')->orWhere('legalities->' . $format, 'restricted'); });
 
 			// Don't suggest cards that are already in the deck
 			$q->whereNotIn('name', $cards->pluck('name'));
@@ -70,7 +70,7 @@ class DeckController extends Controller
 			$q->guiOnly(['subtypes']);
 
 			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
+				$q->where(function($q) use ($format) { $q->where('legalities->' . $format, 'legal')->orWhere('legalities->' . $format, 'restricted'); });
 
 			// Don't suggest cards that are already in the deck
 			$q->whereNotIn('name', $cards->pluck('name'));

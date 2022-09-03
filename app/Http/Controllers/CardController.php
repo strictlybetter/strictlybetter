@@ -125,7 +125,7 @@ class CardController extends Controller
 
 		$card_filters = function($q) use ($format, $tribe) {
 			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
+				$q->where(function($q) use ($format) { $q->where('legalities->' . $format, 'legal')->orWhere('legalities->' . $format, 'restricted'); });
 
 			if ($tribe !== "")
 				$q->whereJsonContains('subtypes', $tribe);
