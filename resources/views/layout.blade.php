@@ -164,7 +164,6 @@
 				}
 			});
 
-			var card_cache = {};
 			var vote_refresh = false;
 
 			function set_vote_refreshing(value) {
@@ -180,12 +179,6 @@
 					delay: 200,
 					source: function(request, response) {
 
-						// Check cache before query
-						if (request.term in card_cache) {
-							response(card_cache[request.term + '|' + max_results]);
-							return;
-						}
-
 						request.limit = max_results;
 
 						if (autocomplete_query)
@@ -193,7 +186,6 @@
 
 						// Query
 						autocomplete_query = $.getJSON("{{ route('card.autocomplete') }}", request, function(data, status, xhr) {
-							card_cache[request.term + '|' + max_results] = data;
 							response(data);
 						});
 					},
