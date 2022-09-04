@@ -145,11 +145,14 @@ class CardController extends Controller
 			$q->orderBy($order['obsolete'], $order['direction']);
 		};
 
-		$card_filters_other = function($q) use ($format, $tribe, $order, $card_filters) {
-			$q->where($card_filters)->guiOnly();
-		};
+		$card_filters_other = function($q) use ($card_filters) { $q->where($card_filters)->guiOnly(); };
 
-		$cards = Card::guiOnly()->with(['superiors' => $card_filters_related, 'inferiors' => $card_filters_related, 'functionality.similiarcards' => $card_filters_other, 'functionalReprints' => $card_filters_other]);
+		$cards = Card::guiOnly()->with([
+			'superiors' => $card_filters_related, 
+			'inferiors' => $card_filters_related, 
+			'functionality.typevariantcards' => $card_filters_other, 
+			'functionalReprints' => $card_filters_other
+		]);
 
 		if ($has_obsoletes) {
 			$cards = $cards->where(function($q) use ($card_filters_related, $term) {
@@ -181,8 +184,8 @@ class CardController extends Controller
 					return ($card->id === $item->id);
 				})->values();
 			}
-			if (count($card->functionality->similiarcards) > 0) {
-				$cards[$i]->functionality->similiarcards = $card->functionality->similiarcards->reject(function($item) use ($card) {
+			if (count($card->functionality->typevariantcards) > 0) {
+				$cards[$i]->functionality->typevariantcards = $card->functionality->typevariantcards->reject(function($item) use ($card) {
 					return ($item->functionality_id === $card->functionality_id);
 				})->values();
 			}
@@ -215,7 +218,7 @@ class CardController extends Controller
 				$card->load([
 					'functionalReprints' => function($q) { $q->guiOnly(); }, 
 					'superiors' => function($q) { $q->relatedGuiOnly(); },
-					'functionality.similiarcards' => function($q) { $q->guiOnly(); }
+					'functionality.typevariantcards' => function($q) { $q->guiOnly(); }
 				]);
 
 				$inferiors = $card->functionalReprints;
@@ -230,7 +233,7 @@ class CardController extends Controller
 					return ($card->id === $item->id);
 				})->values();
 
-				$card->functionality->similiarcards = $card->functionality->similiarcards->reject(function($item) use ($card) {
+				$card->functionality->typevariantcards = $card->functionality->typevariantcards->reject(function($item) use ($card) {
 					return ($card->functionality_id === $item->functionality_id);
 				})->values();
 			}
@@ -244,14 +247,14 @@ class CardController extends Controller
 		$card->load([
 			'functionalReprints' => function($q) { $q->guiOnly(); }, 
 			'superiors' => function($q) { $q->relatedGuiOnly(); },
-			'functionality.similiarcards' => function($q) { $q->guiOnly(); }]);
+			'functionality.typevariantcards' => function($q) { $q->guiOnly(); }]);
 
 		// Remove self from reprints
 		$card->functionalReprints = $card->functionalReprints->reject(function($item) use ($card) {
 			return ($card->id === $item->id);
 		})->values();
 
-		$card->functionality->similiarcards = $card->functionality->similiarcards->reject(function($item) use ($card) {
+		$card->functionality->typevariantcards = $card->functionality->typevariantcards->reject(function($item) use ($card) {
 			return ($card->functionality_id === $item->functionality_id);
 		})->values();
 

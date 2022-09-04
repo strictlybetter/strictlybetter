@@ -29,12 +29,12 @@ class Functionality extends Model
 		return $this->belongsTo(FunctionalityGroup::class, 'group_id');
 	}
 
-	public function similiars()
+	public function typevariants()
 	{
 		return $this->hasMany(Functionality::class, 'group_id', 'group_id');
 	}
 
-	public function similiarcards()
+	public function typevariantcards()
 	{
 		return $this->hasManyThrough(Card::class, Functionality::class, 'group_id', 'functionality_id', 'group_id', 'id');
 	}

@@ -65,7 +65,7 @@ class DeckController extends Controller
 			$q->orderBy('upvotes', 'desc');
 		};
 
-		$card_restrictions_similar = function($q) use ($format, $un_color_identity, $cards) {
+		$card_restrictions_typevariants = function($q) use ($format, $un_color_identity, $cards) {
 
 			$q->guiOnly(['subtypes']);
 
@@ -81,12 +81,12 @@ class DeckController extends Controller
 		};
 
 		// Find replacements
-		$upgrades = Card::guiOnly(['subtypes'])->with(['superiors' => $card_restrictions, 'functionality.similiarcards' => $card_restrictions_similar])
+		$upgrades = Card::guiOnly(['subtypes'])->with(['superiors' => $card_restrictions, 'functionality.typevariantcards' => $card_restrictions_typevariants])
 			->whereIn('name', $cards->pluck('name'))
 			->whereNull('main_card_id')
-			->where(function($q) use ($card_restrictions, $card_restrictions_similar) {
+			->where(function($q) use ($card_restrictions, $card_restrictions_typevariants) {
 				$q->whereHas('superiors', $card_restrictions)
-				->orWhereHas('functionality.similiarcards', $card_restrictions_similar);
+				->orWhereHas('functionality.typevariantcards', $card_restrictions_typevariants);
 			})
 			
 			->get();
@@ -101,8 +101,8 @@ class DeckController extends Controller
 					$card->superiors = $card->superiors->reject(function($superior) use ($tribes) {
 						return empty(array_intersect($superior->subtypes, $tribes));
 					})->values();
-					$card->functionality->similiarcards = $card->functionality->similiarcards->reject(function($similar) use ($tribes) {
-						return empty(array_intersect($similar->subtypes, $tribes));
+					$card->functionality->typevariantcards = $card->functionality->typevariantcards->reject(function($typevariant) use ($tribes) {
+						return empty(array_intersect($typevariant->subtypes, $tribes));
 					})->values();
 				}
 
@@ -123,7 +123,7 @@ class DeckController extends Controller
 
 					})->values();
 
-					$card->functionality->similiarcards = $card->functionality->similiarcards->sort(function($a, $b) use ($tribes) {
+					$card->functionality->typevariantcards = $card->functionality->typevariantcards->sort(function($a, $b) use ($tribes) {
 						$a_tribe = count(array_intersect($a->subtypes, $tribes));
 						$b_tribe = count(array_intersect($b->subtypes, $tribes));
 
@@ -134,7 +134,7 @@ class DeckController extends Controller
 
 			// If no suggestions are left for a upgradable card, remove it from the list 
 			$upgrades = $upgrades->reject(function($card) {
-				return (count($card->superiors) == 0 && count($card->functionality->similiarcards) == 0);
+				return (count($card->superiors) == 0 && count($card->functionality->typevariantcards) == 0);
 			})->values();
 		}
 
