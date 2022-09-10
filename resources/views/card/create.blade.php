@@ -79,7 +79,7 @@
 		
 	</div>
 
-	<div class="container collapse-inferior" id="upgrade_view_container">
+	<div class="collapse-inferior" id="upgrade_view_container">
 		<div class="row" id="upgrade_view">
 			@if($card)
 				@include('card.partials.upgrade')
@@ -118,7 +118,30 @@ function test_suggestion() {
 		dataType: "json",
 		success: function(response) {
 			let is_ok = response['bootstrap_mode'] === null;
-			$("#test-result-text").text(is_ok ? "" : response['reason']);
+			let disable_add = response['bootstrap_mode'] == 'alert-danger';
+			let text = is_ok ? "" : response['reason'];
+
+			let target = $("#test-result-text");
+			target.html("");
+
+			if (response['reason_key'] === 'typevariant') {
+
+				let typevariant_link = document.createElement('a');
+				$(typevariant_link).attr({
+					'href': '#typevariants-' + inferior_id,
+					'role': 'tab',
+					'data-bs-toggle': 'tab',
+					'aria-controls': 'typevariants-' + inferior_id,
+					'aria-selected': 'true',
+					'title': 'type variant',
+				});
+				$(typevariant_link).text('type variant');
+
+				replace_tag_with_html(text, ':typevariant', typevariant_link, target.get(0));
+			}
+			else
+				target.text(text);
+
 			if (is_ok) {
 				$("#test-result-box").hide();
 				$("#add-suggestion-btn").prop("disabled", false);
@@ -126,15 +149,30 @@ function test_suggestion() {
 			else {
 				$("#test-result-box").removeClass().addClass('alert').addClass(response['bootstrap_mode']);
 				$("#test-result-box").show();
-				$("#add-suggestion-btn").prop("disabled", response['bootstrap_mode'] == 'alert-danger');
+				$("#add-suggestion-btn").prop("disabled", disable_add);
 			}
 		}
 	});
 }
 
+function replace_tag_with_html(source, tag, html, target) {
+
+	var texts = source.split(tag);
+	if (texts.length == 0)
+		return target;
+
+	target.appendChild(document.createTextNode(texts[0]));
+	for (let i = 1; i < texts.length; i++) {
+		target.appendChild(html);
+		target.appendChild(document.createTextNode(texts[i]));
+	}
+	return target;
+}
+
 $(document).ready(function() { 
 
 	register_tabs("#upgrade_view_container");
+	register_tabs("#test-result-text");
 
 	function select2_template(data, append_trophy) {
 

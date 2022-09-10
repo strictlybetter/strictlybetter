@@ -247,6 +247,7 @@ class CardController extends Controller
 		$card->load([
 			'functionalReprints' => function($q) { $q->guiOnly(); }, 
 			'superiors' => function($q) { $q->relatedGuiOnly(); },
+			'inferiors' => function($q) { $q->relatedGuiOnly(); },
 			'functionality.typevariantcards' => function($q) { $q->guiOnly(); }]);
 
 		// Remove self from reprints
@@ -493,26 +494,25 @@ class CardController extends Controller
 
 	public function voteHelpSpreadsheets(Request $request)
 	{
-		$retries_left = 10;
-
 		$inferior = null;
 		$superior = null;
-		$suggestion = null;
+		$suggestion = Suggestion::inRandomOrder()->first();
 
-		while ($retries_left) {
-
-			$suggestion = Suggestion::inRandomOrder()->first();
+		while ($suggestion) {
 
 			$inferior_name = $suggestion->inferiors[0] ?? '';
 			$superior_name = $suggestion->superiors[0] ?? '';
 
-			$inferior = Card::where('name', $inferior_name)->whereNull('main_card_id')->first();
-			$superior = Card::where('name', $superior_name)->whereNull('main_card_id')->first();
+			if ($inferior_name && $superior_name) {
+				$inferior = Card::where('name', $inferior_name)->whereNull('main_card_id')->first();
+				$superior = Card::where('name', $superior_name)->whereNull('main_card_id')->first();
+			}
 
 			if ($inferior && $superior)
 				break;
 
-			$retries_left--;
+			$suggestion->delete();
+			$suggestion = Suggestion::inRandomOrder()->first();
 		}
 
 		if ($inferior && $superior) {
@@ -607,7 +607,8 @@ class CardController extends Controller
 
 		$status = [
 			'reason' => null,
-			'bootstrap_mode' => null
+			'bootstrap_mode' => null,
+			'reason_key' => null
 		];
 
 		if (!$inferior || !$superior) {
@@ -619,7 +620,8 @@ class CardController extends Controller
 		// Is better ?
 		$result = $superior->isEqualOrBetterThan($inferior, true);
 		if ($result !== true) {
-			$status['reason'] = \Lang::get($result, ['superior' => $superior->name, 'inferior' => $inferior->name]);
+			$status['reason_key'] = $result;
+			$status['reason'] = \Lang::get('card.validation.' . $result, ['superior' => $superior->name, 'inferior' => $inferior->name]);
 			$status['bootstrap_mode'] = 'alert-danger';
 		}
 

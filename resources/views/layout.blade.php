@@ -52,7 +52,7 @@
 						</li>
 						<li class="nav-item {{ Request::is('votehelp/*') ? 'active' : '' }} dropdown" id="nav-helpvoting">
 							<a class="nav-link dropdown-toggle" href="{{ route('votehelp.low-on-votes') }}" role="button" aria-haspopup="true" aria-expanded="false">
-								Help Voting
+								Help By Voting
 							</a>
 							<div class="dropdown-menu" aria-labelledby="nav-helpvoting">
 								<a class="dropdown-item {{ Request::is('votehelp/low-on-votes') ? 'active' : '' }}" href="{{ route('votehelp.low-on-votes') }}" 
@@ -199,14 +199,7 @@
 			}
 
 			function register_tabs(selector, callback) {
-				$(selector).on('click', '.cardlist-tabs a', function (event) {
-					event.preventDefault();
-					$(this).tab('show');
-
-					if (callback !== undefined)
-						callback(this, event);
-
-				}).on('click', '.cardpanel-not-found a[role="tab"]', function (event) {
+				$(selector).on('click', 'a[role="tab"]', function (event) {
 					event.preventDefault();
 					let target = $(this).attr('href');
 					$('.cardlist-tabs a[href="' + target + '"]').tab('show');

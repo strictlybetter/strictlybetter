@@ -81,8 +81,11 @@ class DeckController extends Controller
 		};
 
 		// Find replacements
-		$upgrades = Card::guiOnly(['subtypes'])->with(['superiors' => $card_restrictions, 'functionality.typevariantcards' => $card_restrictions_typevariants])
-			->whereIn('name', $cards->pluck('name'))
+		$upgrades = Card::guiOnly(['subtypes'])->with([
+			'superiors' => $card_restrictions, 
+			'inferiors' => $card_restrictions, 
+			'functionality.typevariantcards' => $card_restrictions_typevariants
+		])->whereIn('name', $cards->pluck('name'))
 			->whereNull('main_card_id')
 			->where(function($q) use ($card_restrictions, $card_restrictions_typevariants) {
 				$q->whereHas('superiors', $card_restrictions)
