@@ -375,8 +375,8 @@ function create_labeling($inferior, $superior, $obsolete = null, $cascade_to_gro
 	// Add labels for other functionalities in the group
 	if ($cascade_to_groups) {
 
-		$inferior_list = $inferior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
-		$superior_list = $superior->functionality->similiars()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
+		$inferior_list = $inferior->functionality->typevariants()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
+		$superior_list = $superior->functionality->typevariants()->with(['cards' => function($q) { $q->whereNull('main_card_id'); }])->get();
 
 		remove_functionalities_from_external_suggestions($inferior_list, $superior_list);
 

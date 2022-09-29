@@ -20,6 +20,11 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
+	<h4>09/29/22</h4>
+	<ul>
+		<li>Fix error while adding suggestions.</li>
+	</ul>
+
 	<h4>09/05/22</h4>
 	<ul>
 		<li>Card name autocompletion uses native browser caching instead of custom javascript implementation</li>
