@@ -34,14 +34,14 @@ return [
 		'downvoted' => '⚠️Downvoted'
     ],
     'filters' => [
-		'more_colors' => 'More colors',
-		'more_colored_mana' => 'Costs more colored',
-		'supertypes_differ' => 'Supertype variation',
-		'types_differ' => 'Type variation',
-		'subtypes_differ' => 'Tribe variation',
-		'less_colors' => 'Less colors',
+		'more_colors' => '⚠️More colors',
+		'more_colored_mana' => '⚠️Costs more colored',
+		'supertypes_differ' => '⚠️Supertype variation',
+		'types_differ' => '⚠️Type variation',
+		'subtypes_differ' => '⚠️Tribe variation',
+		'less_colors' => '⚠️Less colors',
 		'strictly_better' => 'Strictly better',
-		'downvoted' => 'Downvoted'
+		'downvoted' => '⚠️Downvoted'
     ],
     'filter_explanations' => [
     	'more_colors' => 'Suggested card has more colors. (ie Dryad Militant vs Eager Cadet)',

@@ -20,9 +20,14 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
+	<h4>10/01/22</h4>
+	<ul>
+		<li>Tweaked tribe, format and label filter selectbox appearance, so it's easier to notice if an item is selected</li>
+	</ul>
+
 	<h4>09/29/22</h4>
 	<ul>
-		<li>Fix error while adding suggestions.</li>
+		<li>Fix error while adding suggestions</li>
 	</ul>
 
 	<h4>09/05/22</h4>

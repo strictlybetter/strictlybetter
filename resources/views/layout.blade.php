@@ -250,6 +250,13 @@
 				});
 			}
 
+			function select2TemplateSelection(state) {
+				var $state = $('<span></span>');
+				$state.text(state.text);
+				$state.addClass(state.id ? 'browse-selection' : 'browse-selection-none');
+				return $state;
+			}
+
 			$(document).ready(function() { 
 
 				// Card search
