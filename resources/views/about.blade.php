@@ -73,7 +73,7 @@
 		<ul>
 			@foreach(Lang::get('card.filters') as $filter => $value)
 				@if($filter != "strictly_better")
-					<li><span class="card-label">⚠️{{ $value }}</span> - {{ Lang::get('card.filter_explanations.' . $filter) }}</li>
+					<li><span class="card-label">{{ $value }}</span> - {{ Lang::get('card.filter_explanations.' . $filter) }}</li>
 				@endif
 			@endforeach
 		</ul>
