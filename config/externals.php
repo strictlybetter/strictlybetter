@@ -23,6 +23,6 @@ return [
     ],
 
     // Shown on some pages as author / contact email
-    'author_email' => 'henri.kulotie@gmail.com'
+    'author_email' => env('MAIL_AUTHOR', '')
     
 ];
