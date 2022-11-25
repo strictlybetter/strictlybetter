@@ -20,6 +20,15 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
+	<h4>11/25/22</h4>
+	<ul>
+		<li>Fixed Deck Upgrade -page not recognizing double faced card names.
+			<ul>
+				<li>Now supports both full name and name of either side.</li>
+			</ul>
+		</li>
+	</ul>
+
 	<h4>10/01/22</h4>
 	<ul>
 		<li>Tweaked tribe, format and label filter selectbox appearance, so it's easier to notice if an item is selected</li>
