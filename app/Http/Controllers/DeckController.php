@@ -14,7 +14,7 @@ class DeckController extends Controller
 	 */
 	public function index()
 	{
-		return view('deck.index')->with(['tribelist' => make_tribe_list(false), 'formatlist' => make_format_list(), 'deck' => session('deck'), 'deckupgrades' => session('deckupgrades')]);
+		return view('deck.index')->with(['tribelist' => make_tribe_list(false), 'formatlist' => make_format_list(), 'deck' => session('deck'), 'deckupgrades' => session('deckupgrades'), 'total' => session('total')]);
 	}
 
 	public function upgrade(Request $request)
@@ -27,7 +27,7 @@ class DeckController extends Controller
 
 		// Verify we parsed something
 		if (count($deck) === 0) {
-			return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => []])->withInput();
+			return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => [], 'total' => 0])->withInput();
 		}
 
 		// Only pick 10 first tribes
@@ -38,7 +38,16 @@ class DeckController extends Controller
 		if (!in_array($format, get_formats()))
 			$format = "";
 
-		$cards = Card::select(['id', 'name', 'color_identity'])->whereIn('name', array_keys($deck))->whereNull('main_card_id')->get();
+		$card_names = array_keys($deck);
+
+		$cards = Card::select(['id', 'name', 'color_identity'])->whereNull('main_card_id')->where(function($q) use ($card_names) {
+			$q->whereIn('name', $card_names)
+			->orWhereHas('cardFaces', function($q) use ($card_names) { 
+				$q->whereIn('name', $card_names);
+			});
+		})->get();
+
+		$card_names = $cards->pluck('name');
 
 		// Find colors the deck musn't contain (useful for Commander)
 		$un_color_identity = [];
@@ -48,15 +57,15 @@ class DeckController extends Controller
 			$un_color_identity = array_values(array_diff(["W","B","U","R","G"], $deck_colors));
 		}
 
-		$card_restrictions = function($q) use ($format, $un_color_identity, $cards) {
+		$card_restrictions = function($q) use ($format, $un_color_identity, $card_names) {
 
 			$q->relatedGuiOnly(['subtypes']);
 
 			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
+				$q->where(function($q) use ($format) { $q->where('legalities->' . $format, 'legal')->orWhere('legalities->' . $format, 'restricted'); });
 
 			// Don't suggest cards that are already in the deck
-			$q->whereNotIn('name', $cards->pluck('name'));
+			$q->whereNotIn('name', $card_names);
 
 			foreach ($un_color_identity as $un_color) {
 				$q->whereJsonDoesntContain('color_identity', $un_color);
@@ -65,15 +74,15 @@ class DeckController extends Controller
 			$q->orderBy('upvotes', 'desc');
 		};
 
-		$card_restrictions_similar = function($q) use ($format, $un_color_identity, $cards) {
+		$card_restrictions_typevariants = function($q) use ($format, $un_color_identity, $card_names) {
 
 			$q->guiOnly(['subtypes']);
 
 			if ($format !== "")
-				$q->where('legalities->' . $format, 'legal');
+				$q->where(function($q) use ($format) { $q->where('legalities->' . $format, 'legal')->orWhere('legalities->' . $format, 'restricted'); });
 
 			// Don't suggest cards that are already in the deck
-			$q->whereNotIn('name', $cards->pluck('name'));
+			$q->whereNotIn('name', $card_names);
 
 			foreach ($un_color_identity as $un_color) {
 				$q->whereJsonDoesntContain('color_identity', $un_color);
@@ -81,12 +90,15 @@ class DeckController extends Controller
 		};
 
 		// Find replacements
-		$upgrades = Card::guiOnly(['subtypes'])->with(['superiors' => $card_restrictions, 'functionality.similiarcards' => $card_restrictions_similar])
-			->whereIn('name', $cards->pluck('name'))
+		$upgrades = Card::guiOnly(['subtypes'])->with([
+			'superiors' => $card_restrictions, 
+			'inferiors' => $card_restrictions, 
+			'functionality.typevariantcards' => $card_restrictions_typevariants
+		])->whereIn('name', $card_names)
 			->whereNull('main_card_id')
-			->where(function($q) use ($card_restrictions, $card_restrictions_similar) {
+			->where(function($q) use ($card_restrictions, $card_restrictions_typevariants) {
 				$q->whereHas('superiors', $card_restrictions)
-				->orWhereHas('functionality.similiarcards', $card_restrictions_similar);
+				->orWhereHas('functionality.typevariantcards', $card_restrictions_typevariants);
 			})
 			
 			->get();
@@ -101,8 +113,8 @@ class DeckController extends Controller
 					$card->superiors = $card->superiors->reject(function($superior) use ($tribes) {
 						return empty(array_intersect($superior->subtypes, $tribes));
 					})->values();
-					$card->functionality->similiarcards = $card->functionality->similiarcards->reject(function($similar) use ($tribes) {
-						return empty(array_intersect($similar->subtypes, $tribes));
+					$card->functionality->typevariantcards = $card->functionality->typevariantcards->reject(function($typevariant) use ($tribes) {
+						return empty(array_intersect($typevariant->subtypes, $tribes));
 					})->values();
 				}
 
@@ -123,7 +135,7 @@ class DeckController extends Controller
 
 					})->values();
 
-					$card->functionality->similiarcards = $card->functionality->similiarcards->sort(function($a, $b) use ($tribes) {
+					$card->functionality->typevariantcards = $card->functionality->typevariantcards->sort(function($a, $b) use ($tribes) {
 						$a_tribe = count(array_intersect($a->subtypes, $tribes));
 						$b_tribe = count(array_intersect($b->subtypes, $tribes));
 
@@ -134,11 +146,11 @@ class DeckController extends Controller
 
 			// If no suggestions are left for a upgradable card, remove it from the list 
 			$upgrades = $upgrades->reject(function($card) {
-				return (count($card->superiors) == 0 && count($card->functionality->similiarcards) == 0);
+				return (count($card->superiors) == 0 && count($card->functionality->typevariantcards) == 0);
 			})->values();
 		}
 
-		return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => $upgrades])->withInput();
+		return redirect()->route('deck.index')->with(['deck' => $deck, 'deckupgrades' => $upgrades, 'total' => $cards->count()])->withInput();
     }
 
 	public function getDeckColors($cards)
@@ -154,7 +166,7 @@ class DeckController extends Controller
 	{
 		// We need to parse card name from each line which may be as follows:
 		// 1x Llanowar Elves (CTD) *CMC:20* *EN*
-		$pattern = '/^(?:(\d+)x? )?([^\/]+?)(?: \(\w*\)(?: \d+)?)?(?: \*.*\*)?$/';
+		$pattern = '/^(?:(\d+)x? )?([^\/].*?)(?: \(\w*\)(?: \d+)?)?(?: \*.*\*)?$/';
 		$deck = [];
 		$count = 0;
 		$card_limit = 10000;

@@ -211,20 +211,17 @@ select {
 	padding: 2px !important;
 }
 .select2-selection {
-	height: 38px !important;
+	min-height: 38px !important;
 	border: 1px solid #ced4da !important;
 }
 .select2-selection__arrow {
-	height: 38px !important;
+	min-height: 38px !important;
 }
 .select2-selection--single > .select2-selection__rendered {
 	line-height: 34px !important;
 }
 .select2-selection--multiple > .select2-selection__rendered {
 	line-height: 1.5 !important;
-}
-.select2-selection__placeholder {
-	color: #495057 !important;
 }
 #upgrade_view {
 
@@ -414,7 +411,6 @@ select {
 	font-size: 1rem;
 	font-weight: 400;
 	line-height: 1.5;
-	color: #495057;
 	background-color: #fff;
 	background-clip: padding-box;
 	border: 1px solid #ced4da;
@@ -426,7 +422,7 @@ select {
 	font-size: inherit;
 	padding: auto 0 auto 0;
 	margin-right: 10px;
-	color: #495057;
+	color: #6c757d;
 	height: 34px;
 }
 .ms-options-wrap > .ms-options {
@@ -437,11 +433,20 @@ select {
 	max-width: 136px;
 	overflow-x: hidden;
 }
-.ms-options-wrap > .ms-options > ul label {
-	padding: 4px 8px 4px 8px;
-}
 .ms-options-wrap > .ms-options > ul input[type="checkbox"] {
 	position: static;
+}
+.ms-options-wrap > .ms-options > ul label {
+	background-color: yellow;
+	border-radius: 5px;
+	padding-left: 10px;
+	padding-right: 10px;
+	border: 1px solid black;
+	font-size: 14px;
+}
+.ms-options-wrap > .ms-options > ul li.selected label {
+    background-color: yellow;
+    border-color: black;
 }
 @media (max-width: 580px) {
 	.pagination .page-item:not(.show-mobile) {
@@ -485,6 +490,7 @@ select {
 		position: relative;
 		top: 0;
 		margin-bottom: 0.5rem;
+		z-index: -10;
 	}
 }
 #card-search {
@@ -495,4 +501,14 @@ select {
 	position: sticky;
 	top: 102px;
 	margin-bottom: 77px;
+}
+.browse-selection {
+	background-color: #e4e4e4;
+	border-radius: 4px;
+	border: 1px solid #aaa;
+	padding: 2px 5px 2px 5px;
+	color: #495057;
+}
+.browse-selection-none {
+	color: #6c757d;
 }

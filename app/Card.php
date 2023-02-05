@@ -4,6 +4,7 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 use \Staudenmeir\EloquentHasManyDeep\HasRelationships;
+use App\Traits\CacheableAttribute;
 
 use App\FunctionalReprint;
 use App\Functionality;
@@ -15,6 +16,7 @@ use App\Manacost;
 class Card extends Model
 {
 	use HasRelationships;
+	use CacheableAttribute;
 
 	protected $guarded = ['id'];
 
@@ -82,6 +84,25 @@ class Card extends Model
 	{
 		return $this->belongsToMany(Card::class, 'labelings', 'inferior_functionality_id', 'superior_functionality_id', 'functionality_id', 'functionality_id')
 			->using(Labeling::class)->withPivot(['labels', 'id', 'obsolete_id'])->withTimestamps();
+	}
+
+	public function getCategoryCountsAttribute()
+	{
+		return $this->cache('categoryCounts', function() {
+			$categories = [
+				'superiors' => ['count' => $this->superiors->count(), 'title' => 'superiors'],
+			//	'similars' => ['count' => $this->relationLoaded('inferiors') ? $this->similars->count() : 0, 'title' => 'similar cards'],
+				'typevariants' => ['count' => $this->relationLoaded('functionality') ? $this->functionality->typevariantcards->count() : 0, 'title' => 'type variants'],
+				'inferiors' => ['count' => $this->relationLoaded('inferiors') ? $this->inferiors->count() : 0, 'title' => 'inferiors']
+			];
+
+			foreach ($categories as $key => $info) {
+				if ($info['count'] <= 0)
+					unset($categories[$key]);
+			}
+			$this->cached_attributes['categoryCounts'] = $categories;
+			return $categories;
+		});
 	}
 
 	public function functionality()
@@ -374,8 +395,11 @@ class Card extends Model
 	public function isEqualOrBetterThan(Card $other, $with_errors = false)
 	{
 		// Must not be a duplicate
-		if ($this->id === $other->id || ($this->main_card_id === null && $other->main_card_id === null && $this->functionality->group_id === $other->functionality->group_id))
-			return $with_errors ? 'card.validation.duplicate' : false;
+		if ($this->id === $other->id || ($this->main_card_id === null && $other->main_card_id === null && $this->functionality->id === $other->functionality->id))
+			return $with_errors ? 'duplicate' : false;
+
+		if ($this->main_card_id === null && $other->main_card_id === null && $this->functionality->group_id === $other->functionality->group_id)
+			return $with_errors ? 'typevariant' : false;
 
 		// If this a multifaced card, check card faces against the other card
 		// One of this cards faces must be better
@@ -408,7 +432,7 @@ class Card extends Model
 		// This card must not be slower than the other card
 		if ((in_array("Instant", $other->types) || preg_match('/\b(Flash|\w*Cycling|Channel)\b/i', $other->substituted_rules)) &&
 			!(in_array("Instant", $this->types) || preg_match('/\b(Flash|\w*Cycling|Channel)\b/i', $this->substituted_rules)))
-			return $with_errors ? 'card.validation.not-instant' : false;
+			return $with_errors ? 'not-instant' : false;
 
 
 		// This card must not be a permanent, if the other is a non-permenent...
@@ -423,12 +447,12 @@ class Card extends Model
 				!preg_match('/\bWhen(?:ever)? you cycle @@@/', $this->substituted_rules) &&
 				!preg_match('/\b\w+cycling\b/', $this->substituted_rules) &&
 				!preg_match('/\bChannel\b/', $this->substituted_rules))
-				return $with_errors ? 'card.validation.not-immediate' : false;
+				return $with_errors ? 'not-immediate' : false;
 		}
 
 		// This card must not cost more mana, but may cost more of the existing colors.
 		if ($this->compareCost($other, true, true) > 0)
-			return $with_errors ? 'card.validation.costs-more' : false;
+			return $with_errors ? 'costs-more' : false;
 
 		return true;
 	}

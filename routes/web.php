@@ -33,7 +33,9 @@ Route::get('/deck', [DeckController::class, 'index'])->name('deck.index');
 Route::post('/upgrade_deck', [DeckController::class, 'upgrade'])->name('deck.upgrade');
 
 Route::get('/quicksearch', [CardController::class, 'quicksearch'])->name('card.quicksearch');
-Route::get('/card_autocomplete', [CardController::class, 'cardAutocomplete'])->name('card.autocomplete');
+Route::middleware('cache.headers:public;max_age=3600')->group(function () {
+	Route::get('/card_autocomplete', [CardController::class, 'cardAutocomplete'])->name('card.autocomplete');
+});
 Route::post('/card/search', [CardController::class, 'search'])->name('card.search');
 Route::get('/upgradeview/{card}', [CardController::class, 'upgradeview'])->name('card.upgradeview');
 Route::get('/upgradeview/test-suggestion', [CardController::class, 'testSuggestion'])->name('card.test-suggestion');

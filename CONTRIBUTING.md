@@ -80,4 +80,4 @@ If parsing of [bulk-data files](https://scryfall.com/docs/api/bulk-data) (scryfa
 If you can fix it yourself, you may also make a pull request. Investigating [Scryfall API documentation](https://scryfall.com/docs/api) and the downloaded scryfall-oracle-cards.json (in repository root) can help you there.
 
 
-Henri "Dankkirk" Kulotie
+Henri "Dankirk" Kulotie

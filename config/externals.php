@@ -13,7 +13,7 @@ return [
 
     // Browser is hinted to preconnect to these urls for faster image loads
     'preconnect' => [
-        'https://c1.scryfall.com'
+        'https://cards.scryfall.io'
     ],
 
     // Important Scryfall urls where we can download data
@@ -23,6 +23,6 @@ return [
     ],
 
     // Shown on some pages as author / contact email
-    'author_email' => 'henri.kulotie@gmail.com'
+    'author_email' => env('MAIL_AUTHOR', '')
     
 ];

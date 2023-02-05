@@ -66,8 +66,8 @@
 
 	<h3>Labels and searching</h3>
 	<p>
-		When browsing, you may see labels on card suggestions indicating there might be cases the suggestion is not a strictly better choice.<br>
-		Suggestions with labels are still listed when searching as they may still be useful when considering card replacements, unless you specifically hide them via filter menu on the Browse page.<br>
+		When browsing, you may see labels on card suggestions indicating cases the suggestion is not a strictly better choice.<br>
+		Such suggestions are still listed as they may still be useful when considering alternatives, but you can hide them via filters menu on the Browse page.<br>
 		<br>
 		List of current labels:
 		<ul>
@@ -82,10 +82,13 @@
 
 	<h3>The "strictly better" controversy</h3>
 	<p>
-		People have disagreements about what constitutes as "strictly better". So it is good to remember the site is primarily a tool for finding better options. Other than automated rules and labels/filters mentioned above, StrictlyBetter makes no ruling over what is truly strictly better, as I believe it is better to have the voters decide.<br>
+		People have disagreements about what constitutes as "strictly better". So it is good to remember the site is primarily a tool for finding better options. Other than few automated rules and <span class="card-label">⚠️labels</span> mentioned above, StrictlyBetter makes no ruling over what is truly strictly better, as I believe it is better to have the voters decide.<br>
 		<br>
 		Personally I prefer card suggestions that are better when considered <i>in a vacuum</i>. (Without knowledge of the deck it is played in or decks it's facing)<br>
 		This outlines a few base rules like: <b>opponents card to exile > graveyard, "each" > "target 3", double strike > first strike</b><br>
+
+		In addition issues already noted by the <span class="card-label">⚠️labels</span> listed above should be ignored and suggestions added anyway, 
+		because the search options allow to narrow down the results when it truly matters.
 	</p>
 	<br>
 

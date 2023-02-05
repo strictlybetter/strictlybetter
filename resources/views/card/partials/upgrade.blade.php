@@ -25,9 +25,9 @@
 		@endif
 		@if($card->relationLoaded('functionality'))
 		<li class="nav-item">
-			<a class="nav-link functionalitygroup-toggle {{ $card->functionality->similiarcards->count() ? '' : 'no-items' }}" id="functionalitygroup-tab-{{ $card->id }}" data-bs-toggle="tab" href="#functionalitygroup-{{ $card->id }}" role="tab" aria-controls="functionalitygroup-{{ $card->id }}" aria-selected="false" title="Type variants">
-				<i class="nav-item-functionalitygroup">=</i>
-				Type variants ({{ $card->functionality->similiarcards->count() }}) 
+			<a class="nav-link typevariants-toggle {{ $card->functionality->typevariantcards->count() ? '' : 'no-items' }}" id="typevariants-tab-{{ $card->id }}" data-bs-toggle="tab" href="#typevariants-{{ $card->id }}" role="tab" aria-controls="typevariants-{{ $card->id }}" aria-selected="false" title="Type variants">
+				<i class="nav-item-typevariants">=</i>
+				Type variants ({{ $card->functionality->typevariantcards->count() }}) 
 			</a>
 		</li>
 		@endif
@@ -58,12 +58,10 @@
 
 				@if(count($card->superiors) == 0)
 					<p class="cardpanel-not-found">
-					No upgrade needed.<br>
-					Unless you'd like to <a class="tell_superior" href="{{ route('card.create', [$card->id]) }}">tell us about it</a>?<br>
-					<br>
-					@if($card->relationLoaded('inferiors') && count($card->inferiors) > 0)
-						There are <a data-bs-toggle="tab" href="#inferiors-{{ $card->id }}" role="tab" aria-controls="inferiors-{{ $card->id }}" aria-selected="true" title="Inferior cards">{{ $card->inferiors->count() }} inferiors</a> available though.
-					@endif
+						No upgrade needed.<br>
+						Unless you'd like to <a class="tell_superior" href="{{ route('card.create', [$card->id]) }}">tell us about it</a>?<br>
+						<br>
+						@include('card.partials.tablinks')
 					</p>
 				@endif
 			</div>
@@ -90,23 +88,23 @@
 					<p class="cardpanel-not-found">
 						No budget options found.<br>
 						<br>
-						@if(count($card->superiors) > 0)
-							There are <a data-bs-toggle="tab" href="#superiors-{{ $card->id }}" role="tab" aria-controls="superiors-{{ $card->id }}" aria-selected="true" title="Superior cards">{{ $card->superiors->count() }} superiors</a> available though.
-						@endif
+						@include('card.partials.tablinks')
 					</p>
 				@endif
 			</div>
 		</div>
 		@endif
 		@if($card->relationLoaded('functionality'))
-		<div class="tab-pane fade" id="functionalitygroup-{{ $card->id }}" role="tabpanel" aria-labelledby="functionalitygroup-tab-{{ $card->id }}">
-			<div class="cardpanel cardpanel-functionalitygroup">
-				@if(count($card->functionality->similiarcards) == 0)
+		<div class="tab-pane fade" id="typevariants-{{ $card->id }}" role="tabpanel" aria-labelledby="typevariants-tab-{{ $card->id }}">
+			<div class="cardpanel cardpanel-typevariants">
+				@if(count($card->functionality->typevariantcards) == 0)
 					<p class="cardpanel-not-found">
-						No type variants found.
+						No type variants found.<br>
+						<br>
+						@include('card.partials.tablinks')
 					</p>
 				@else
-					@foreach($card->functionality->similiarcards as $i => $related)
+					@foreach($card->functionality->typevariantcards as $i => $related)
 						@include('card.partials.relatedcard', ['related' => $related, 'type' => 'functionalitygroup'])
 					@endforeach
 				@endif

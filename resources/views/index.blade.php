@@ -15,7 +15,7 @@
 			<span class="spinner-border spinner-border-sm search-spinner" role="status"></span>
 			<span>{{ Form::select('tribe', $tribelist, isset($tribe) ? $tribe : null, ['id' => 'tribe', 'class' => 'form-control']) }}</span>
 			<span>{{ Form::select('format', $formatlist, isset($format) ? $format : null, ['id' => 'format', 'class' => 'form-control', 'aria-label' => 'Format']) }}</span>
-			<span>{{ Form::select('filters', $filterlist, isset($filters) ? $filters : null, ['id' => 'filters', 'multiple' => 'multiple', 'class' => 'form-control', 'aria-label' => 'Filters']) }}</span>
+			<span>{{ Form::select('filters', $filterlist, isset($filters) ? $filters : null, ['id' => 'filters', 'multiple' => 'multiple', 'class' => 'form-control invisible', 'aria-label' => 'Filters']) }}</span>
 			<span>{{ Form::select('order', $orderlist, isset($order) ? $order : 'null', ['id' => 'order', 'class' => 'form-control', 'aria-label' => 'Sort by']) }}</span>
 		</div>
 		<br>
@@ -181,6 +181,7 @@
 		$("#format").select2({
 			allowClear: true, 
 			placeholder: "Any Format",
+			templateSelection: select2TemplateSelection
 
 		}).on('change', function(event) {
 			quicksearch(initial_page, true);
@@ -189,6 +190,7 @@
 		$("#tribe").select2({
 			allowClear: true, 
 			placeholder: "Any Tribe",
+			templateSelection: select2TemplateSelection
 
 		}).on('change', function(event) {
 			quicksearch(initial_page, true);

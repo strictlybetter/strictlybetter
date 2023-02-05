@@ -52,7 +52,7 @@
 						</li>
 						<li class="nav-item {{ Request::is('votehelp/*') ? 'active' : '' }} dropdown" id="nav-helpvoting">
 							<a class="nav-link dropdown-toggle" href="{{ route('votehelp.low-on-votes') }}" role="button" aria-haspopup="true" aria-expanded="false">
-								Help Voting
+								Help By Voting
 							</a>
 							<div class="dropdown-menu" aria-labelledby="nav-helpvoting">
 								<a class="dropdown-item {{ Request::is('votehelp/low-on-votes') ? 'active' : '' }}" href="{{ route('votehelp.low-on-votes') }}" 
@@ -164,7 +164,6 @@
 				}
 			});
 
-			var card_cache = {};
 			var vote_refresh = false;
 
 			function set_vote_refreshing(value) {
@@ -180,12 +179,6 @@
 					delay: 200,
 					source: function(request, response) {
 
-						// Check cache before query
-						if (request.term in card_cache) {
-							response(card_cache[request.term + '|' + max_results]);
-							return;
-						}
-
 						request.limit = max_results;
 
 						if (autocomplete_query)
@@ -193,7 +186,6 @@
 
 						// Query
 						autocomplete_query = $.getJSON("{{ route('card.autocomplete') }}", request, function(data, status, xhr) {
-							card_cache[request.term + '|' + max_results] = data;
 							response(data);
 						});
 					},
@@ -207,14 +199,7 @@
 			}
 
 			function register_tabs(selector, callback) {
-				$(selector).on('click', '.cardlist-tabs a', function (event) {
-					event.preventDefault();
-					$(this).tab('show');
-
-					if (callback !== undefined)
-						callback(this, event);
-
-				}).on('click', '.cardpanel-not-found a[role="tab"]', function (event) {
+				$(selector).on('click', 'a[role="tab"]', function (event) {
 					event.preventDefault();
 					let target = $(this).attr('href');
 					$('.cardlist-tabs a[href="' + target + '"]').tab('show');
@@ -263,6 +248,13 @@
 					if(this.complete) 
 						$(this).trigger('load');
 				});
+			}
+
+			function select2TemplateSelection(state) {
+				var $state = $('<span></span>');
+				$state.text(state.text);
+				$state.addClass(state.id ? 'browse-selection' : 'browse-selection-none');
+				return $state;
 			}
 
 			$(document).ready(function() { 

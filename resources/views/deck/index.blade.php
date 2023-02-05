@@ -33,7 +33,7 @@
 				</span>
 				<span class="form-group row" style="margin-left: 20px">
 					<span><label for="tribes" style="padding: 6px 6px 0px 0px">Preferred tribes</label></span>
-					<span>{{ Form::select('tribes[]', $tribelist, isset($tribes) ? $tribes : [], ['id' => 'tribes', 'class' => 'form-control selectpicker', 'multiple' => true]) }}</span>
+					<span>{{ Form::select('tribes[]', $tribelist, isset($tribes) ? $tribes : [], ['id' => 'tribes', 'class' => 'form-control invisible selectpicker', 'multiple' => true]) }}</span>
 				</span>
 				<span class="form-group" style="margin-left: 20px">{{ Form::submit('Upgrade', ['class' => 'btn btn-primary']) }}</span>
 			</div>
@@ -46,6 +46,8 @@
 
 			<div class="container">
 				<h2>Results</h2>
+
+				<p>Found suggestions for {{ count($deckupgrades) }} / {{ $total }} cards.</p>
 
 				@if(count($deckupgrades) === 0)
 					<p>Congratulations! No upgrades needed.</p>
@@ -71,11 +73,13 @@
 	$("#tribes").select2({
 		allowClear: true, 
 		placeholder: "Any Tribe",
-		maximumSelectionLength: 10
+		maximumSelectionLength: 10,
+		//templateSelection: select2TemplateSelection
 	});
 	$("#format").select2({
 		allowClear: true, 
 		placeholder: "Any Format",
+		templateSelection: select2TemplateSelection
 	});
 
 </script>

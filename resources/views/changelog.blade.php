@@ -20,6 +20,33 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
+	<h4>11/25/22</h4>
+	<ul>
+		<li>Fixed Deck Upgrade -page not recognizing double faced card names.
+			<ul>
+				<li>Now supports both full name and name of either side.</li>
+			</ul>
+		</li>
+	</ul>
+
+	<h4>10/01/22</h4>
+	<ul>
+		<li>Tweaked tribe, format and label filter selectbox appearance, so it's easier to notice if an item is selected</li>
+	</ul>
+
+	<h4>09/29/22</h4>
+	<ul>
+		<li>Fix error while adding suggestions</li>
+	</ul>
+
+	<h4>09/05/22</h4>
+	<ul>
+		<li>Card name autocompletion uses native browser caching instead of custom javascript implementation</li>
+		<li>Cards restricted in selected format are now also listed</li>
+		<li>Inferios are now also listed in Deck Upgrade and Add Suggestion pages</li>
+		<li>Minor tweaks to texts</li>
+	</ul>
+
 	<h4>07/06/22</h4>
 	<ul>
 		<li>Fixed some card misgroupings causing votes to be shared incorrectly.</li>
