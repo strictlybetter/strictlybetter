@@ -220,8 +220,9 @@ function create_card_from_scryfall($obj, $parent = null, $callbacks = [])
 	$regroup = !$parent && (!$card->functionality_id || ($new_rules !== $card->substituted_rules));
 	$card->substituted_rules = $new_rules;
 
-	$manacost = App\Manacost::createFromManacostString($card->manacost, $card->cmc);
+	$manacost = App\Manacost::createFromManacostString($card->manacost, in_array("Land", $card->types) ? $card->cmc : null);
 
+	$card->cmc = $manacost->cmc;
 	$card->manacost_sorted = $manacost->manacost_sorted;
 
 	if ($parent) {
@@ -477,8 +478,8 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 		->orderBy('cards.id', 'asc');
 
 	if ($using_analysis)
-		$queryAll->with(['functionality.variablevalues', 'functionality.excerpts' => function($q) {
-			$q->select(['excerpts.id', 'positive'])->with(['variables', 'superiors', 'inferiors']);
+		$queryAll = $queryAll->with(['functionality.variablevalues', 'functionality.excerpts' => function($q) {
+			$q/*->select(['excerpts.id', 'positive'])*/->with(['variables', 'superiors.variables', 'inferiors.variables']);
 		}]);
 
 	$cardcount = $queryAll->count();
@@ -486,11 +487,11 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 
 	$progress_callback($cardcount, $progress);
 
-	// $allcolors = ["W","B","U","R","G"];
+	$allcolors = ["{W}","{B}","{U}","{R}","{G}", "{C}"];
 
 	//$allexcerpts = $using_analysis ? App\Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all() : null;
 
-	$queryAll->chunk(100, function($cards) use ($using_analysis, $cardcount, $progress_callback, &$count, &$progress, $obsoletion_attributes) {
+	$queryAll->chunk(100, function($cards) use ($using_analysis, $cardcount, $progress_callback, &$count, &$progress, $obsoletion_attributes, $allcolors) {
 
 	foreach ($cards as $card) {
 
@@ -516,7 +517,7 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 	
 		else {
 			$q->with(['functionality.variablevalues', 'functionality.excerpts' => function($q) {
-				$q->select(['excerpts.id', 'positive'])->with(['variables', 'superiors', 'inferiors']);
+				$q->/*select(['excerpts.id', 'positive'])->*/with(['variables', 'superiors.variables', 'inferiors.variables']);
 			}]);
 
 			// Must have differing rules text
@@ -655,9 +656,33 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 						->orWhere('manacost_sorted->' . $symbol, '<=', $amount);
 				});
 			}
+
+			$uncolors = array_diff($allcolors, array_keys($card->manacost_sorted));
+			foreach ($uncolors as $symbol) {
+				$q = $q->whereNull('manacost_sorted->' . $symbol);
+			}
 		}
 		else
 			$q = $q->whereJsonLength('manacost_sorted', 0);
+		
+		/*
+		if (!empty($card->manacost_sorted)) {
+			$colors = array_intersect($allcolors, array_keys($card->manacost_sorted));
+			foreach ($colors as $symbol) {
+				$q = $q->where(function($q) use ($symbol, $card){
+					$q->whereNull('mana_' . $symbol[1])
+						->orWhere('mana_' . $symbol[1], '<=', $card->manacost_sorted[$symbol]);
+				});
+			}
+
+			$uncolors = array_diff($allcolors, $colors);
+			foreach ($uncolors as $symbol) {
+				$q = $q->whereNull('mana_' . $symbol[1]);
+			}
+		}
+		else
+			$q = $q->whereJsonLength('manacost_sorted', 0);
+		*/
 
 		// dd(\Str::replaceArray('?', $q->getBindings(), $q->toSql()));
 
@@ -681,14 +706,16 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 				$betters = $betters->filter(function($better) use ($card) {
 
 					$mana_comparison = $better->compareCost($card, true, false);
-					if ($mana_comparison > 0)
+					if ($mana_comparison > 0 || $mana_comparison < -1)
 						return false;
 
 					// Split card is better, even if everything else matches
 					if ($card->main_card_id === null && $better->main_card_id !== null)
 						return true;
 
-					if ($mana_comparison < 0)
+					if ($card->compareCost($better, false, false) === 1)
+						return true;
+					if ($mana_comparison === -1)
 						return true;
 
 					if ($card->hasStats()) {

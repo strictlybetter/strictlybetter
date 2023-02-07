@@ -6,6 +6,8 @@ use App\FunctionalReprint;
 use App\Cardtype;
 use App\Labeling;
 use App\Excerpt;
+use App\ExcerptComparison;
+use App\ExcerptVariable;
 use App\Functionality;
 use App\FunctionalityGroup;
 
@@ -673,59 +675,46 @@ Artisan::command('analyze-rules', function () {
 	Excerpt::query()->delete();
 	DB::statement('ALTER TABLE excerpts AUTO_INCREMENT = 1;');
 
+	$round = 0;
+	$positivity_shift_count = 0;
+
+	do {
+
 	$new_excerpts = 0;
+	$new_variables = 0;
+	$positivity_shift_count = 0;
+	$positivity_shifts = ['excerpt' => [], 'variable' => []];
+	$round++;
 
-	$this->comment("Creating positive/negative excerpts from current suggestions...");
+	$this->comment("Creating positive/negative excerpts from current suggestions (round ".$round.")...");
 
-	$q = Obsolete::with(['inferiors', 'superiors'])
+	$q = Obsolete::with([
+			'inferiors.functionality.excerpts.variables', 'inferiors.cardFaces.functionality.excerpts.variables', 'inferiors.functionality.excerpts.superiors.variables',
+			'superiors.functionality.excerpts.variables', 'superiors.cardFaces.functionality.excerpts.variables', 'superiors.functionality.excerpts.inferiors.variables',
+			'inferiors.functionality.variablevalues', 
+			'superiors.functionality.variablevalues',
+		])
 		->whereRaw('inferior_functionality_group_id != superior_functionality_group_id')
-		->where('upvotes', '>=', 5)->whereRaw('downvotes / upvotes < 0.45');
+		->where('upvotes', '>=', 3)->whereRaw('downvotes / upvotes < 0.45');
 
 	$bar = $this->output->createProgressBar($q->count());
 
-	$q->chunk(1000, function($obsoletes) use (&$new_excerpts, $bar) {
+	$q->chunk(1000, function($obsoletes) use (&$new_excerpts, &$new_variables, &$positivity_shifts, $bar, $round) {
 
 		foreach ($obsoletes as $obsolete) {
 			$superior = $obsolete->superiors->first();
 			$inferior = $obsolete->inferiors->first();
 			
-			// If inferior or superior is a multifaced card, 
-			// search for the actual face that is better
-			$face_found = (count($superior->cardFaces) == 0) && (count($inferior->cardFaces) == 0);
-			if (!$face_found) {
-				foreach ($superior->cardFaces as $sup) {
+			if ($superior->cardFaces->count() > 0 || $inferior->cardFaces->count() > 0)
+				continue;
+			/*if (!Card::findComparedFaces($superior, $inferior))
+				continue;
+			*/
 
-					foreach($inferior->cardFaces as $inf) {
-						if ($sup->isEqualOrBetterThan($inf)) {
-							$superior = $sup;
-							$inferior = $inf;
-							$face_found = true;
-							break 2;
-						}
-					}
+			$superior_excerpt = null;
+			$inferior_excerpt = null;
 
-					if ($sup->isEqualOrBetterThan($inferior)) {
-						$superior = $sup;
-						$face_found = true;
-					}
-				}
-				if (!$face_found) {
-					foreach($inferior->cardFaces as $inf) {
-						if ($superior->isEqualOrBetterThan($inf)) {
-							$inferior = $inf;
-							$face_found = true;
-							break;
-						}
-					}
-					if (!$face_found)
-						continue;
-				}
-			}
-
-			$superior_id = null;
-			$inferior_id = null;	
-
-			$excerpts = Excerpt::getNewExcerpts($inferior, $superior);
+			$excerpts = Excerpt::getNewExcerpts($inferior, $superior, $round);
 			foreach ($excerpts as $e) {
 
 				$has_inferiors = !$e->inferiors->isEmpty();
@@ -741,40 +730,109 @@ Artisan::command('analyze-rules', function () {
 
 					// Update ratings. 
 					// Point system attempts to verify we haven't made misjudgements about rule being positive/negative
+					$old_value = $existing->positive;
 					$existing->sumPoints($e)->save();
+
+					// If value was changed, we should re-iterate previous findings
+					if ($old_value !== $existing->positive) {
+						if (array_key_exists($existing->id, $positivity_shifts['excerpt']) && $positivity_shifts['excerpt'][$existing->id] === $existing->positive)
+							unset($positivity_shifts['excerpt'][$existing->id]);
+						else {
+							$positivity_shifts['excerpt'][$existing->id] = $old_value;
+						}
+					}
 
 					// Save variables
 					foreach ($e->variables as $variable) {
 
-						$id = $existing->variables->search(function($item, $key) use ($variable) { return $item->isSameVariable($variable); });
-						$existing->variables[$id]->sumPoints($variable)->save();
+						$i = $existing->variables->search(function($item, $key) use ($variable) { return $item->isSameVariable($variable); });
+						$old_value = $existing->variables[$i]->positive;
+						$existing->variables[$i]->sumPoints($variable)->save();
+						if ($old_value !== $existing->variables[$i]->positive) {
+
+							$id = $existing->variables[$i]->id;
+
+							if (array_key_exists($id, $positivity_shifts['variable']) && $positivity_shifts['variable'][$id] === $existing->variables[$i]->positive)
+								unset($positivity_shifts['variable'][$id]);
+							else
+								$positivity_shifts['variable'][$id] = $old_value;
+						}
+
+						// Remember value for later
+						$existing->variables[$i]->setRuntimeValue($variable->getRuntimeValue());
 					}
 				}
 				else {
 
 					$e->push();
 					$new_excerpts++;
+					$new_variables += $e->variables->count();
 
 					$e->variables()->saveMany($e->variables);
 					$existing = $e;
 				}
 	
 				if ($has_superiors)
-					$inferior_id = $existing->id;
+					$inferior_excerpt = $existing;
 				if ($has_inferiors)
-					$superior_id = $existing->id;
+					$superior_excerpt = $existing;
 			}
 
-			if ($superior_id !== null) {
+			if ($superior_excerpt !== null && $inferior_excerpt !== null) {
 
-				$superior = Excerpt::with(['inferiors' => function($q) use ($inferior_id) { 
-					$q->where('inferior_excerpt_id', $inferior_id); 
-				}])->find($superior_id);
+				$comparison = ExcerptComparison::firstOrCreate([
+						'inferior_excerpt_id' => $inferior_excerpt->id, 
+						'superior_excerpt_id' => $superior_excerpt->id
+					],
+					[
+						'reliability_points' => 1
+					]
+				);
 
-				$existing = $superior->inferiors->first();
-				$reliability_points = ($existing ? $existing->pivot->reliability_points : 0) + 1;
+				if (!$comparison->wasRecentlyCreated) {
+					$comparison->reliability_points += 1;
+					$comparison->save();
+				}
 
-				$superior->inferiors()->syncWithoutDetaching([$inferior_id => ['reliability_points' => $reliability_points]]);
+				$variable_comparisons = collect([]);
+
+				$superior_variables = $superior_excerpt->variables;
+				$inferior_variables = $inferior_excerpt->variables;
+
+				// Load variables to get their ids
+		//		$superior_excerpt->load('variables');
+		//		$inferior_excerpt->load('variables');
+
+				//$previous = [];
+
+				// Cross-compare all same type variables of these two (different) excerpts
+				foreach ($superior_variables as $variable) {
+					foreach ($inferior_variables as $inferior_variable) {
+
+						if ($variable->isSameType($inferior_variable)) {
+
+							// Find ids for these variables
+							$tmpvar = $superior_excerpt->variables->first(function ($item, $key) use ($variable) { return $item->isSameVariable($variable); });
+							$variable->id = $tmpvar->id;
+
+							$tmpvar = $inferior_excerpt->variables->first(function ($item, $key) use ($inferior_variable) { return $item->isSameVariable($inferior_variable); });
+							$inferior_variable->id = $tmpvar->id;
+
+							/*
+							// skip any variable pair we already compared the other way around
+							if (isset($previous[$variable->capture_type][$inferior_variable->capture_id][$variable->capture_id]))
+								continue;
+
+							$previous[$variable->capture_type][$variable->capture_id][$inferior_variable->capture_id] = 1;
+							*/
+						
+							$variable_comparisons->push(ExcerptVariable::createComparison($variable, $inferior_variable));
+						}
+					}
+				}
+				if (!$variable_comparisons->isEmpty())
+					$comparison->variablecomparisons()->saveMany($variable_comparisons);
+
 			}
 
 			$bar->advance();
@@ -783,7 +841,13 @@ Artisan::command('analyze-rules', function () {
 
 	$bar->finish();
 
-	$this->comment("Analyzed " . ($new_excerpts) . " new excerpts from current suggestions");
+	$positivity_shift_count = count($positivity_shifts['excerpt']) + count($positivity_shifts['variable']);
+
+	if ($round > 1)
+		var_dump($positivity_shifts);
+
+	$this->comment("Analyzed " . $new_excerpts . " new excerpts with " . $new_variables . " new variables and " . $positivity_shift_count . " positivity shifts from current suggestions.");
+	} while ($new_excerpts > 0 || $new_variables > 0 || $positivity_shift_count > 0);
 
 	$new_excerpts = 0;
 	$this->comment("Creating excerpts from cards...");

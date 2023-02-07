@@ -93,6 +93,40 @@ class Manacost {
 		return $costs;
 	}
 
+	public function getNewManacostString() {
+
+		if ($this->cmc === null)
+			return "";
+
+		$mana_counts = ($this->manacost_sorted !== null) ? $this->manacost_sorted : [];
+		$variable_counts = [];
+
+		// X, Y and Z don't count towards cmc
+		foreach (self::$variable_costs as $symbol) {
+			if (isset($mana_counts[$symbol])) {
+				$variable_counts[$symbol] = $mana_counts[$symbol];
+				unset($mana_counts[$symbol]);
+			}
+		}
+
+		$variables = array_sum(array_values($variable_counts));
+		$colored = array_sum(array_values($mana_counts));
+		$colorless = $this->cmc - $colored;
+
+		$string = '';
+		foreach ($variable_counts as $symbol => $amount) {
+			$string .= str_repeat($symbol, $amount);
+		}
+
+		if ($colorless > 0 || ($colored == 0 && $variables == 0))
+			$string = '{' . $colorless . '}';
+
+		foreach ($mana_counts as $symbol => $amount) {
+			$string .= str_repeat($symbol, $amount);
+		}
+		return $string;
+	}
+
 	public function addColorless($coloress_amount)
 	{
 		$this->cmc += $coloress_amount;
@@ -101,12 +135,56 @@ class Manacost {
 		return $this;
 	}
 
+	public function substract(?Manacost $substract, $reformat_string = true)
+	{
+		if ($substract === null)
+			return $this;
+
+		$this->cmc -= $substract->cmc;
+		$this->hybridless_cmc -= $substract->hybridless_cmc;
+
+		if ($this->cmc < 0)
+			$this->cmc = 0;
+		if ($this->hybridless_cmc < 0)
+			$this->hybridless_cmc = 0;
+
+		foreach ($substract->manacost_sorted as $symbol => $amount) {
+			$this->manacost_sorted[$symbol] = ($this->manacost_sorted[$symbol] ?? 0) - $amount;
+
+			if ($this->manacost_sorted[$symbol] <= 0)
+				unset($this->manacost_sorted[$symbol]);
+		}
+
+		if ($reformat_string)
+			$this->manacost = $this->getNewManacostString();
+
+		return $this;
+	}
+
+	public function add(?Manacost $add, $reformat_string = true)
+	{
+		if ($add === null)
+			return $this;
+
+		$this->cmc += $add->cmc;
+		$this->hybridless_cmc += $add->hybridless_cmc;
+
+		foreach ($add->manacost_sorted as $symbol => $amount) {
+			$this->manacost_sorted[$symbol] = ($this->manacost_sorted[$symbol] ?? 0) + $amount;
+		}
+
+		if ($reformat_string)
+			$this->manacost = $this->getNewManacostString();
+
+		return $this;
+	}
+
 	public function calculateCmcFromCost()
 	{
 		$cmc = null;
 		
-		// Only match digit symbol at the start of mana cost. Multifaced cards could have manacosts like: {R} // {1}
-		if (preg_match('/^\{(\d+)\}/u', $this->manacost, $matches))
+		// Use strtok() to find first word. Multifaced cards have manacosts like: {R} // {1}
+		if (preg_match('/\{(\d+)\}/u', strtok($this->manacost, " "), $matches))
 			$cmc = $matches[1];
 
 		$mana_counts = ($this->manacost_sorted !== null) ? $this->manacost_sorted : $this->calculateColoredManaCosts();
@@ -155,20 +233,40 @@ class Manacost {
 		if ($this->cmc === null)
 			return -1;
 
+		// Compare variable costs {X}, {Y} and {Z}
+		$variable_comparison = 0;
+		foreach (self::$variable_costs as $variable_cost) {
+			if (isset($this->manacost_sorted[$variable_cost]) || isset($other->manacost_sorted[$variable_cost])) {
+
+				$comparison = ($this->manacost_sorted[$variable_cost] ?? 0) <=> ($other->manacost_sorted[$variable_cost] ?? 0);
+				if ($comparison !== 0) {
+					if ($variable_comparison === 0)
+						$variable_comparison = $comparison;
+					else if ($variable_comparison !== $comparison)
+						return 2;
+				}
+			}
+		}
+
 		// Compare colored costs first, we can get the possible value: 2 (or -2)
 		// indicating both cost more (or less) than the other. In such case caller might want to bail.
 		$comparison = $this->compareColoredCost($other, $may_cost_more_of_same);
-		if ($comparison != 0) {
-			if ($comparison == $other->compareColoredCost($this, $may_cost_more_of_same))
-				return $comparison * 2;
-			else if ($comparison > 0)
-				return $comparison;
+		if ($comparison !== 0 && $comparison === $other->compareColoredCost($this, false))
+			return $comparison * 2;
+
+		// Check for contradicting comparisons
+		if (($comparison < 0 && $variable_comparison > 0) || ($comparison > 0 && $variable_comparison < 0))
+			return 2;
+
+		if ($this->cmc > $other->cmc || $this->hybridless_cmc > $other->hybridless_cmc) {
+			$comparison_cmc = 1 + (($other->cmc > $this->cmc || $other->hybridless_cmc > $this->hybridless_cmc) ? 1 : 0);
+			return ($comparison < 0 || $variable_comparison < 0) ? 2 : $comparison_cmc;
 		}
 
-		if ($this->cmc > $other->cmc || $this->hybridless_cmc > $other->hybridless_cmc)
-			return  1 + (($this->cmc > $this->cmc || $other->hybridless_cmc > $this->hybridless_cmc) ? 1 : 0);
+		if ($this->cmc < $other->cmc || $this->hybridless_cmc < $other->hybridless_cmc)
+			return ($comparison > 0 || $variable_comparison > 0) ? 2 : -1;
 
-		return ($this->cmc < $other->cmc || $this->hybridless_cmc < $other->hybridless_cmc) ? -1 : $comparison;
+		return ($comparison !== 0) ? $comparison : $variable_comparison;
 	}
 
 	public function compareColoredCost(Manacost $other, $may_cost_more_of_same = false)

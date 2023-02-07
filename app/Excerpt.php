@@ -22,7 +22,8 @@ class Excerpt extends Model
 	];
 
 	protected static $exception_patterns = [
-		'/this spell costs @mc@ less to cast\b/ui' => true,	// Casting less is a positive effect (Might not need with scoring system)
+		'/this spell costs @mc@ less to cast\b/ui' => 1,	// Casting less is a positive effect (Might not need with scoring system)
+		'/^\{T\}\: Add @mc@\.$/u' => 1
 	//	'/^(?:\{[^\}]+\})+$/u' => null, 	// Text only contains manacost and nothing else? Can't deduce anything from it
 	];
 
@@ -48,12 +49,12 @@ class Excerpt extends Model
 
 	public function inferiors()
 	{
-		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'superior_excerpt_id', 'inferior_excerpt_id')->withPivot(['reliability_points']);
+		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'superior_excerpt_id', 'inferior_excerpt_id')->using(ExcerptComparison::class)->withPivot(['id', 'reliability_points']);
 	}
 
 	public function superiors()
 	{
-		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'inferior_excerpt_id', 'superior_excerpt_id')->withPivot(['reliability_points']);;
+		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'inferior_excerpt_id', 'superior_excerpt_id')->using(ExcerptComparison::class)->withPivot(['id', 'reliability_points']);
 	}
 
 	public static function cardToRawExcerpts(Card $card)
@@ -100,7 +101,7 @@ class Excerpt extends Model
 		return ($ret != 0 && Excerpt::matchWithPluralOrSingular($a, $b)) ? 0 : $ret;
 	}
 
-	public static function getNewExcerpts(Card $inferior, Card $superior)
+	public static function getNewExcerpts(Card $inferior, Card $superior, int $round = 1)
 	{
 		$excerpts = collect([]);
 
@@ -109,6 +110,13 @@ class Excerpt extends Model
 
 		$common_excerpts = $superior_excerpts->intersectByKeys($inferior_excerpts);
 		foreach ($common_excerpts as $text => $excerpt) {
+
+			/*
+			// Card may have multiple of same excerpt, check if the other card has same amount
+			if ($inferior_excerpts[$text]->count() != $superior_excerpts[$text]->count()) {
+				$common_excerpts->forget($text);
+				continue;
+			}*/
 
 			//foreach ($excerpts as $excerpt) {
 
@@ -121,12 +129,31 @@ class Excerpt extends Model
 						$inferior_excerpts[$text]->variables->first($search)
 					);
 				}
-		//	}
+			//}
 		}
 		$excerpts = $excerpts->merge($common_excerpts->values());
 
-		$diff_superior_excerpts = $superior_excerpts->diffKeys($common_excerpts)->values();
-		$diff_inferior_excerpts = $inferior_excerpts->diffKeys($common_excerpts)->values();
+		$diff_superior_excerpts = $superior_excerpts->diffKeys($common_excerpts);
+		$diff_inferior_excerpts = $inferior_excerpts->diffKeys($common_excerpts);
+
+		if ($round > 1) {
+
+			// Filter excerpts that have alredy been deemed positive or are superior to a inferiors excerpt
+			$positives = $superior->functionality->excerpts->filter(function($e) use ($inferior) {
+				return $e->positive === 1 || $e->pluck('inferiors.id')->intersect($inferior->functionality->pluck('excerpts.id'))->isNotEmpty();
+			})->keyBy('text');
+
+			// Filter excerpts that have alredy been deemed negative or are inferior to a superiors excerpt
+			$negatives = $inferior->functionality->excerpts->filter(function($e) use ($superior) {
+				return $e->positive === 0 || $e->pluck('superiors.id')->intersect($superior->functionality->pluck('excerpts.id'))->isNotEmpty();
+			})->keyBy('text');
+
+			$diff_superior_excerpts = $diff_superior_excerpts->diffKeys($positives);
+			$diff_inferior_excerpts = $diff_inferior_excerpts->diffKeys($negatives);
+		}
+
+		$diff_superior_excerpts = $diff_superior_excerpts->values();
+		$diff_inferior_excerpts = $diff_inferior_excerpts->values();
 
 		$count_inferior = $diff_inferior_excerpts->count();
 		$count_superior = $diff_superior_excerpts->count();
@@ -135,7 +162,7 @@ class Excerpt extends Model
 		if ($count_inferior == 0) {
 			foreach ($diff_superior_excerpts as $excerpt) {
 				$excerpt->positivity_points++;
-				$excerpt->positive = 1;
+				$excerpt->positive = null;
 			}
 			$excerpts = $excerpts->merge($diff_superior_excerpts);
 		}
@@ -144,23 +171,26 @@ class Excerpt extends Model
 		else if ($count_superior == 0) {
 			foreach ($diff_inferior_excerpts as $excerpt) {
 				$excerpt->negativity_points++;
-				$excerpt->positive = 0;
+				$excerpt->positive = null;
 			}
 			$excerpts = $excerpts->merge($diff_inferior_excerpts);
 		}
 
 		// Exactly one on both -> The one superior is superior to the one inferior
 		else if ($count_inferior == 1 && $count_superior == 1) {
-			$diff_superior_excerpts->first()->setRelation('inferiors', $diff_inferior_excerpts);
-			$diff_inferior_excerpts->first()->setRelation('superiors', $diff_superior_excerpts);
 
-			$excerpts = $excerpts->merge($diff_superior_excerpts)->merge($diff_inferior_excerpts);
+			$superior_excerpt = $diff_superior_excerpts->first();
+			$inferior_excerpt = $diff_inferior_excerpts->first();
+
+			//$diff_inferior_excerpts->first()->setRelation('variablecomparisons', $variable_comparisons);
+
+			$superior_excerpt->setRelation('inferiors', $diff_inferior_excerpts);
+			$inferior_excerpt->setRelation('superiors', $diff_superior_excerpts);
+
+			$excerpts = $excerpts->push($superior_excerpt)->push($inferior_excerpt);
 		}
 
 		// Rest of the excerpts don't provide meaningful data for decision making, so ignore them
-		else {
-			
-		}
 
 		// Override some values
 		foreach ($excerpts as $key => $e) {
@@ -172,8 +202,8 @@ class Excerpt extends Model
 					}
 					else {
 						$e->positive = $override_value;
-					//	$e->positivity_points = ($override_value === true) ? 1 : 0;
-					//	$e->negativity_points = ($override_value === false) ? 1 : 0;
+						$e->positivity_points = ($override_value === 1) ? 1 : 0;
+						$e->negativity_points = ($override_value === 0) ? 1 : 0;
 					}
 				}
 			}
@@ -188,6 +218,8 @@ class Excerpt extends Model
 		$this->positivity_points += $other->positivity_points;
 		$this->negativity_points += $other->negativity_points;
 		$this->positive = ($this->positivity_points == $this->negativity_points) ? null : ($this->positivity_points > $this->negativity_points);
+	//	$delta = $this->positivity_points - $this->negativity_points;
+	//	$this->positive = (abs($delta) > 2) ? ($delta > 0) : null;
 
 		return $this;
 	}
@@ -225,13 +257,5 @@ class Excerpt extends Model
 		}
 
 		return true;
-	}
-
-	public function isBetterThan($excerpts) {
-		return $this->inferiors->whereIn('id', $excerpts->pluck('id')->all())->count() > 0;
-	}
-
-	public function isWorseThan($excerpts) {
-		return $this->superiors->whereIn('id', $excerpts->pluck('id')->all())->count() > 0;
 	}
 }

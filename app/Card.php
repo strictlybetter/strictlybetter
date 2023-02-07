@@ -279,27 +279,33 @@ class Card extends Model
 			$this->save();
 		}
 
+		$cards_left_in_functionality = true;
+		$functionalities_left_in_group = true;
+
 		// Move better-worse relations and voting data to new functionality if leaving orhpans
-		if ($migrate_from_orphan_functionality && 
-			($migrate_from_orphan_functionality->id != $new_functionality->id || 
-			$migrate_from_orphan_functionality->group_id != $new_group->id)) {
+		if ($migrate_from_orphan_functionality) {
 
-			$migrate_from_orphan_functionality->migrateTo($new_functionality, $new_group);
+			$cards_left_in_functionality = ($migrate_from_orphan_functionality->id !== $new_functionality->id) ? ($migrate_from_orphan_functionality->cards()->count() > 0) : true;
+			$functionalities_left_in_group = ($migrate_from_orphan_functionality->group_id !== $new_group->id) ? ($migrate_from_orphan_functionality->group->functionalities()->count() > 1) : true;
 
-			if ($migrate_from_orphan_functionality->id != $new_functionality->id && $migrate_from_orphan_functionality->cards()->count() == 0) {
-				if ($migrate_from_orphan_functionality->group->functionalities()->count() <= 1)
-					$migrate_from_orphan_functionality->group->delete();
-				else
+			if (!$cards_left_in_functionality || !$functionalities_left_in_group) {
+
+				$migrate_from_orphan_functionality->migrateTo($new_functionality, $new_group);
+
+				if (!$cards_left_in_functionality)
 					$migrate_from_orphan_functionality->delete();
 			}
 		}
 
 		// Change group_id only after migrating associated entities, 
 		// because changing it will cause cascade update, which might run in to duplicates in unique columns in obsoletes table.
-		if ($new_functionality->group_id != $new_group->id) {
+		if ($new_functionality->group_id !== $new_group->id) {
 			$new_functionality->group_id = $new_group->id;
 			$new_functionality->save();
 		}
+
+		if (!$functionalities_left_in_group)
+			$migrate_from_orphan_functionality->group->delete();
 
 		/*
 		// TODO: Create labelings for our new relation
@@ -352,11 +358,11 @@ class Card extends Model
 		return $substitute_rules;
 	}
 
-	public function compareCost(Card $other, $may_cost_more_of_same = false, $consider_alternatives = false)
+	public function compareCost(Card $other, $may_cost_more_of_same = false, $consider_alternatives = false, $alternative_base_cost_only = false)
 	{
 
 		if ($consider_alternatives) {
-			$comparison = $this->compareAlternativeCosts($other, $may_cost_more_of_same);
+			$comparison = $this->compareAlternativeCosts($other, $may_cost_more_of_same, $alternative_base_cost_only);
 			if ($comparison < 0)
 				return $comparison;
 		}
@@ -365,9 +371,11 @@ class Card extends Model
 		if ($consider_alternatives && $comparison > 0) {
 
 			// Check for a special case, where mana cost is less based on target
-			$result = preg_match('/this spell costs (\{[^\}]+\})+ less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
-			if ($result == 1 && stripos($other->substituted_rules, "Target " . $match[1]) !== false)
-				return -1;
+			$result = preg_match('/this spell costs ((?:\{[^\}]+\})+) less to cast if it targets (?:an? )?(.+?)\./ui', $this->substituted_rules, $match);
+			if ($result == 1 && stripos($other->substituted_rules, "Target " . $match[2]) !== false) {
+				$reducted = Manacost::createFromCard($this)->substract(Manacost::createFromManacostString($match[1]), false);
+				return $reducted->compareCost(Manacost::createFromCard($other), $may_cost_more_of_same);
+			}
 		}
 
 		return $comparison;
@@ -376,6 +384,38 @@ class Card extends Model
 	public function compareColoredCost(Card $other, $may_cost_more_of_same = false)
 	{
 		return Manacost::createFromCard($this)->compareColoredCost(Manacost::createFromCard($other), $may_cost_more_of_same);
+	}
+
+	public static function findComparedFaces(&$superior, &$inferior) {
+
+		// If inferior or superior is a multifaced card, 
+		// search for the actual face that is better
+		if (count($superior->cardFaces) == 0 && count($inferior->cardFaces) == 0)
+			return true;
+
+		foreach ($superior->cardFaces as $sup) {
+
+			foreach($inferior->cardFaces as $inf) {
+				if ($sup->isEqualOrBetterThan($inf)) {
+					$superior = $sup;
+					$inferior = $inf;
+					return true;
+				}
+			}
+
+			if ($sup->isEqualOrBetterThan($inferior)) {
+				$superior = $sup;
+				return true;
+			}
+		}
+		
+		foreach($inferior->cardFaces as $inf) {
+			if ($superior->isEqualOrBetterThan($inf)) {
+				$inferior = $inf;
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -451,7 +491,7 @@ class Card extends Model
 		}
 
 		// This card must not cost more mana, but may cost more of the existing colors.
-		if ($this->compareCost($other, true, true) > 0)
+		if ($this->compareCost($other, true, true, true) > 0)
 			return $with_errors ? 'costs-more' : false;
 
 		return true;
@@ -472,27 +512,14 @@ class Card extends Model
 		$superior_excerpts_org = $this->functionality->excerpts->keyBy('id');
 		$inferior_excerpts_org = $other->functionality->excerpts->keyBy('id');
 
+		$common_excerpts = $superior_excerpts_org->intersectByKeys($inferior_excerpts_org);
 		$has_superior_variable_values = false;
 
-		$common_excerpts = $superior_excerpts_org->intersectByKeys($inferior_excerpts_org);
 		foreach ($common_excerpts as $key => $excerpt) {
-			foreach ($excerpt->variables as $variable) {
-
-				$search = function($item, $key) use ($variable) { 
-					return $item->variable_id === $variable->id; 
-				};
-
-				$result = $variable->valueComparisonDb(
-					$this->functionality->variablevalues->first($search), 
-					$other->functionality->variablevalues->first($search)
-				);
-
-				if ($result < 0)
-					return false;
-
-				else if ($result == 1)
-					$has_superior_variable_values = true;
-			}
+			$compare_result = $this->compareCommonExcerptValues($excerpt, $other);
+			if ($compare_result < 0)
+				return false;
+			$has_superior_variable_values = $has_superior_variable_values || ($compare_result > 0);
 		}
 
 		$superior_excerpts = $superior_excerpts_org->diffKeys($common_excerpts)->values();
@@ -504,17 +531,82 @@ class Card extends Model
 
 		// Remaining superior excerpts must all be positive or better than an inferior excerpt
 		foreach ($superior_excerpts as $excerpt) {
-			if ($excerpt->positive !== 1 && !$excerpt->isBetterThan($inferior_excerpts))
+
+			$comparee = $excerpt->inferiors->whereIn('id', $inferior_excerpts->pluck('id'))->first();
+			if ($comparee) {
+				if ($this->crossCompareExcerptValues($excerpt, $other, $comparee) < 0)
+					return false;
+			}
+			else if ($excerpt->positive !== 1)
 				return false;
 		}
 
 		// Remaining inferior excerpts must all be negative or worse than a superior excerpt
 		foreach ($inferior_excerpts as $excerpt) {
-			if ($excerpt->positive !== 0 && !$excerpt->isWorseThan($superior_excerpts))
+
+			$comparee = $excerpt->superiors->whereIn('id', $superior_excerpts->pluck('id'))->first();
+			if ($comparee) {
+				if ($this->crossCompareExcerptValues($excerpt, $other, $comparee) < 0)
+					return false;
+			}
+			else if ($excerpt->positive !== 0)
 				return false;
 		}
 
 		return true;
+	}
+
+	private function crossCompareExcerptValues(Excerpt $excerpt, Card $other, Excerpt $other_excerpt) {
+
+		$has_superior_variable_values = 0;
+
+		foreach ($excerpt->variables as $variable) {
+			foreach ($other_excerpt->variables as $other_variable) {
+
+				if ($variable->isSameType($other_variable)) {
+
+					$superior_value = $this->functionality->variablevalues->first(function($item, $key) use ($variable) { return $item->variable_id === $variable->id; });
+					$inferior_value = $other->functionality->variablevalues->first(function($item, $key) use ($other_variable) { return $item->variable_id === $other_variable->id; });
+
+					$result = $variable->valueComparisonDb(
+						$superior_value, 
+						$inferior_value
+					);
+
+					if ($result < 0 || $result > 1)
+						return -1;
+
+					else if ($result == 1)
+						$has_superior_variable_values = 1;
+				}
+			}
+		}
+		return $has_superior_variable_values;
+	}
+
+	private function compareCommonExcerptValues(Excerpt $excerpt, Card $other) {
+
+		$has_superior_variable_values = 0;
+		foreach ($excerpt->variables as $variable) {
+
+			$search = function($item, $key) use ($variable) {
+				return $item->variable_id === $variable->id;
+			};
+
+			$result = $variable->valueComparisonDb(
+				$this->functionality->variablevalues->first($search), 
+				$other->functionality->variablevalues->first($search)
+			);
+
+			if ($result < 0 || $result > 1)
+				return -1;
+
+			else if ($result == 1)
+				$has_superior_variable_values = 1;
+		}
+	
+
+		return $has_superior_variable_values;
 	}
 
 	/**
@@ -524,10 +616,10 @@ class Card extends Model
 	 * @param  boolean - can the original card cost more of same color. {W}{W} vs {1}{W} and still be better?
 	 * @return boolean - Costs more than the compared card
 	 */
-	public function compareAlternativeCosts(Card $other, $may_cost_more_of_same = false)
+	public function compareAlternativeCosts(Card $other, $may_cost_more_of_same = false, $base_cost_only = false)
 	{
-		$alt = $this->getAlternativeCosts();
-		$alt2 = $other->getAlternativeCosts();
+		$alt = $this->getAlternativeCosts($base_cost_only);
+		$alt2 = $other->getAlternativeCosts($base_cost_only);
 
 		foreach ($alt as $keyword => $cost) {
 
@@ -547,7 +639,7 @@ class Card extends Model
 	 * 
 	 * @return Associateve array of alternative manacost keyword -> manacost
 	 */
-	public function getAlternativeCosts() 
+	public function getAlternativeCosts($base_cost_only = false) 
 	{
 
 		$alt_keywords = [
@@ -586,8 +678,8 @@ class Card extends Model
 
 		// Spells with these keywords cost additional colorless mana to get the full effect
 		$alt_cost_keywords = [
-			'Morph' => 3,
-			'Megamorph' => 3
+			'Morph' => '{3}',
+			'Megamorph' => '{3}'
 		];
 
 		$words = implode("|", $alt_keywords);
@@ -598,7 +690,11 @@ class Card extends Model
 		$costs = [];
 
 		foreach ($matches as $val) {
-			$costs[$val[1]] = Manacost::createFromManacostString($val[2])->addColorless($alt_cost_keywords[$val[1]] ?? 0);
+
+			if ($base_cost_only)
+				$costs[$val[1]] = isset($alt_cost_keywords[$val[1]]) ? Manacost::createFromManacostString($alt_cost_keywords[$val[1]]) : Manacost::createFromManacostString($val[2]);
+			else	
+				$costs[$val[1]] = Manacost::createFromManacostString($val[2])->add(isset($alt_cost_keywords[$val[1]]) ? Manacost::createFromManacostString($alt_cost_keywords[$val[1]]) : null, false);
 		}
 		return $costs;
 

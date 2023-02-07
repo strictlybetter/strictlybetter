@@ -20,12 +20,7 @@ class DigitHandler {
 class ManacostHandler {
 
 	public static function parser($string) { return Manacost::createFromManacostString($string); }
-	public static function comparator(Manacost $a, Manacost $b) { 
-		$result = $a->compareCost($b, false);
-		// $result 2 or -2 tells us both manacosts contain colored mana the other doesn't have,
-		// So both are considered "larger" than the other. By flipping the values all checks for < or > will fail.
-		return ($result > 1 || $result < -1) ? ($result * -1) : $result;
-	}
+	public static function comparator(Manacost $a, Manacost $b) { return $a->compareCost($b, false); }
 	public static function toJsonableFn(Manacost $mc) { return $mc->toExcerptValueArray(); }
 	public static function toValueFn(array $array) { return Manacost::createFromExcerptValueArray($array); }
 }
@@ -77,7 +72,7 @@ class ExcerptVariable extends Model
 	];
 
 	// Run-time value attribute setter/getter
-	private $value = null;
+	private $runtime_value = null;
 
 	// We need to find patterns from escaped source
 	protected static $variable_patterns = [
@@ -106,10 +101,15 @@ class ExcerptVariable extends Model
 
 
 	// Used to find excerpts variables after an array intersect
-	// Thus, we don't need to check for variable_id, just the finer details
+	// Thus, we don't need to check for excerpt_id, just the finer details
 	public function isSameVariable($other)
 	{
 		return $this->capture_id === $other->capture_id && $this->capture_type === $other->capture_type;
+	}
+
+	public function isSameType($other)
+	{
+		return $this->capture_type === $other->capture_type;
 	}
 
 	public function excerpt()
@@ -141,12 +141,22 @@ class ExcerptVariable extends Model
 				]);
 
 				// Set runtime value (not saved to DB like this)
-				$var->value = $parse_values ? $data['handler']::parser($match[0]) : $match[0];
+				$var->runtime_value = $parse_values ? $data['handler']::parser($match[0]) : $match[0];
 
 				$variables->push($var);
 			}
 		}
 		return $variables;
+	}
+
+	public function getRuntimeValue() 
+	{
+		return $this->runtime_value;
+	}
+
+	public function setRuntimeValue($value)
+	{
+		$this->runtime_value = $value;
 	}
 
 	public static function substituteVariablesInRules($rules)
@@ -169,12 +179,14 @@ class ExcerptVariable extends Model
 	 */
 	public function valueComparison($a, $b) 
 	{
-		$result = $this->more_is_better ? $this->handler()::comparator($a, $b) : $this->handler()::comparator($b, $a);
+		$result = ($this->more_is_better === 0) ? $this->handler()::comparator($b, $a) : $this->handler()::comparator($a, $b);
 		return ($this->more_is_better === null && $result != 0) ? -1 : $result;	
 	}
 
-	public function valueComparisonDb(ExcerptVariableValue $a, ExcerptVariableValue $b) 
+	public function valueComparisonDb(?ExcerptVariableValue $a, ?ExcerptVariableValue $b) 
 	{
+		if ($a === null || $b === null)
+			return 0;	// if comparable value is missing, consider these equal
 		return $this->valueComparison($this->jsonableToValue($a->value), $this->jsonableToValue($b->value));
 	}
 
@@ -182,11 +194,25 @@ class ExcerptVariable extends Model
 	{
 		//$comparator = self::$variable_patterns[$this->capture_type]['comparator'];
 
-		$result = $this->handler()::comparator($this->parseValue($superior->value), $this->parseValue($inferior->value));
+		$result = $this->handler()::comparator($this->parseValue($superior->runtime_value), $this->parseValue($inferior->runtime_value));
 		$this->more_is_better = ($result == 1 || $result == -1) ? ($result > 0 ? 1 : 0) : null;
 
 		$this->points_for_more = ($this->more_is_better === 1) ? 1 : 0;
 		$this->points_for_less = ($this->more_is_better === 0) ? 1 : 0;
+	}
+
+	public static function createComparison(ExcerptVariable $superior, ExcerptVariable $inferior)
+	{
+		$result = $superior->handler()::comparator($superior->parseValue($superior->runtime_value), $superior->parseValue($inferior->runtime_value));
+		$more_is_better = ($result == 1 || $result == -1) ? ($result > 0 ? 1 : 0) : null;
+
+		return new ExcerptVariableComparison([
+			'superior_variable_id' => $superior->id,
+			'inferior_variable_id' => $inferior->id,
+			'more_is_better' => $more_is_better,
+			'points_for_more' => ($more_is_better === 1) ? 1 : 0,
+			'points_for_less' => ($more_is_better === 0) ? 1 : 0
+		]);
 	}
 
 	public function sumPoints(ExcerptVariable $other)
@@ -200,12 +226,12 @@ class ExcerptVariable extends Model
 
 	public function parseValue($value = null) 
 	{
-		return $this->handler()::parser($value === null ? $this->value : $value);
+		return $this->handler()::parser($value === null ? $this->runtime_value : $value);
 	}
 
 	public function valueToJsonable($value = null) 
 	{
-		return $this->handler()::toJsonableFn($value === null ? $this->value : $value);
+		return $this->handler()::toJsonableFn($value === null ? $this->runtime_value : $value);
 	}
 
 	public function jsonableToValue($jsonable) 

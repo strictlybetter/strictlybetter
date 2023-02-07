@@ -12,6 +12,7 @@ class Labeling extends Pivot
 	protected $table = 'labelings';
 	protected $guarded = ['id'];
 
+	public $incrementing = true;
 	protected $casts = ['labels' => 'array'];
 	//protected $with = ['obsolete'];
 
