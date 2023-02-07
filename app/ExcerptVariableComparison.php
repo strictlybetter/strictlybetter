@@ -23,4 +23,15 @@ class ExcerptVariableComparison extends Model
     public function comparison() {
         return $this->belongsTo(ExcerptComparison::class, 'comparison_id');
     }
+
+    public function valueComparisonDb(?ExcerptVariableValue $a, ?ExcerptVariableValue $b, ExcerptVariable $sample) 
+    {
+        if ($a === null || $b === null)
+            return 0;
+
+        return (new ExcerptVariable([
+            'capture_type' => $sample->capture_type,
+            'more_is_better' => $this->more_is_better
+        ]))->valueComparisonDb($a, $b);
+    }
 }

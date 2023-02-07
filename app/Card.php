@@ -559,6 +559,7 @@ class Card extends Model
 	private function crossCompareExcerptValues(Excerpt $excerpt, Card $other, Excerpt $other_excerpt) {
 
 		$has_superior_variable_values = 0;
+		$comparisons = ExcerptVariableComparison::where('comparison_id', $other_excerpt->pivot->id)->get();
 
 		foreach ($excerpt->variables as $variable) {
 			foreach ($other_excerpt->variables as $other_variable) {
@@ -568,9 +569,15 @@ class Card extends Model
 					$superior_value = $this->functionality->variablevalues->first(function($item, $key) use ($variable) { return $item->variable_id === $variable->id; });
 					$inferior_value = $other->functionality->variablevalues->first(function($item, $key) use ($other_variable) { return $item->variable_id === $other_variable->id; });
 
-					$result = $variable->valueComparisonDb(
+					$comparison = $comparisons->first(function($item, $key) use ($variable, $other_variable) { 
+						return ($item->superior_variable_id === $variable->id && $item->inferior_variable_id === $other_variable->id)
+							|| ($item->superior_variable_id === $other_variable->id && $item->inferior_variable_id === $variable->id); 
+					});
+
+					$result = $comparison->valueComparisonDb(
 						$superior_value, 
-						$inferior_value
+						$inferior_value,
+						$variable
 					);
 
 					if ($result < 0 || $result > 1)
