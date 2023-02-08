@@ -22,6 +22,6 @@ class ExcerptComparison extends Pivot
     }
 
     public function variablecomparisons() {
-        return $this->hasMany(ExcerptVariableComparison::class, 'comparison_id');
+        return $this->hasMany(ExcerptVariableComparison::class, 'comparison_id', 'id');
     }
 }

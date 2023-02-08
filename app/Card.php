@@ -564,7 +564,7 @@ class Card extends Model
 		foreach ($excerpt->variables as $variable) {
 			foreach ($other_excerpt->variables as $other_variable) {
 
-				if ($variable->isSameType($other_variable)) {
+				if ($variable->isComparableTo($other_variable)) {
 
 					$superior_value = $this->functionality->variablevalues->first(function($item, $key) use ($variable) { return $item->variable_id === $variable->id; });
 					$inferior_value = $other->functionality->variablevalues->first(function($item, $key) use ($other_variable) { return $item->variable_id === $other_variable->id; });
@@ -575,8 +575,8 @@ class Card extends Model
 					});
 
 					$result = $comparison->valueComparisonDb(
-						$superior_value, 
-						$inferior_value,
+						$comparison->superior_variable_id === $variable->id ? $superior_value : $inferior_value, 
+						$comparison->superior_variable_id === $variable->id ? $inferior_value : $superior_value,
 						$variable
 					);
 

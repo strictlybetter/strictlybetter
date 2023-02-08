@@ -472,7 +472,7 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 		'functionality_id'
 	];
 
-	$queryAll = App\Card::select($obsoletion_attributes)->with(['functionality'])
+	$queryAll = App\Card::/*select($obsoletion_attributes)->*/with(['functionality'])
 		->whereNull('main_card_id')
 		->whereDoesntHave('cardFaces')
 		->orderBy('cards.id', 'asc');
@@ -491,11 +491,11 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 
 	//$allexcerpts = $using_analysis ? App\Excerpt::where(function($q) { $q->where('positive', 1)->orWhere('positive', 0); })->orderBy('text')->get()->groupBy(['positive', 'regex'])->all() : null;
 
-	$queryAll->chunk(100, function($cards) use ($using_analysis, $cardcount, $progress_callback, &$count, &$progress, $obsoletion_attributes, $allcolors) {
+	$queryAll->chunkById(100, function($cards) use ($using_analysis, $cardcount, $progress_callback, &$count, &$progress, $obsoletion_attributes, $allcolors) {
 
 	foreach ($cards as $card) {
 
-		$q = App\Card::select($obsoletion_attributes)->with(['functionality'])
+		$q = App\Card::/*select($obsoletion_attributes)->*/with(['functionality'])
 		//	->whereJsonContains('supertypes', $card->supertypes)
 		//	->whereJsonLength('supertypes', count($card->supertypes))
 		//	->where('id', "!=", $card->id)
@@ -541,6 +541,8 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 
 					$non_positives = $excerpts->where('positive', '!==', 1);
 					$non_positive_ids =  $non_positives->pluck('id')->toArray();
+
+					// merge superior ids to non-positives, so we can use the list as exception to allow non-positive excerpts in superior card
 					foreach ($non_positives as $excerpt) {
 						$non_positive_ids = array_merge($non_positive_ids, $excerpt->superiors->pluck('id')->toArray());
 					}
@@ -568,10 +570,7 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 						});
 
 						if (count($non_positive_ids) > 0) {
-
-							$q->where(function($q) use ($non_positive_ids) {
-								$q->whereIn('excerpts.id', $non_positive_ids);
-							}, null, null, 'AND NOT');
+							$q->whereNotIn('excerpts.id', $non_positive_ids);
 						}
 					});
 				}	
@@ -687,7 +686,7 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 		// dd(\Str::replaceArray('?', $q->getBindings(), $q->toSql()));
 
 
-		$q->orderBy('cards.id', 'asc')->chunk(1000, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
+		$q->orderBy('cards.id', 'asc')->chunkById(1000, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
 
 			// Filter out any better cards that cost more colored mana
 

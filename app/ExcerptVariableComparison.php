@@ -34,4 +34,19 @@ class ExcerptVariableComparison extends Model
             'more_is_better' => $this->more_is_better
         ]))->valueComparisonDb($a, $b);
     }
+
+    public function isSameComparison(ExcerptVariableComparison $other) 
+    {
+        return $this->superior_variable_id === $other->superior_variable_id && 
+                $this->inferior_variable_id === $other->inferior_variable_id;
+    }
+
+    public function sumPoints(ExcerptVariableComparison $other)
+    {
+        $this->points_for_less += $other->points_for_less;
+        $this->points_for_more += $other->points_for_more;
+        $this->more_is_better = ($this->points_for_more === $this->points_for_less) ? null : (int)($this->points_for_more > $this->points_for_less);
+
+        return $this;
+    }
 }

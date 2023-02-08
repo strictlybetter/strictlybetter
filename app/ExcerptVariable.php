@@ -15,6 +15,7 @@ class DigitHandler {
 	public static function comparator(int $a, int $b) { return $a <=> $b; }
 	public static function toJsonableFn(int $digit) { return $digit; }
 	public static function toValueFn(int $digit) { return $digit; }
+	public static function compareType() { return DigitHandler::class; }
 }
 
 class ManacostHandler {
@@ -23,6 +24,7 @@ class ManacostHandler {
 	public static function comparator(Manacost $a, Manacost $b) { return $a->compareCost($b, false); }
 	public static function toJsonableFn(Manacost $mc) { return $mc->toExcerptValueArray(); }
 	public static function toValueFn(array $array) { return Manacost::createFromExcerptValueArray($array); }
+	public static function compareType() { return ManacostHandler::class; }
 }
 
 class NumberWordHandler extends DigitHandler {
@@ -107,9 +109,9 @@ class ExcerptVariable extends Model
 		return $this->capture_id === $other->capture_id && $this->capture_type === $other->capture_type;
 	}
 
-	public function isSameType($other)
+	public function isComparableTo($other)
 	{
-		return $this->capture_type === $other->capture_type;
+		return $this->handler()::compareType() === $other->handler()::compareType();
 	}
 
 	public function excerpt()
@@ -180,7 +182,7 @@ class ExcerptVariable extends Model
 	public function valueComparison($a, $b) 
 	{
 		$result = ($this->more_is_better === 0) ? $this->handler()::comparator($b, $a) : $this->handler()::comparator($a, $b);
-		return ($this->more_is_better === null && $result != 0) ? -1 : $result;	
+		return ($this->more_is_better === null && $result !== 0) ? -1 : $result;	
 	}
 
 	public function valueComparisonDb(?ExcerptVariableValue $a, ?ExcerptVariableValue $b) 
@@ -194,8 +196,8 @@ class ExcerptVariable extends Model
 	{
 		//$comparator = self::$variable_patterns[$this->capture_type]['comparator'];
 
-		$result = $this->handler()::comparator($this->parseValue($superior->runtime_value), $this->parseValue($inferior->runtime_value));
-		$this->more_is_better = ($result == 1 || $result == -1) ? ($result > 0 ? 1 : 0) : null;
+		$result = $this->handler()::comparator($superior->parseValue($superior->runtime_value), $inferior->parseValue($inferior->runtime_value));
+		$this->more_is_better = ($result === 1 || $result === -1) ? ($result > 0 ? 1 : 0) : null;
 
 		$this->points_for_more = ($this->more_is_better === 1) ? 1 : 0;
 		$this->points_for_less = ($this->more_is_better === 0) ? 1 : 0;
@@ -203,8 +205,8 @@ class ExcerptVariable extends Model
 
 	public static function createComparison(ExcerptVariable $superior, ExcerptVariable $inferior)
 	{
-		$result = $superior->handler()::comparator($superior->parseValue($superior->runtime_value), $superior->parseValue($inferior->runtime_value));
-		$more_is_better = ($result == 1 || $result == -1) ? ($result > 0 ? 1 : 0) : null;
+		$result = $superior->handler()::comparator($superior->parseValue($superior->runtime_value), $inferior->parseValue($inferior->runtime_value));
+		$more_is_better = ($result === 1 || $result === -1) ? ($result > 0 ? 1 : 0) : null;
 
 		return new ExcerptVariableComparison([
 			'superior_variable_id' => $superior->id,
@@ -219,7 +221,7 @@ class ExcerptVariable extends Model
 	{
 		$this->points_for_more += $other->points_for_more;
 		$this->points_for_less += $other->points_for_less;
-		$this->more_is_better = ($this->points_for_more == $this->points_for_less) ? null : ($this->points_for_more > $this->points_for_less);
+		$this->more_is_better = ($this->points_for_more === $this->points_for_less) ? null : (int)($this->points_for_more > $this->points_for_less);
 
 		return $this;
 	}

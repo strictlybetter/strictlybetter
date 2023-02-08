@@ -23,7 +23,8 @@ class Excerpt extends Model
 
 	protected static $exception_patterns = [
 		'/this spell costs @mc@ less to cast\b/ui' => 1,	// Casting less is a positive effect (Might not need with scoring system)
-		'/^\{T\}\: Add @mc@\.$/u' => 1
+		'/^\{T\}\: Add @mc@(?:,?(?: or)? @mc@)*\.$/u' => 1,
+		'/^Delve$/u' => 1
 	//	'/^(?:\{[^\}]+\})+$/u' => null, 	// Text only contains manacost and nothing else? Can't deduce anything from it
 	];
 
@@ -39,7 +40,7 @@ class Excerpt extends Model
 
 	public function groups()
 	{
-		return $this->belongsToMany(FunctionalityGroup::class, 'excerpt_group', 'excerpt_id', 'group_id')->withPivot(['amount']);
+		return $this->belongsToMany(Functionality::class, 'excerpt_group', 'excerpt_id', 'group_id')->withPivot(['amount']);
 	}
 
 	public function variables()
@@ -82,7 +83,7 @@ class Excerpt extends Model
 	{
 		$raws = collect(self::cardToRawExcerpts($card));
 
-		return $raws->map(function($raw) use ($parse_values) {
+		return $raws->map(function($raw) use ($parse_values, $card) {
 			$excerpt = new Excerpt([
 				'text' => ExcerptVariable::substituteVariablesInRules($raw),
 				'positive' => null,
@@ -90,6 +91,7 @@ class Excerpt extends Model
 				'negativity_points' => 0
 			]);
 			$excerpt->setRelation('variables', ExcerptVariable::getVariablesFromRaw($raw, $parse_values));
+			$excerpt->setRelation('groups', collect([$card->functionality]));
 			return $excerpt;
 		});
 	}
@@ -140,12 +142,12 @@ class Excerpt extends Model
 
 			// Filter excerpts that have alredy been deemed positive or are superior to a inferiors excerpt
 			$positives = $superior->functionality->excerpts->filter(function($e) use ($inferior) {
-				return $e->positive === 1 || $e->pluck('inferiors.id')->intersect($inferior->functionality->pluck('excerpts.id'))->isNotEmpty();
+				return /*$e->positive === 1 || */$e->inferiors->pluck('id')->intersect($inferior->functionality->excerpts->pluck('id'))->isNotEmpty();
 			})->keyBy('text');
 
 			// Filter excerpts that have alredy been deemed negative or are inferior to a superiors excerpt
 			$negatives = $inferior->functionality->excerpts->filter(function($e) use ($superior) {
-				return $e->positive === 0 || $e->pluck('superiors.id')->intersect($superior->functionality->pluck('excerpts.id'))->isNotEmpty();
+				return /*$e->positive === 0 || */$e->superiors->pluck('id')->intersect($superior->functionality->excerpts->pluck('id'))->isNotEmpty();
 			})->keyBy('text');
 
 			$diff_superior_excerpts = $diff_superior_excerpts->diffKeys($positives);
@@ -162,7 +164,7 @@ class Excerpt extends Model
 		if ($count_inferior == 0) {
 			foreach ($diff_superior_excerpts as $excerpt) {
 				$excerpt->positivity_points++;
-				$excerpt->positive = null;
+				$excerpt->positive = 1;
 			}
 			$excerpts = $excerpts->merge($diff_superior_excerpts);
 		}
@@ -171,7 +173,7 @@ class Excerpt extends Model
 		else if ($count_superior == 0) {
 			foreach ($diff_inferior_excerpts as $excerpt) {
 				$excerpt->negativity_points++;
-				$excerpt->positive = null;
+				$excerpt->positive = 0;
 			}
 			$excerpts = $excerpts->merge($diff_inferior_excerpts);
 		}
@@ -217,7 +219,7 @@ class Excerpt extends Model
 	{
 		$this->positivity_points += $other->positivity_points;
 		$this->negativity_points += $other->negativity_points;
-		$this->positive = ($this->positivity_points == $this->negativity_points) ? null : ($this->positivity_points > $this->negativity_points);
+		$this->positive = ($this->positivity_points === $this->negativity_points) ? null : (int)($this->positivity_points > $this->negativity_points);
 	//	$delta = $this->positivity_points - $this->negativity_points;
 	//	$this->positive = (abs($delta) > 2) ? ($delta > 0) : null;
 
