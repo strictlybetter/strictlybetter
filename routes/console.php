@@ -685,10 +685,12 @@ Artisan::command('analyze-rules', function () {
 		'variables' => 				['name' => 'Variables', 'new' => 0, 'shifts' => 0],
 		'comparisons' => 			['name' => 'Excerpt Comparisons', 'new' => 0, 'shifts' => 'n/a'],
 		'comparison_variables' => 	['name' => 'Comparison Variables', 'new' => 0, 'shifts' => 0],
+		'inherited_statuses' => 	['name' => 'Inherited Statuses', 'new' => 'n/a', 'shifts' => 0],
+
 	];
 
 	$positivity_shift_count = 0;
-	$positivity_shifts = ['excerpt' => [], 'variable' => [], 'comparison_variable' => []];
+	$positivity_shifts = ['excerpt' => [], 'variable' => [], 'comparison_variable' => [], 'inherited_statuses' => []];
 	$round++;
 
 	$this->comment("Creating positive/negative excerpts from current suggestions (round ".$round.")...");
@@ -871,12 +873,72 @@ Artisan::command('analyze-rules', function () {
 
 	$bar->finish();
 
+	$make_inferiors_negative = function($comparison, $previous = null) use (&$make_inferiors_negative, &$positivity_shifts) {
+
+		if (isset($positivity_shifts['inherited_statuses'][$comparison->inferior_excerpt_id]))
+			return;
+
+		$comparison->load('inferior.inferiors');
+
+		if ($comparison->inferior->positive === 1) {
+			return;	// return if contradicting positivity
+		}
+
+		foreach ($comparison->inferior->inferiors as $inferior) {
+			$make_inferiors_negative($inferior->comparison, $comparison->inferior);
+		}
+
+		if ($comparison->inferior->positive !== 0) {
+			
+			$comparison->inferior->sumPoints($previous)->save();
+			$positivity_shifts['inherited_statuses'][$comparison->inferior->id] = 0;
+		}
+	};
+
+	$make_superiors_positive = function($comparison, $previous = null) use (&$make_superiors_positive, &$positivity_shifts) {
+		
+		if (isset($positivity_shifts['inherited_statuses'][$comparison->superior_excerpt_id]))
+			return;
+
+		$comparison->load('superior.superiors');
+
+		if ($comparison->superior->positive === 0) {
+			return; // return if contradicting positivity
+		}
+
+		//$points['superior_positive'] += ($comparison->superior->positivity_points - $comparison->superior->negativity_points);
+		foreach ($comparison->superior->superiors as $superior) {
+			$make_superiors_positive($superior->comparison, $comparison->superior);
+		}
+
+		if ($comparison->superior->positive !== 1) {	
+
+			$comparison->superior->sumPoints($previous)->save();
+			$positivity_shifts['inherited_statuses'][$comparison->superior->id] = 1;
+		}
+	};
+
+	$this->comment("Inheriting positive/negative points from inferior/superior excerpts (round ".$round.")...");
+	$q = ExcerptComparison::with('inferior', 'superior');
+
+	$q->chunkById(1000, function($comparisons) use (&$make_inferiors_negative, &$make_superiors_positive) {
+		foreach ($comparisons as $comparison) {
+
+			if ($comparison->inferior->positive === 0)
+				$make_inferiors_negative($comparison);
+			if ($comparison->superior->positive === 1)
+				$make_superiors_positive($comparison);
+		}
+	});
+
+
 	$logtable['excerpts']['shifts'] = count($positivity_shifts['excerpt']);
 	$logtable['variables']['shifts'] = count($positivity_shifts['variable']);
 	$logtable['comparison_variables']['shifts'] = count($positivity_shifts['comparison_variable']);
+	$logtable['inherited_statuses']['shifts'] = count($positivity_shifts['inherited_statuses']);
 
 
-	$positivity_shift_count = count($positivity_shifts['excerpt']) + count($positivity_shifts['variable']) + count($positivity_shifts['comparison_variable']);
+	$positivity_shift_count = array_sum(array_map('count', array_values($positivity_shifts)));
 
 /*
 	if ($round > 3)
@@ -910,7 +972,7 @@ Artisan::command('analyze-rules', function () {
 					$new_excerpts++;
 					if (!$excerpt->variables->isEmpty()) {
 						$existing->variables()->saveMany($excerpt->variables);
-						$existing->refresh();	// refresh to get variable ids later
+						//$existing->refresh();	// refresh to get variable ids later
 					}
 				}
 

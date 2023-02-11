@@ -95,7 +95,7 @@ class ExcerptVariable extends Model
 		
 		// Number words
 		'numberword' => [
-			'pattern' => '/\b(?:zero|no|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/u',
+			'pattern' => '/\b(?:zero|no|a|an|(?<!this )one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/u',
 			'placeholder' => '@nw@',
 			'handler' => NumberWordHandler::class
 		]								
@@ -185,10 +185,11 @@ class ExcerptVariable extends Model
 		return ($this->more_is_better === null && $result !== 0) ? -1 : $result;	
 	}
 
-	public function valueComparisonDb(?ExcerptVariableValue $a, ?ExcerptVariableValue $b) 
-	{
+	public function valueComparisonDb(ExcerptVariableValue $a, ExcerptVariableValue $b) 
+	{/*
 		if ($a === null || $b === null)
 			return 0;	// if comparable value is missing, consider these equal
+		*/
 		return $this->valueComparison($this->jsonableToValue($a->value), $this->jsonableToValue($b->value));
 	}
 

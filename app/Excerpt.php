@@ -5,11 +5,14 @@ namespace App;
 use App\FunctionalityGroup;
 use App\ExcerptVariable;
 
+use AjCastro\EagerLoadPivotRelations\EagerLoadPivotTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Excerpt extends Model
 {
+	use EagerLoadPivotTrait;
+
 	protected $table = 'excerpts';
 	protected $guarded = ['id'];
 
@@ -22,9 +25,12 @@ class Excerpt extends Model
 	];
 
 	protected static $exception_patterns = [
-		'/this spell costs @mc@ less to cast\b/ui' => 1,	// Casting less is a positive effect (Might not need with scoring system)
+		'/\bthis spell costs @mc@ less to cast\b/ui' => 1,	// Casting less is a positive effect (Might not need with scoring system)
 		'/^\{T\}\: Add @mc@(?:,?(?: or)? @mc@)*\.$/u' => 1,
-		'/^Delve$/u' => 1
+		'/^(?:Delve|Improvise|Convoke|Affinity for \w+)$/u' => 1,
+		'/^As @nw@ additional cost to cast this spell, /u' => 0,
+		'/^@@@ enters the battlefield with @nw@ -@d@\/-@d@ /u' => 0,
+		'/^put @nw@ -@d@\/-@d@ counters? on ((?!for each).)* you control\b/u' => 0,
 	//	'/^(?:\{[^\}]+\})+$/u' => null, 	// Text only contains manacost and nothing else? Can't deduce anything from it
 	];
 
@@ -50,12 +56,12 @@ class Excerpt extends Model
 
 	public function inferiors()
 	{
-		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'superior_excerpt_id', 'inferior_excerpt_id')->using(ExcerptComparison::class)->withPivot(['id', 'reliability_points']);
+		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'superior_excerpt_id', 'inferior_excerpt_id')->using(ExcerptComparison::class)->withPivot(['id', 'reliability_points'])->as('comparison');
 	}
 
 	public function superiors()
 	{
-		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'inferior_excerpt_id', 'superior_excerpt_id')->using(ExcerptComparison::class)->withPivot(['id', 'reliability_points']);
+		return $this->belongsToMany(Excerpt::class, 'excerpt_comparisons', 'inferior_excerpt_id', 'superior_excerpt_id')->using(ExcerptComparison::class)->withPivot(['id', 'reliability_points'])->as('comparison');
 	}
 
 	public static function cardToRawExcerpts(Card $card)
@@ -63,17 +69,19 @@ class Excerpt extends Model
 
 		// • == \x{2022} (Used in cards with choices)
 		// Split by lines and dotted sentences
-		$raws = preg_split('/(\n|(?<=\.)\s*)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
+		//$raws = preg_split('/(\n|(?<=\.)\s*)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
+		$raws = preg_split('/(\n|(?<=\.)\s+|(?<=\.")\s+)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
+		//$raws = preg_split('/(?:"[^"]*")*(\n|(?<=\.)\s*)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
 		$excerpts = [];
 
 		foreach ($raws as $raw) {
 
 			// Further split dotless lines by commas. Those lines contain keyword lists.
 			// Uppercase first letter for each excerpt
-			if (substr($raw, -1) !== '.' && substr($raw, -1) !== '—')
+			if (substr($raw, -1) !== '.' && substr($raw, -1) !== '—' && substr($raw, -1) !== '"')
 				$excerpts = array_merge($excerpts, array_map('ucfirst', preg_split('/(,\s+)/u', $raw, -1, PREG_SPLIT_NO_EMPTY)));
 			else
-				array_push($excerpts, ltrim($raw, '• '));
+				array_push($excerpts, preg_replace('/^[\x{2022} ]+/u', '', $raw));
 		}
 
 		return $excerpts;
@@ -142,12 +150,12 @@ class Excerpt extends Model
 
 			// Filter excerpts that have alredy been deemed positive or are superior to a inferiors excerpt
 			$positives = $superior->functionality->excerpts->filter(function($e) use ($inferior) {
-				return /*$e->positive === 1 || */$e->inferiors->pluck('id')->intersect($inferior->functionality->excerpts->pluck('id'))->isNotEmpty();
+				return $e->inferiors->pluck('id')->intersect($inferior->functionality->excerpts->pluck('id'))->isNotEmpty();
 			})->keyBy('text');
 
 			// Filter excerpts that have alredy been deemed negative or are inferior to a superiors excerpt
 			$negatives = $inferior->functionality->excerpts->filter(function($e) use ($superior) {
-				return /*$e->positive === 0 || */$e->superiors->pluck('id')->intersect($superior->functionality->excerpts->pluck('id'))->isNotEmpty();
+				return $e->superiors->pluck('id')->intersect($superior->functionality->excerpts->pluck('id'))->isNotEmpty();
 			})->keyBy('text');
 
 			$diff_superior_excerpts = $diff_superior_excerpts->diffKeys($positives);
@@ -196,23 +204,25 @@ class Excerpt extends Model
 
 		// Override some values
 		foreach ($excerpts as $key => $e) {
-			foreach (self::$exception_patterns as $pattern => $override_value) {
-				if (preg_match($pattern, $e->text) == 1) {
-					if ($override_value === null) {
-						unset($excerpts[$key]);
-						continue 2;
-					}
-					else {
-						$e->positive = $override_value;
-						$e->positivity_points = ($override_value === 1) ? 1 : 0;
-						$e->negativity_points = ($override_value === 0) ? 1 : 0;
-					}
-				}
+			if (!$e->overrideExceptionPatterns()) {
+				unset($excerpts[$key]);
 			}
 		}
 
 		// return
 		return $excerpts;
+	}
+
+	public function overrideExceptionPatterns()
+	{
+		foreach (self::$exception_patterns as $pattern => $override_value) {
+			if (preg_match($pattern, $this->text) == 1) {
+				$this->positive = $override_value;
+				$this->positivity_points = ($override_value === 1) ? 1 : 0;
+				$this->negativity_points = ($override_value === 0) ? 1 : 0;
+			}
+		}
+		return $this;
 	}
 
 	public function sumPoints(Excerpt $other)

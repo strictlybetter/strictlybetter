@@ -534,7 +534,7 @@ class Card extends Model
 
 			$comparee = $excerpt->inferiors->whereIn('id', $inferior_excerpts->pluck('id'))->first();
 			if ($comparee) {
-				if ($this->crossCompareExcerptValues($excerpt, $other, $comparee) < 0)
+				if ($this->crossCompareExcerptValues($excerpt, $other, $comparee, $comparee->comparison) < 0)
 					return false;
 			}
 			else if ($excerpt->positive !== 1)
@@ -546,7 +546,7 @@ class Card extends Model
 
 			$comparee = $excerpt->superiors->whereIn('id', $superior_excerpts->pluck('id'))->first();
 			if ($comparee) {
-				if ($this->crossCompareExcerptValues($excerpt, $other, $comparee) < 0)
+				if ($this->crossCompareExcerptValues($comparee, $other, $excerpt, $comparee->comparison) < 0)
 					return false;
 			}
 			else if ($excerpt->positive !== 0)
@@ -556,29 +556,24 @@ class Card extends Model
 		return true;
 	}
 
-	private function crossCompareExcerptValues(Excerpt $excerpt, Card $other, Excerpt $other_excerpt) {
+	private function crossCompareExcerptValues(Excerpt $excerpt, Card $other, Excerpt $other_excerpt, ExcerptComparison $excerpt_comparison) {
 
 		$has_superior_variable_values = 0;
-		$comparisons = ExcerptVariableComparison::where('comparison_id', $other_excerpt->pivot->id)->get();
+		//$comparisons = ExcerptVariableComparison::where('comparison_id', $other_excerpt->pivot->id)->get();
 
 		foreach ($excerpt->variables as $variable) {
 			foreach ($other_excerpt->variables as $other_variable) {
 
 				if ($variable->isComparableTo($other_variable)) {
 
+					$comparison = $excerpt_comparison->variablecomparisons->first(function($item, $key) use ($variable, $other_variable) { 
+						return ($item->superior_variable_id === $variable->id && $item->inferior_variable_id === $other_variable->id);
+					});
+
 					$superior_value = $this->functionality->variablevalues->first(function($item, $key) use ($variable) { return $item->variable_id === $variable->id; });
 					$inferior_value = $other->functionality->variablevalues->first(function($item, $key) use ($other_variable) { return $item->variable_id === $other_variable->id; });
 
-					$comparison = $comparisons->first(function($item, $key) use ($variable, $other_variable) { 
-						return ($item->superior_variable_id === $variable->id && $item->inferior_variable_id === $other_variable->id)
-							|| ($item->superior_variable_id === $other_variable->id && $item->inferior_variable_id === $variable->id); 
-					});
-
-					$result = $comparison->valueComparisonDb(
-						$comparison->superior_variable_id === $variable->id ? $superior_value : $inferior_value, 
-						$comparison->superior_variable_id === $variable->id ? $inferior_value : $superior_value,
-						$variable
-					);
+					$result = $comparison->valueComparisonDb($superior_value, $inferior_value,$variable);
 
 					if ($result < 0 || $result > 1)
 						return -1;

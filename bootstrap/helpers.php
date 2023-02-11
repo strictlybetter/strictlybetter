@@ -474,13 +474,13 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 
 	$queryAll = App\Card::/*select($obsoletion_attributes)->*/with(['functionality'])
 		->whereNull('main_card_id')
-		->whereDoesntHave('cardFaces')
-		->orderBy('cards.id', 'asc');
+		->whereDoesntHave('cardFaces');
 
 	if ($using_analysis)
 		$queryAll = $queryAll->with(['functionality.variablevalues', 'functionality.excerpts' => function($q) {
-			$q/*->select(['excerpts.id', 'positive'])*/->with(['variables', 'superiors.variables', 'inferiors.variables']);
-		}]);
+			$q/*->select(['excerpts.id', 'positive'])*/->with(['variables', 'superiors.variables', 'inferiors.variables', 'superiors.comparison.variablecomparisons', 
+				'inferiors.comparison.variablecomparisons']);
+		}])->where('substituted_rules', 'not like', 'Level up %');
 
 	$cardcount = $queryAll->count();
 	$progress = 0;
@@ -517,11 +517,12 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 	
 		else {
 			$q->with(['functionality.variablevalues', 'functionality.excerpts' => function($q) {
-				$q->/*select(['excerpts.id', 'positive'])->*/with(['variables', 'superiors.variables', 'inferiors.variables']);
+				$q->/*select(['excerpts.id', 'positive'])->*/with(['variables', 'superiors.variables', 'inferiors.variables', 'superiors.comparison.variablecomparisons', 
+				'inferiors.comparison.variablecomparisons']);
 			}]);
 
 			// Must have differing rules text
-			$q = $q->where('substituted_rules', '!=', $card->substituted_rules);
+			$q = $q->where('substituted_rules', '!=', $card->substituted_rules)->where('substituted_rules', 'not like', 'Level up %');
 
 			$excerpts = $card->functionality->excerpts;
 
@@ -686,7 +687,7 @@ function create_obsoletes(&$count, $using_analysis = false, $progress_callback =
 		// dd(\Str::replaceArray('?', $q->getBindings(), $q->toSql()));
 
 
-		$q->orderBy('cards.id', 'asc')->chunkById(1000, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
+		$q->chunkById(1000, function($betters) use ($card, $using_analysis, $progress_callback, $cardcount, $progress, &$count) {
 
 			// Filter out any better cards that cost more colored mana
 
