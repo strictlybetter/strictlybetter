@@ -70,8 +70,8 @@ class Excerpt extends Model
 		// • == \x{2022} (Used in cards with choices)
 		// Split by lines and dotted sentences
 		//$raws = preg_split('/(\n|(?<=\.)\s*)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
-		$raws = preg_split('/(\n|(?<=\.)\s+|(?<=\.")\s+)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
-		//$raws = preg_split('/(?:"[^"]*")*(\n|(?<=\.)\s*)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
+		//$raws = preg_split('/(\n|(?<=\.)\s+|(?<=\.")\s+)/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
+		$raws = preg_split('/(\n|(?<=\.)\s*(?=([^"]*"[^"]*")*[^"]*$))/u', $card->substituted_rules, -1, PREG_SPLIT_NO_EMPTY);
 		$excerpts = [];
 
 		foreach ($raws as $raw) {
