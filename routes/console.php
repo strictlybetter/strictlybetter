@@ -1010,3 +1010,65 @@ Artisan::command('full-update', function () {
 	Artisan::call('create-obsoletes', [], $this->getOutput());
 
 })->describe('Performs full update cycle');
+
+Artisan::command('check-longest', function () {
+
+	$this->comment(date('[Y-m-d H:i:s]') . " Checking longest...");
+
+	$q = Obsolete::with('superiors');
+
+	$highest_count = 0;
+	$longest_chain = [];
+	$count = 0;
+	$chain = [];
+
+	$bar = $this->output->createProgressBar($q->count());
+
+	$q->chunkById(500, function($obsoletes) use (&$highest_count, &$count, $bar, &$chain, &$longest_chain) {
+
+		foreach ($obsoletes as $obsolete) {
+			$handled = [];
+			$chain = [];
+			recurse_find_obsolete($obsolete, $count, $highest_count, $handled, $chain, $longest_chain);
+			$bar->advance();
+		}
+	});
+	$bar->finish();
+
+	$longest = implode(",", $longest_chain);
+
+	$this->comment(date('[Y-m-d H:i:s]') . " Highest count = {$highest_count} {$longest}");
+
+})->describe('Performs full update cycle');
+
+function recurse_find_obsolete($obsolete, &$count, &$highest_count, &$handled, &$chain, &$longest_chain) {
+
+	$obsolete->load('superiors');
+	if ($obsolete->superiors->count() > 0) {
+		
+		foreach ($obsolete->superiors as $superior) {
+
+			if (isset($handled[$superior->id]) || !Obsolete::where('id', $superior->pivot->obsolete_id ?? $obsolete->id)->whereRaw('upvotes >= downvotes')->first())
+				return;
+			$handled[$superior->id] = 1;
+
+			$last_count = $count;
+			$count++;
+
+			$last_chain = $chain;
+			$chain[] = $superior->name;
+
+			recurse_find_obsolete($superior, $count, $highest_count, $handled, $chain, $longest_chain);
+
+			if ($count > $highest_count) {
+				$highest_count = $count;
+				$longest_chain = $chain;
+			}
+			unset($handled[$superior->id]);
+			$count = $last_count;
+			$chain = $last_chain;
+		}
+
+	}
+
+}
