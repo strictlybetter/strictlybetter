@@ -441,7 +441,8 @@ class Card extends Model
 			// ... Unless this permanent does it's thing when entering battlefield 
 			// or can self sacrifice for the effect
 			// or triggers when cycled
-			if (!preg_match('/\bWhen (?!another)[^\.]* enters the battlefield/', $this->substituted_rules) &&
+			if (!preg_match('/\bWhen (?!another)[^\.]* enters\b/', $this->substituted_rules) &&
+				!preg_match('/\bWhen you unlock this door\b/', $this->substituted_rules) && 
 				!preg_match('/\bSacrifice @@@:/', $this->substituted_rules) &&
 				!preg_match('/\bWhen(?:ever)? you cycle @@@/', $this->substituted_rules) &&
 				!preg_match('/\b\w+cycling\b/', $this->substituted_rules) &&

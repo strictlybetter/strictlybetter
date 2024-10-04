@@ -20,7 +20,17 @@
 	<p>This page lists usage affecting changes on the site.</p>
 	<hr>
 
-	<h4>11/25/22</h4>
+	<h4>4.10.2024</h4>
+	<ul>
+		<li>Changed "enters the battlefield" rule filtering to match the new "enters" wording.
+			<ul>
+				<li>This allows adding some permanents to be better than some sorceries/instants again.</li>
+			</ul>
+		</li>
+		<li>Added support for rooms, so unlocking is understood as an "enters" effect, which may be better than some instants/sorceries.</li>
+	</ul>
+
+	<h4>25.11.2022</h4>
 	<ul>
 		<li>Fixed Deck Upgrade -page not recognizing double faced card names.
 			<ul>
@@ -29,17 +39,17 @@
 		</li>
 	</ul>
 
-	<h4>10/01/22</h4>
+	<h4>1.20.2022</h4>
 	<ul>
 		<li>Tweaked tribe, format and label filter selectbox appearance, so it's easier to notice if an item is selected</li>
 	</ul>
 
-	<h4>09/29/22</h4>
+	<h4>29.9.2022</h4>
 	<ul>
 		<li>Fix error while adding suggestions</li>
 	</ul>
 
-	<h4>09/05/22</h4>
+	<h4>5.9.2022</h4>
 	<ul>
 		<li>Card name autocompletion uses native browser caching instead of custom javascript implementation</li>
 		<li>Cards restricted in selected format are now also listed</li>
@@ -47,24 +57,24 @@
 		<li>Minor tweaks to texts</li>
 	</ul>
 
-	<h4>07/06/22</h4>
+	<h4>6.7.2022</h4>
 	<ul>
 		<li>Fixed some card misgroupings causing votes to be shared incorrectly.</li>
 		<li>Moved some older suggestions from inferior/superior tabs to type variants (Add suggestions page also rejects adding type variants).</li>
 	</ul>
 
-	<h4>03/04/22</h4>
+	<h4>4.3.2022</h4>
 	<ul>
-		<li>Added support for <i>Channel</i>. Ie. <i>Ironhoof Boar</i> is now better than <i>Brute Strength<i></li>
+		<li>Added support for <i>Channel</i>. Ie. <i>Ironhoof Boar</i> is now better than <i>Brute Strength</i></li>
 	</ul>
 
-	<h4>01/31/22</h4>
+	<h4>31.1.2022</h4>
 	<ul>
 		<li>Compared main card now sticky scrolls for easier comparing</li>
 		<li>Minor UI tweaks for navbar and votehelp page</li>
 	</ul>
 
-	<h4>01/27/22</h4>
+	<h4>27.1.2022</h4>
 	<ul>
 		<li>New UI
 			<ul>
@@ -80,13 +90,13 @@
 		</li>
 	</ul>
 
-	<h4>01/22/22</h4>
+	<h4>22.1.2022</h4>
 	<ul>
 		<li>Minor UI tweaks and info texts.</li>
 		<li>Add Suggestion -page now automatically checks the validity of selected cards and tells if they are not passing a check for adding</li>
 	</ul>
 
-	<h4>01/21/22</h4>
+	<h4>21.1.2022</h4>
 	<ul>
 		<li>Added voting categories to Help Voting page and adjusted which cards are listed there
 			<ul>
@@ -107,12 +117,12 @@
 		</li>
 	</ul>
 
-	<h4>01/19/22</h4>
+	<h4><19.1.2022</h4>
 	<ul>
 		<li>Fixed automatic suggestions not comparing double digit power/toughness correctly. (A bug introduced in recent framework upgrade)</li>
 	</ul>
 
-	<h4>09/16/21</h4>
+	<h4>16.9.2021</h4>
 	<ul>
 		<li>Introducing <b>machine learning</b> to determine some rules text betterness and finding more card suggestions automatically.
 			<ul>
@@ -135,7 +145,7 @@
 		</li>
 	</ul>
 
-	<h4>08/31/21</h4>
+	<h4>31.8.2021</h4>
 	<ul>
 		<li>Identical cards (excluding subtypes) share better-worse relations and voting data.<br>
 			Ie. voting for <i>Llanowar Elves</i> also votes for <i>Elvish Mystic</i>.</li>
@@ -169,30 +179,30 @@
 		<li>Added Help Voting tab where visitors can upvote or downvote random suggestions that have a low vote count.</li>
 	</ul>
 
-	<h4>07/11/21</h4>
+	<h4>11.7.2021</h4>
 	<ul>
 		<li>Added support for alternative manacost: Overload.
 		Ie. <i>Damn</i> is now better than <i>Wrath of God</i>.</li>
 	</ul>
 
-	<h4>11/09/20</h4>
+	<h4>9.11.2020</h4>
 	<ul>
 		<li>Use Scryfall's new card image CDN rather than Gatherer for performance</li>
 		<li>Load card images only when in viewport to save client bandwith</li>
 		<li>Show a placeholder image and animation while loading real card image</li>
 	</ul>
 
-	<h4>01/03/20</h4>
+	<h4>3.1.2020</h4>
 	<ul>
 		<li>Support for new split cards that use existing split card face names, like Start//Finish and Start//Fire</li>
 	</ul>
 
-	<h4>11/05/19</h4>
+	<h4>5.11.2019</h4>
 	<ul>
 		<li>Added donation button for development and maintenance</li>
 	</ul>
 
-	<h4>11/01/19</h4>
+	<h4>1.11.2019</h4>
 	<ul>
 		<li>Added subtype/tribe filters. On browse page, this limits suggestions to the selected tribe.
 		On Deck Upgrade page cards that are not from the tribe also get non-tribe suggestions, but suggestions from the tribe are sorted first. Tribes are updated daily to match Scryfall data.</li>
@@ -200,26 +210,26 @@
 		<li>Fixed search results when trying to access non-existant page number on Browse page. You will see the last available page instead.</li>
 	</ul>
 
-	<h4>10/28/19</h4>
+	<h4>28.10.2019</h4>
 	<ul>
 		<li>Spoiled cards are now handled correctly and renamed as soon as their real names are revealed. No more duplicates</li>
 		<li>Removed non-playble cards, like 'Experience' where you put your experience counters on.</li>
 		<li>Fixed bug with cards starting with special characters not being treated equally when they used their name in rules text</li>
 	</ul>
 
-	<h4>10/27/19</h4>
+	<h4>27.10.2019</h4>
 	<ul>
 		<li>Fixed automatic updates</li>
 		<li>Selectable formats are now also updated daily to match Scryfall card data. This means pioneer and any future formats are now automatically available.</li>
 	</ul>
 
-	<h4>09/07/19</h4>
+	<h4>7.9.2019</h4>
 	<ul>
 		<li>API now allows CORS with any domain, so API may be used directly from browsers</li>
 		<li>API requests use short term (60s) client based caching to mitigate frequent requests from browsers</li>
 	</ul>
 
-	<h4>08/03/19</h4>
+	<h4>3.8.2019</h4>
 	<ul>
 		<li>Update #2
 			<ul>
@@ -246,18 +256,18 @@
 		</li>
 	</ul>
 
-	<h4>07/06/19</h4>
+	<h4>6.7.2019</h4>
 	<ul>
 		<li>Upgrade Deck -feature no longer suggests cards that are alredy in the deck. E.g. when playing both Murder and Hero's Downfall</li>
 	</ul>
 
-	<h4>06/26/19</h4>
+	<h4>26.6.2019</h4>
 	<ul>
 		<li>Card database is now updated daily to match the cards available at Scryfall</li>
 		<li>New programmatic suggestions and functional reprints are added automatically when card database is updated</li>
 	</ul>
 
-	<h4>06/22/19</h4>
+	<h4>22.6.2019</h4>
 	<ul>
 		<li>Harshly downvoted cards have a label on them (requires 10 more downvotes than upvotes).</li>
 		<li>Harshly downvoted cards can be hidden from results with Labels Filters on Browse page</li>
@@ -272,7 +282,7 @@
 		<li>Fixed labels not being generated programmatic additions</li>
 	</ul>
 
-	<h4>06/21/19</h4>
+	<h4>21.6.2019</h4>
 	<ul>
 		<li>Added new cards to database (some M20 spoilers).</li>
 		<li>Added Scryfall links for cards</li>
@@ -285,13 +295,13 @@
 		<li>Fixed a scroll issue with small screens when selecting a format or labels to filter on Browse page</li>
 	</ul>
 
-	<h4>06/12/19</h4>
+	<h4>12.6.2019</h4>
 	<ul>
 		<li>Back/Forward navigation works more intuitively on Browse page. Remembers scroll positions and records format/label filter changes to page history.</li>
 		<li>Scroll to top when clicking navigation elements in Browse page (only if top pagination menu is not visible)</li>
 	</ul>
 
-	<h4>06/11/19</h4>
+	<h4>11.6.2019</h4>
 
 	<ul>
 		<li>Major UI rework
@@ -324,7 +334,7 @@
 		<li>Added some suggestions programmatically (only works for cards with identical rules texts)</li>
 	</ul>
 
-	<h4>05/29/19</h4>
+	<h4>29.5.2019</h4>
 
 	<ul>
 		<li>Added About and Changelog pages</li>
@@ -338,7 +348,7 @@
 		<li>Voting no longer refreshes the page, but is done in the background instead</li>
 	</ul>
 
-	<h4>05/28/19</h4>
+	<h4>28.5.2019</h4>
 
 	<ul>
 		<li>Improved functional reprint detection to also detect cards that use their own name in rules text. This pushes functional reprint families from 102 -> 147 and individual cards from 202 -> 306</li>
@@ -346,7 +356,7 @@
 		<li>Added support for formats. When a format is selected, only upgrades available in that format will be shown. The card to upgrade from may still be from any from format.</li>
 	</ul>
 
-	<h4>05/27/19</h4>
+	<h4>27.5.2019</h4>
 
 	<ul>
 		<li>Did some background work for functional reprints (Llanowar Elves, Elvish Mystic...) They are now available via API, but not yet present in UI.</li>
@@ -362,7 +372,7 @@
 		<li>If a suggested worse/better card has functional reprints, all reprints are automatically suggested as well.</li>
 	</ul>
 
-	<h4>05/26/19</h4>
+	<h4>26.5.2019</h4>
 	<ul>
 		<li>Initial release</li>
 	</ul>
