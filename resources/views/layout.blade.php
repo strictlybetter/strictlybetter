@@ -72,15 +72,6 @@
 						<li class="nav-item {{ Request::is('changelog') ? 'active' : '' }}">
 							<a title="Changes the website has gone through over time" class="nav-link" href="{{ route('changelog') }}">Changelog</a>
 						</li>
-						<li class="nav-item">
-							<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
-								<input type="hidden" name="cmd" value="_donations" />
-								<input type="hidden" name="business" value="P32N439KJFJR4" />
-								<input type="hidden" name="item_name" value="Strictly Better, development and maintenance" />
-								<input type="hidden" name="currency_code" value="EUR" />
-								<input class="nav-link" style="padding-top: 0.70rem" type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" title="Donate for development and maintenance" alt="Donate with PayPal button" />
-							</form>
-						</li>
 					</ul>
 
 					{{ Form::open(['id' => 'card-search-form', 'route' => 'card.search', 'autocomplete' => 'off', 'class' => 'form-inline my-2 my-lg-0']) }}
