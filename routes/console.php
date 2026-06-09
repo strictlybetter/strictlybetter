@@ -362,7 +362,11 @@ Artisan::command('download-scryfall', function () {
 
 	$this->comment("Requesting bulkfile metadata...");
 
-	$client = new \GuzzleHttp\Client();
+	$client = new \GuzzleHttp\Client([
+		'headers' => [
+			'User-Agent' => config('externals.user_agent'),
+			'Accept'     => 'application/json']
+		]);
 	$request = null;
 	try {
 		$request = $client->get(config('externals.scryfall.bulk-data'));
@@ -439,7 +443,11 @@ Artisan::command('download-typedata', function () {
 		'enchantment-types' => 'Enchantment'
 	];
 
-	$client = new \GuzzleHttp\Client();
+	$client = new \GuzzleHttp\Client([
+		'headers' => [
+			'User-Agent' => config('externals.user_agent'),
+			'Accept'     => 'application/json']
+		]);
 
 	foreach ($downloadable_types as $uri => $type) {
 

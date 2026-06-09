@@ -23,6 +23,6 @@ return [
     ],
 
     // Shown on some pages as author / contact email
-    'author_email' => env('MAIL_AUTHOR', '')
-    
+    'author_email' => env('MAIL_AUTHOR', ''),
+    'user_agent' => 'StrictlyBetter/1.0'
 ];
