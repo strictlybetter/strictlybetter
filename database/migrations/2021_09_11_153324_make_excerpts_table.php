@@ -22,8 +22,10 @@ class MakeExcerptsTable extends Migration
             $table->integer('negativity_points')->default(0);
 
             $table->index('positive');
-            $table->index([DB::raw('text(191)')]);
+            
+            //$table->index([DB::raw('text(191)')]);
         });
+        DB::statement('create index text_idx ON excerpts (text(191));');
 
         Schema::create('excerpt_group', function (Blueprint $table) {
             $table->increments('id');

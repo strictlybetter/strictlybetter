@@ -17,8 +17,10 @@ class AddSubstitutedRulesToCardsTable extends Migration
             $table->text('substituted_rules')->default("");
             $table->json('manacost_sorted')->nullable();
 
-            $table->index([DB::raw('substituted_rules(191)')]);
+            
+            //$table->index([DB::raw('substituted_rules(191)')]);
         });
+        DB::statement('create index substituted_rules_idx ON cards (substituted_rules(191));');
     }
 
     /**
